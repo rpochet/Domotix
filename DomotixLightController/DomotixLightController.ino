@@ -40,10 +40,10 @@ Adafruit_BMP085 bmp = Adafruit_BMP085(BMP085_ID);
 /**
  * OUTPUT BOARD
  */
-const byte PCF8574_0 = 0x40;
-const byte PCF8574_1 = 0x42;
-const byte PCF8574_2 = 0x44;
-const byte PCF8574_3 = 0x46;
+const byte PCF8574_0 = 0x48;
+const byte PCF8574_1 = 0x44;
+const byte PCF8574_2 = 0x40;
+const byte PCF8574_3 = 0x4c;
 const byte OUTPUT_PER_BOARD = 8;
 const byte boardsAddr[] = { PCF8574_0, PCF8574_1, PCF8574_2, PCF8574_3 };
 
@@ -61,6 +61,7 @@ unsigned int currentOutput;
 unsigned int currentOutputBoard;
 unsigned int currentOutputInBoard;
 
+boolean bStartPulse = false;
 boolean bStopPulse = false;
 
 ISR(TIMER1_OVF_vect)
@@ -101,8 +102,8 @@ void setup()
     }
     
     // initialize timer1 
-    TCCR1A = 0;               // set entire TCCR1A register to 0
-    TCCR1B = 0;               // same for TCCR1A
+    TCCR1A = 0;               // set TCCR1A register to 0
+    TCCR1B = 0;               // same for TCCR1B
     startCounter = 0x0000 - (F_CPU / 256 * pulseWidth /1000);
     
     delay(1000);
@@ -245,6 +246,32 @@ void loop()
         getRegister(REGI_SENSOR)->getData();
     }
     
+    if(bStartPulse)
+    {
+        bStartPulse = false;
+  
+        byte x;
+        
+    #ifdef DEBUG
+        Serial.println("Pulse started...");
+    #endif
+    
+        digitalWrite(LEDPIN, HIGH);
+        
+        noInterrupts();           // disable all interrupts
+        TCNT1 = startCounter;     // initialize counter value to 0
+        TCCR1B |= _BV(CS12);      // Set CS10 and CS12 bits for 1024 prescaler
+        TIMSK1 |= (1 << TOIE1);   // enable overflow interrupt
+        interrupts();
+        
+        x |= (1 << currentOutputInBoard);  //Toogle n bit position to 1
+        Wire.beginTransmission(boardsAddr[currentOutputBoard]); 
+        Wire.write(x);
+        Wire.endTransmission();
+      
+        //boards[currentOutputBoard].setRelay(currentOutputInBoard, 1);
+    }
+    
     if(bStopPulse)
     {
         bStopPulse = false;
@@ -254,26 +281,7 @@ void loop()
 
 void startPulse()
 {  
-    byte x;
-    
-#ifdef DEBUG
-    Serial.println("Pulse started...");
-#endif
-
-    digitalWrite(LEDPIN, HIGH);
-    
-    noInterrupts();           // disable all interrupts
-    TCNT1 = startCounter;     // initialize counter value to 0
-    TCCR1B |= _BV(CS12);      // Set CS10 and CS12 bits for 1024 prescaler
-    TIMSK1 |= (1 << TOIE1);   // enable overflow interrupt
-    interrupts();
-    
-    x |= (1 << currentOutputInBoard);  //Toogle n bit position to 1
-    Wire.beginTransmission(boardsAddr[currentOutputBoard]); 
-    Wire.write(x);
-    Wire.endTransmission();
-  
-    //boards[currentOutputBoard].setRelay(currentOutputInBoard, 1);
+    bStartPulse = true;
 }
 
 void stopPulse()

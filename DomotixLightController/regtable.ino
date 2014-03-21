@@ -93,6 +93,22 @@ static byte dtoutput22[1];
 REGISTER regoutput22(dtoutput22, sizeof(dtoutput22), NULL, &updtOutput);
 static byte dtoutput23[1];
 REGISTER regoutput23(dtoutput23, sizeof(dtoutput23), NULL, &updtOutput);
+/*static byte dtoutput24[1];
+REGISTER regoutput24(dtoutput24, sizeof(dtoutput24), NULL, &updtOutput);
+static byte dtoutput25[1];
+REGISTER regoutput25(dtoutput25, sizeof(dtoutput25), NULL, &updtOutput);
+static byte dtoutput26[1];
+REGISTER regoutput26(dtoutput26, sizeof(dtoutput26), NULL, &updtOutput);
+static byte dtoutput27[1];
+REGISTER regoutput27(dtoutput27, sizeof(dtoutput27), NULL, &updtOutput);
+static byte dtoutput28[1];
+REGISTER regoutput28(dtoutput28, sizeof(dtoutput28), NULL, &updtOutput);
+static byte dtoutput29[1];
+REGISTER regoutput29(dtoutput29, sizeof(dtoutput29), NULL, &updtOutput);
+static byte dtoutput30[1];
+REGISTER regoutput30(dtoutput30, sizeof(dtoutput30), NULL, &updtOutput);
+static byte dtoutput31[1];
+REGISTER regoutput31(dtoutput31, sizeof(dtoutput31), NULL, &updtOutput);*/
 
 
 /**
@@ -126,7 +142,15 @@ DECLARE_REGISTERS_START()
   &regoutput20,
   &regoutput21,
   &regoutput22,
-  &regoutput23
+  &regoutput23/*,
+  &regoutput24,
+  &regoutput25,
+  &regoutput26,
+  &regoutput27,
+  &regoutput28,
+  &regoutput29,
+  &regoutput30,
+  &regoutput31*/
 DECLARE_REGISTERS_END()
 
 /**
@@ -154,34 +178,34 @@ const void updtSensorDelay(byte rId, byte *value)
  */
 const void updtSensor(byte rId)
 {
-  float temperature;
-  float pressure_Pa;
-  int temperature2send;
-  long pressure2send;
+    float temperature;
+    float pressure_Pa;
+    int temperature2send;
+    long pressure2send;
   
-  bmp.getTemperature(&temperature);
+    bmp.getTemperature(&temperature);
 #ifdef DEBUG
-  Serial.print("Temperature: ");
-  Serial.print(temperature);
-  Serial.println(" °C");
+    Serial.print("Temperature: ");
+    Serial.print(temperature);
+    Serial.println(" °C");
 #endif
     
-  bmp.getPressure(&pressure_Pa);
+    bmp.getPressure(&pressure_Pa);
 #ifdef DEBUG
-  Serial.print("Pressure: ");
-  Serial.print(pressure_Pa / 100.0F);
-  Serial.println(" hPa");
+    Serial.print("Pressure: ");
+    Serial.print(pressure_Pa / 100.0F);
+    Serial.println(" hPa");
 #endif
   
-  temperature2send = (int) (temperature * 100);
-  dtSensor[0] = (temperature2send >> 8) & 0xFF;
-  dtSensor[1] = temperature2send & 0xFF;
+    temperature2send = (int) (temperature * 100);
+    dtSensor[0] = (temperature2send >> 8) & 0xFF;
+    dtSensor[1] = temperature2send & 0xFF;
   
-  pressure2send = (long) (pressure_Pa);
-  dtSensor[2] = (pressure2send >> 24) & 0xFF;
-  dtSensor[3] = (pressure2send >> 16) & 0xFF;
-  dtSensor[4] = (pressure2send >> 8) & 0xFF;
-  dtSensor[5] = pressure2send & 0xFF;
+    pressure2send = (long) (pressure_Pa);
+    dtSensor[2] = (pressure2send >> 24) & 0xFF;
+    dtSensor[3] = (pressure2send >> 16) & 0xFF;
+    dtSensor[4] = (pressure2send >> 8) & 0xFF;
+    dtSensor[5] = pressure2send & 0xFF;
 }
 
 /**
@@ -208,31 +232,28 @@ const void updtPulseWidth(byte rId, byte *value)
 const void updtOutput(byte rId, byte *value)
 {
 #ifdef DEBUG
-  Serial.print("rId: ");
-  Serial.println(rId);
-  Serial.print("value: ");
-  Serial.println(value[0]);
+    Serial.print("rId: ");
+    Serial.println(rId);
+    Serial.print("value: ");
+    Serial.println(value[0]);
 #endif
 
-  // Update register from:
-  // level (Position = byte 0 bit 0 - Size = 8 bits)
-  // Output is rId - REGI_OUTPUT0
+    // Update register from:
+    // level (Position = byte 0 bit 0 - Size = 8 bits)
+    // Output is rId - REGI_OUTPUT0
   
-  // Set new Sensor Delay. BE to LE conversion
-  getRegister(rId)->setValueFromBeBuffer(value);
+    // Set new Sensor Delay. BE to LE conversion
+    getRegister(rId)->setValueFromBeBuffer(value);
   
-  currentOutput = rId - REGI_OUTPUT0;
-  currentOutputBoard = currentOutput / OUTPUT_PER_BOARD;
-  currentOutputInBoard = currentOutput % OUTPUT_PER_BOARD;
+    currentOutput = rId - REGI_OUTPUT0;
+    currentOutputBoard = currentOutput / OUTPUT_PER_BOARD;
+    currentOutputInBoard = currentOutput % OUTPUT_PER_BOARD;
   
 #ifdef DEBUG
-  Serial.println(currentOutput);
-  Serial.println(currentOutputBoard);
-  Serial.println(currentOutputInBoard);
+    Serial.println(currentOutput);
+    Serial.println(currentOutputBoard);
+    Serial.println(currentOutputInBoard);
 #endif
 
-  startPulse();
+    startPulse();
 }
-
-
-

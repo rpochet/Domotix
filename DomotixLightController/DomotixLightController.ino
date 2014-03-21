@@ -80,6 +80,7 @@ void setup()
 {
     //unsigned char clockSelectBits;
     int i;
+    pinMode(LEDPIN, OUTPUT);
   
     // Init panStamp
     //eepromToFactoryDefaults();
@@ -113,13 +114,13 @@ void setup()
     Serial.println(pulseWidth);
     Serial.println(startCounter);
     Serial.println(sensorDelay);
+    Serial.println(freeRam());
 #endif
 
-    pinMode(LEDPIN, OUTPUT);
     digitalWrite(LEDPIN, HIGH);
   
     // Initialize BMP085 boards
-    initSensor();
+    //initSensor();
   
     // Initialize PCF8574 boards
     initBoards();
@@ -138,6 +139,12 @@ void setup()
     digitalWrite(LEDPIN, LOW);
 }
 
+int freeRam() {
+  extern int __heap_start, *__brkval; 
+  int v; 
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+}
+
 void initRegister() 
 {
     pulseWidth = dtPulseWidth[1] << 8 | dtPulseWidth[0];
@@ -148,7 +155,7 @@ void initRegister()
     sensorDelay = dtSensorDelay[1] << 8 | dtSensorDelay[0];
     if(sensorDelay == 0) 
     {
-      sensorDelay = 60;
+      sensorDelay = 3600;
     }
 }
 
@@ -243,7 +250,7 @@ void loop()
         // time to send sensor register
         nextUpdate = millis() + sensorDelay * 1000L;
         
-        getRegister(REGI_SENSOR)->getData();
+        //getRegister(REGI_SENSOR)->getData();
     }
     
     if(bStartPulse)
@@ -277,6 +284,14 @@ void loop()
         bStopPulse = false;
         stopPulse();
     }
+    
+    /*#ifdef DEBUG
+    if (millis() >= nextUpdate) {
+        // time to send sensor register
+        nextUpdate = millis() + 10000L;
+        Serial.println(freeRam());
+    }
+    #endif*/
 }
 
 void startPulse()

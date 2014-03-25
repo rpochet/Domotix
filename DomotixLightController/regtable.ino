@@ -179,29 +179,17 @@ const void updtSensorDelay(byte rId, byte *value)
 const void updtSensor(byte rId)
 {
     float temperature;
-    float pressure_Pa;
+    float pressurePa;
     int temperature2send;
     long pressure2send;
   
     bmp.getTemperature(&temperature);
-#ifdef DEBUG
-    Serial.print("Temperature: ");
-    Serial.print(temperature);
-    Serial.println(" °C");
-#endif
-    
-    bmp.getPressure(&pressure_Pa);
-#ifdef DEBUG
-    Serial.print("Pressure: ");
-    Serial.print(pressure_Pa / 100.0F);
-    Serial.println(" hPa");
-#endif
-  
     temperature2send = (int) (temperature * 100);
     dtSensor[0] = (temperature2send >> 8) & 0xFF;
     dtSensor[1] = temperature2send & 0xFF;
-  
-    pressure2send = (long) (pressure_Pa);
+    
+    bmp.getPressure(&pressurePa);
+    pressure2send = (long) (pressurePa);
     dtSensor[2] = (pressure2send >> 24) & 0xFF;
     dtSensor[3] = (pressure2send >> 16) & 0xFF;
     dtSensor[4] = (pressure2send >> 8) & 0xFF;
@@ -231,13 +219,6 @@ const void updtPulseWidth(byte rId, byte *value)
  */
 const void updtOutput(byte rId, byte *value)
 {
-#ifdef DEBUG
-    Serial.print("rId: ");
-    Serial.println(rId);
-    Serial.print("value: ");
-    Serial.println(value[0]);
-#endif
-
     // Update register from:
     // level (Position = byte 0 bit 0 - Size = 8 bits)
     // Output is rId - REGI_OUTPUT0
@@ -248,12 +229,6 @@ const void updtOutput(byte rId, byte *value)
     currentOutput = rId - REGI_OUTPUT0;
     currentOutputBoard = currentOutput / OUTPUT_PER_BOARD;
     currentOutputInBoard = currentOutput % OUTPUT_PER_BOARD;
-  
-#ifdef DEBUG
-    Serial.println(currentOutput);
-    Serial.println(currentOutputBoard);
-    Serial.println(currentOutputInBoard);
-#endif
 
     startPulse();
 }

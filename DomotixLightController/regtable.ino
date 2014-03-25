@@ -93,7 +93,7 @@ static byte dtoutput22[1];
 REGISTER regoutput22(dtoutput22, sizeof(dtoutput22), NULL, &updtOutput);
 static byte dtoutput23[1];
 REGISTER regoutput23(dtoutput23, sizeof(dtoutput23), NULL, &updtOutput);
-/*static byte dtoutput24[1];
+static byte dtoutput24[1];
 REGISTER regoutput24(dtoutput24, sizeof(dtoutput24), NULL, &updtOutput);
 static byte dtoutput25[1];
 REGISTER regoutput25(dtoutput25, sizeof(dtoutput25), NULL, &updtOutput);
@@ -108,7 +108,7 @@ REGISTER regoutput29(dtoutput29, sizeof(dtoutput29), NULL, &updtOutput);
 static byte dtoutput30[1];
 REGISTER regoutput30(dtoutput30, sizeof(dtoutput30), NULL, &updtOutput);
 static byte dtoutput31[1];
-REGISTER regoutput31(dtoutput31, sizeof(dtoutput31), NULL, &updtOutput);*/
+REGISTER regoutput31(dtoutput31, sizeof(dtoutput31), NULL, &updtOutput);
 
 
 /**
@@ -142,7 +142,7 @@ DECLARE_REGISTERS_START()
   &regoutput20,
   &regoutput21,
   &regoutput22,
-  &regoutput23/*,
+  &regoutput23,
   &regoutput24,
   &regoutput25,
   &regoutput26,
@@ -150,7 +150,7 @@ DECLARE_REGISTERS_START()
   &regoutput28,
   &regoutput29,
   &regoutput30,
-  &regoutput31*/
+  &regoutput31
 DECLARE_REGISTERS_END()
 
 /**

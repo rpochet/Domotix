@@ -23,7 +23,7 @@
  * LED pin
  */
 #define LEDPIN         4
-#define DEBUG
+//#define DEBUG
 
 
 /**
@@ -120,7 +120,7 @@ void setup()
     digitalWrite(LEDPIN, HIGH);
   
     // Initialize BMP085 boards
-    //initSensor();
+    initSensor();
   
     // Initialize PCF8574 boards
     initBoards();
@@ -174,10 +174,6 @@ void initSensor()
 #endif
         while(1);
     }
-  
-#ifdef DEBUG
-    Serial.println("Done");
-#endif
 
 #ifdef DEBUG
     // Display some basic information on this sensor
@@ -201,6 +197,7 @@ void initSensor()
     Serial.println(" hPa");  
     Serial.println("------------------------------------");
     Serial.println("");
+    Serial.println("Done");
 #endif
 }
 
@@ -230,11 +227,7 @@ void initBoards()
     s = board1.getRelay(0);
     Serial.print("Relay 0: ");
     Serial.println(s);
-    Serial.print("OK");
-#endif
-  
-#ifdef DEBUG
-    Serial.println("Done");
+    Serial.println("OK");
 #endif
 }
 
@@ -250,7 +243,7 @@ void loop()
         // time to send sensor register
         nextUpdate = millis() + sensorDelay * 1000L;
         
-        //getRegister(REGI_SENSOR)->getData();
+        getRegister(REGI_SENSOR)->getData();
     }
     
     if(bStartPulse)
@@ -284,19 +277,17 @@ void loop()
         bStopPulse = false;
         stopPulse();
     }
-    
-    /*#ifdef DEBUG
-    if (millis() >= nextUpdate) {
-        // time to send sensor register
-        nextUpdate = millis() + 10000L;
-        Serial.println(freeRam());
-    }
-    #endif*/
 }
 
 void startPulse()
 {  
     bStartPulse = true;
+  
+    #ifdef DEBUG
+        Serial.println(currentOutput);
+        Serial.println(currentOutputBoard);
+        Serial.println(currentOutputInBoard);
+    #endif
 }
 
 void stopPulse()

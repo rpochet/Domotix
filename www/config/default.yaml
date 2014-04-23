@@ -1,0 +1,34 @@
+server:
+    port: 4000
+serial:
+    port: /dev/ttyAMA0
+    baudrate: 38400
+devices:
+    local: devices
+    remote: http://www.panstamp.com/downloads/devices.tar
+    update: false
+network:
+    channel: 0
+    syncword: 46406
+    address: 1
+    security: 0
+broker:
+    host: 192.168.1.4
+    port: 10000
+serialBridge:
+    host: 192.168.1.4
+    port: 5555
+thingspeak:
+    host: api.thingspeak.com
+    securehost: https://api.thingspeak.com
+    channels:
+        channelId: 8141,
+        writeApiKey: DV1CSLVQ3QIRV0K0
+        readApiKey: 0975Z0F5ERBEUNK9
+    fields:
+        100/1/12:0:
+            channelId: 8141
+            fieldId: field1
+        100/1/12:1:
+            channelId: 8141
+            fieldId: field2

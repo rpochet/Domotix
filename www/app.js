@@ -16,6 +16,12 @@ ss.http.route('/', function(req, res){
   res.serveClient('main');
 });
 
+// Extend SocketStream with Models and more
+ss.responders.add(require('ss-backbone'));
+
+ss.session.store.use('redis');
+ss.publish.transport.use('redis');
+
 // Code Formatters
 ss.client.formatters.add(require('ss-coffee'));
 ss.client.formatters.add(require('ss-jade'));
@@ -30,7 +36,7 @@ if (ss.env === 'production') ss.client.packAssets();
 
 // Start web server
 var server = http.Server(ss.http.middleware);
-server.listen(4000);
+server.listen(5555);
 
 // Start SocketStream
 ss.start(server);

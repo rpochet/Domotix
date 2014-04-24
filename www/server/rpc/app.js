@@ -8,7 +8,7 @@ exports.actions = function(req, res, ss){
     // Square a number and return the result
     square: function(num){
       res(num * num);
-    }
+    },
 
     sendAlert: function(){
       ss.publish.all('systemAlert',

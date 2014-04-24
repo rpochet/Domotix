@@ -1,5 +1,5 @@
 server:
-    port: 4000
+    port: 5555
 serial:
     port: /dev/ttyAMA0
     baudrate: 38400

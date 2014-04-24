@@ -1,0 +1,44 @@
+extends layout
+block content
+    .navbar
+        .navbar-inner
+            
+            ul.nav
+                li
+                    a(ng-click="openConfig()") 
+                        i.icon-cog
+                        |  Settings                    
+                        
+    .container
+        h1 Swap Gateway
+        hr
+        .row
+            .span6
+                h3 Stamps
+                #motes
+                    div(ng-repeat="mote in motes | orderBy: location") 
+                        a(ng-click="openMoteDetails(mote)") 
+                            strong {{mote.location}}
+                            span(ng-show="noSee(mote)").pull-right
+                                span.label.label-important Last Seen 
+                                |  {{mote.lastStatusTime | fromNow}} !
+                            span(ng-show="mote.address == 255").label.label-important.pull-right Address to be defined                            
+                        ul
+                            li(ng-repeat="reg in getDevice(mote).regularRegisters") {{reg.name}}
+                                ul
+                                    li(ng-repeat="ep in reg.endPoints") {{ep.name}}
+                                        span.pull-right {{mote[ep.name]}}
+            .span6                
+                h3 Network Events
+                #events(ng-repeat="se in swapEvents") 
+                    div
+                        span('class'="text-{{se.type}}") {{se.text}}
+                        span.pull-right.muted <small> {{se.time| date:'HH:mm:ss'}} </small>
+        .row
+            .span12
+                h4 Last Packets
+                #packets
+                    div(ng-repeat="packet in packets") 
+                        span {{packet}} 
+                        span.pull-right.muted {{packet.time | date:'HH:mm:ss'}}
+                .pull-right {{packets.length}} packets

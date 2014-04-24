@@ -1,0 +1,49 @@
+#config        
+        .modal-header
+            button(type="button", aria-hidden="true", ng-click="close()").close &times;                
+            h3 Settings
+
+        .modal-body
+            .tab-pane
+                ul.nav.nav-tabs
+                    li.active
+                        a(href="#serial", data-toggle='tab') Serial
+                    li
+                        a(href="#devices", data-toggle='tab') Devices 
+                    li
+                        a(href='#network', data-toggle='tab') Network
+                    li
+                        a(href='#broker', data-toggle='tab') Broker
+                form(name="form")        
+                    .tab-content
+                        #serial.tab-pane.active
+                            label Port:
+                            input(type="text", ng-model="config.serial.port", required)
+                            label Speed:
+                            input(type="number", ng-model="config.serial.baudrate", required)                        
+                        #devices.tab-pane
+                            label Local folder:
+                            input(type="text", ng-model="config.devices.local", required)
+                            label Definitions Url:
+                            input(type="text", ng-model="config.devices.remote", required).input-block-level
+                            label Update on start:    
+                                input(type="checkbox", ng-model="config.devices.update")
+                        #network.tab-pane
+                            label Channel:
+                            input(type="number", ng-model="config.network.channel", required)
+                            label Network:
+                            input(type="number", ng-model="config.network.syncword", required)
+                            label Modem address:
+                            input(type="number", ng-model="config.network.address", required)
+                            label Security:
+                            input(type="number", ng-model="config.network.security", required)
+                        #broker.tab-pane
+                            label Host:
+                            input(type='text', ng-model="config.broker.host", required)        
+                            label Port:
+                            input(type='number', ng-model="config.broker.port", required)
+                        //- {{form.$error}}
+
+        .modal-footer
+            a(href="#", ng-click='close()').btn Close  
+            button(ng-click='close(config)', ng-disabled="form.$invalid").btn.btn-primary Save changes 

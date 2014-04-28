@@ -12,7 +12,12 @@
     "ss-stylus": "0.1.x",
     "ss-hogan": "0.1.x",
     "ss-console": "0.1.x",
-    "coffee-script": "1.7.x"
+    "ss-backbone" : "0.0.3",
+    "coffee-script" : "1.7.x",
+    "log4js" : "0.6.14",
+    "config" : "0.4.35",
+    "js-yaml" : "3.0.2",
+    "serialport" : "1.4.0"
   },
   "scripts":{
     "start":"node app.js"

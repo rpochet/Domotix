@@ -1,44 +1,202 @@
 extends layout
 block content
-    .navbar
+    
+    .navbar(ng-controller="ConfigCtrl")
         .navbar-inner
             
             ul.nav
                 li
-                    a(ng-click="openConfig()") 
+                    a(ng-click="refreshDevices()")
+                        i.icon-refresh
+                        |  Refresh devices
+                li
+                    a(ng-click="openConfig()")
                         i.icon-cog
-                        |  Settings                    
-                        
-    .container
-        h1 Swap Gateway
+                        |  Settings
+    
+    //- #TODO: create a directive for jquery timeago plugin or moment.js and livestamp.js or http://plnkr.co/edit/7aQ08j?p=preview
+    
+    .container(ng-controller="MessageCtrl")
+        h1 Utilities
         hr
         .row
             .span6
-                h3 Stamps
-                #motes
-                    div(ng-repeat="mote in motes | orderBy: location") 
-                        a(ng-click="openMoteDetails(mote)") 
-                            strong {{mote.location}}
-                            span(ng-show="noSee(mote)").pull-right
-                                span.label.label-important Last Seen 
-                                |  {{mote.lastStatusTime | fromNow}} !
-                            span(ng-show="mote.address == 255").label.label-important.pull-right Address to be defined                            
-                        ul
-                            li(ng-repeat="reg in getDevice(mote).regularRegisters") {{reg.name}}
-                                ul
-                                    li(ng-repeat="ep in reg.endPoints") {{ep.name}}
-                                        span.pull-right {{mote[ep.name]}}
-            .span6                
-                h3 Network Events
+                h3 Scan
+                div
+                    a(ng-click="checkNewDevices()")
+                        strong Check stamps
+        hr
+        .row
+            .span6
+                h3 Messages
+                form(ng-submit="sendMessage()", role="form")
+                    legend Send message
+                    .form-group
+                        label Function codes
+                        select.form-control(ng-model="message.functionCode")
+                            option(ng-repeat="func in functions", value="{{func.value}}") {{func.name}}
+                    .form-group
+                        label Destination address
+                        input.form-control(type="number", ng-model="message.address")
+                    .form-group
+                        label Register ID
+                        select.form-control(ng-model="message.registerId")
+                            option(ng-repeat="reg in registers", value="{{reg.id}}") {{reg.name}}
+                        input.form-control(type="number", ng-model="message.registerId")
+                    .form-group
+                        label Register Value (Command only - Length and value)
+                        input.form-control(type="number", ng-model="message.valueLength", ng-disable="message.functionCode !== 0")
+                        input.form-control(type="text", ng-model="message.value", ng-disable="message.functionCode !== 0")
+                    br
+                    input("class"="btn-primary", type="submit", value="Send")
+                    
+    .container(ng-controller="DeviceListCtrl")
+        h1 Swap Gateway
+        hr
+        .row
+            .span12
+                h3
+                    a(ng-click="refreshDevices()") Stamps
+                #devices
+                
+                    table.table.table-hover
+                        thead
+                            tr
+                                th
+                                    | Location
+                                th
+                                    | Address
+                                th
+                                    | Last Status
+                                th
+                                    | Product Code
+                                th
+                                    | Frequency Channel
+                                th
+                                    | Network Id
+                                th
+                                    | Tx Interval
+                                th
+                                    | Version
+                                th
+                                    | System State
+                                th
+                                    | Security Option
+                                th
+                                    | Security Nonce
+                                th
+                                    | Security Password
+                        tbody
+                            tr(ng-repeat="device in devices | objectToArray | orderBy: location", ng-click="selectDevice(device)", ng-class="{ 'warning' : device.address == 255, 'danger' : noSee(device) }")
+                                td
+                                    {{device.location}}
+                                td
+                                    {{device.address}}
+                                td
+                                    {{device.lastStatusTime | date:"dd/MM/yyyy @ hh:mm:ss"}}
+                                td
+                                    {{device.productCode}}
+                                td
+                                    {{device.frequencyChannel}}
+                                td
+                                    {{device.networkId}}
+                                td
+                                    {{device.txInterval}}
+                                td
+                                    {{device.version}}
+                                td
+                                    {{device.systemState | systemState}}
+                                td
+                                    {{device.securityOption}}
+                                td
+                                    {{device.securityNonce}}
+                                td
+                                    {{device.securityPassword}}
+                        
+                    #selectedDevice(ng-if="selectedDevice")
+                        form.form-horizontal(role="form")
+                            fieldset
+                                 legend Standard registers
+                                .form-group
+                                    label.col-sm-2.control-label Product Code
+                                    .col-sm-10
+                                        p.form-control-static {{editedDevice.productCode}}
+                                .form-group
+                                    label.col-sm-2.control-label State
+                                    .col-sm-10
+                                        p.form-control-static {{editedDevice.systemState | systemState}}
+                                .form-group
+                                    label.col-sm-2.control-label Version
+                                    .col-sm-10
+                                        p.form-control-static {{editedDevice.version.hardware}}
+                                        p.form-control-static {{editedDevice.version.firmware}}
+                                .form-group
+                                    label.col-sm-2.control-label Last Status
+                                    .col-sm-10
+                                        p.form-control-static
+                                            {{editedDevice.lastStatusTime | date:"dd/MM/yyyy @ HH:mm:ss"}}
+                                            span(ng-show="noSee(editedDevice)").label.bg-danger Last Seen 
+                                            |  {{editedDevice.lastStatusTime | fromNow}} !
+                            fieldset
+                                .form-group
+                                    label.col-sm-2.control-label Location
+                                    .col-sm-10
+                                        input.form-control(type="text", placeholder="Room ...", ng-model="editedDevice.location", required)
+                                .form-group
+                                    label.col-sm-2.control-label Address
+                                    .col-sm-10
+                                        input.form-control(type="number", placeholder="Not 1 ...", ng-model="editedDevice.address", required, min="1", max="255", integer) span(ng-show="editedDevice.address == 255").label.bg-danger Address to be defined
+                            fieldset(disabled)
+                                .form-group
+                                    label.col-sm-2.control-label Channel
+                                    .col-sm-10
+                                        input.form-control(type="number", placeholder="Be careful ...", ng-model="editedDevice.frequencyChannel", required, min="1", max="255", integer)
+                                .form-group
+                                    label.col-sm-2.control-label Network
+                                    .col-sm-10
+                                        input.form-control(type="number", placeholder="Be careful ...", ng-model="editedDevice.networkId", required, min="0", max="65535", integer)
+                            .form-group
+                                label.col-sm-2.control-label Transmit Interval (s)
+                                .col-sm-10
+                                    input.form-control(type="number", placeholder="In seconds ...", ng-model="editedDevice.txInterval", required, min="0", max="65535", integer)
+                            .form-group
+                                .col-sm-offset-2.col-sm-10
+                                    button.btn.btn-link(ng-click="reset()", ng-disabled="isUnchanged()") Cancel
+                                    button.btn.btn-danger(ng-click="deleteSelectedDevice()") Delete
+                                    button.btn.btn-primary(ng-click="update()", ng-disabled="form.$invalid || isUnchanged()") Save
+                            
+                            fieldset
+                                legend Config registers
+                                div(ng-repeat="reg in editedDevice.configRegisters")
+                                    legend {{reg.name}}
+                                    div(ng-repeat="ep in reg.params")
+                                        .form-group
+                                            label.col-sm-2.control-label {{ep.name}}
+                                            .col-sm-10
+                                                input.form-control(type="{{ep.type == 'num' ? 'number' : 'text'}}", ng-disabled="ep.dir == 'inp'", ng-model="ep.value", required, min="0", max="65535", integer)
+                            fieldset
+                                legend Regular registers
+                                div(ng-repeat="reg in editedDevice.regularRegisters")
+                                    legend {{reg.name}}
+                                    div(ng-repeat="ep in reg.endpoints")
+                                        .form-group
+                                            label.col-sm-2.control-label {{ep.name}}
+                                            .col-sm-10
+                                                input.form-control(type="{{ep.type == 'num' ? 'number' : 'text'}}", ng-disabled="ep.dir == 'inp'", ng-model="ep.value", required)
+        .row
+            .span12
+                h4 Network Events
                 #events(ng-repeat="se in swapEvents") 
                     div
-                        span('class'="text-{{se.type}}") {{se.text}}
-                        span.pull-right.muted <small> {{se.time| date:'HH:mm:ss'}} </small>
+                        span("class"="text-{{se.type}}") {{se.text}}
+                        span.pull-right.muted <small> {{se.time| date:"HH:mm:ss"}} </small>
         .row
             .span12
                 h4 Last Packets
                 #packets
                     div(ng-repeat="packet in packets") 
                         span {{packet}} 
-                        span.pull-right.muted {{packet.time | date:'HH:mm:ss'}}
+                        span.pull-right.muted {{packet.time | date:"HH:mm:ss"}}
                 .pull-right {{packets.length}} packets
+
+

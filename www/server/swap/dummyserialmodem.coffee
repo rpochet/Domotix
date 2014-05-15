@@ -1,5 +1,3 @@
-util = require 'util'
-swap = require '../../client/code/common/swap'
 events = require 'events'
 logger = require('log4js').getLogger(__filename.split('/').pop(-1).split('.')[0])
 
@@ -10,24 +8,26 @@ Emits:
   - data: new packet incoming from swap network
     - event: SwapPacket
 ###
-class DummySerialModem extends events.EventEmitter
-  constructor: (@config) ->
+class SerialModem extends events.EventEmitter
     
-  # To send a packet to the Swap network
-  send: (packet) ->
-    logger.debug "Sent: S#{packet}"
-  
-  # To set value on modem config
-  command: (str) ->
-    logger.debug "Sent: #{str}"
-  
-  # To check that the modem is still living
-  ping: (callback) ->
-    @write 'AT\r'
-    @once 'data', (data) ->
-      if data is not 'OK'
-        logger.warn "Error while pinging: #{data}"
-      else
-        callback() if callback()
-
-module.exports = DummySerialModem
+    constructor: (@config) ->
+        logger.info "Starting serial modem"
+    
+    # To send a packet to the Swap network
+    send: (packet) ->
+        logger.debug "Sent: S#{packet}"
+    
+    # To set value on modem config
+    command: (str) ->
+        logger.debug "Sent: #{str}"
+    
+    # To check that the modem is still living
+    ping: (callback) ->
+        @write 'AT\r'
+        @once 'data', (data) ->
+            if data is not 'OK'
+                logger.warn "Error while pinging: #{data}"
+            else
+                callback() if callback()
+    
+module.exports = SerialModem

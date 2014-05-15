@@ -1,6 +1,5 @@
 logger = require("log4js").getLogger(__filename.split("/").pop(-1).split(".")[0])
 
-
 class CCPacket
     constructor: (strPacket) ->
         unless (strPacket.length) % 2 is 0
@@ -34,8 +33,9 @@ class SwapPacket
         res = (num2byte(i) for i in [@dest, @source]).join('')
         res += @hop.toString(16) + @security.toString(16)   
         res += (num2byte(i) for i in [@nonce, @func, @regAddress, @regId]).join('')
-        temp = if @value.length is undefined then [@value] else @value
-        res += (num2byte(i) for i in temp).join('')
+        if @value isnt undefined
+            temp = if @value.length is undefined then [@value] else @value
+            res += (num2byte(i) for i in temp).join('')
 
 # Utility function
 num2byte = (number) ->
@@ -50,7 +50,7 @@ getValue = (value, length) ->
     (value >> 8*i) & 255 for i in [length-1..0]
 
 class SwapMote
-    constructor: (@address, @network, @channel, @security, @nonce) ->        
+    constructor: (@address, @network, @channel, @security, @nonce) ->
         # Standards registers
         @productCode = `undefined`
         @hardwareVersion = `undefined`

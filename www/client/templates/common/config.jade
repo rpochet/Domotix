@@ -1,8 +1,8 @@
-#config        
+#config
         .modal-header
-            button(type="button", aria-hidden="true", ng-click="close()").close &times;                
+            button(type="button", aria-hidden="true", ng-click="close()").close &times;
             h3 Settings
-
+        
         .modal-body
             .tab-pane
                 ul.nav.nav-tabs
@@ -20,7 +20,7 @@
                             label Port:
                             input(type="text", ng-model="config.serial.port", required)
                             label Speed:
-                            input(type="number", ng-model="config.serial.baudrate", required)                        
+                            input(type="number", ng-model="config.serial.baudrate", required)
                         #devices.tab-pane
                             label Local folder:
                             input(type="text", ng-model="config.devices.local", required)
@@ -39,11 +39,11 @@
                             input(type="number", ng-model="config.network.security", required)
                         #broker.tab-pane
                             label Host:
-                            input(type='text', ng-model="config.broker.host", required)        
+                            input(type='text', ng-model="config.broker.host", required)
                             label Port:
                             input(type='number', ng-model="config.broker.port", required)
                         //- {{form.$error}}
-
+        
         .modal-footer
-            a(href="#", ng-click='close()').btn Close  
+            a(href="#", ng-click='close()').btn Close
             button(ng-click='close(config)', ng-disabled="form.$invalid").btn.btn-primary Save changes 

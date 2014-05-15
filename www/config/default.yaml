@@ -8,8 +8,8 @@ devices:
     remote: http://www.panstamp.com/downloads/devices.tar
     update: false
 network:
-    channel: 0
-    syncword: 46406
+    frequencyChannel: 0
+    networkId: 46406
     address: 1
     security: 0
 broker:

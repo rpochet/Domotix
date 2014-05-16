@@ -5,9 +5,10 @@ window.ss = require 'socketstream'
 
 require '/services'
 require '/directives'
+require '/components'
 
 # angular application
-app = angular.module('swapApp', ['swap.filters', 'swap.services', 'swap.directives', 'ui.bootstrap', 'ngRoute', 'xeditable'], 
+app = angular.module('swapApp', ['swap.filters', 'swap.services', 'swap.directives', 'ui.bootstrap', 'ngRoute', 'xeditable', 'components'], 
     ($dialogProvider) ->
         $dialogProvider.options {
             backdrop: true

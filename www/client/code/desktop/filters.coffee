@@ -15,4 +15,4 @@ module.exports = (swapApp) ->
         .filter 'systemState', () ->
             (systemState) -> systemStates[systemState]
         .filter 'objectToArray', () ->
-            (object) -> (ele for id, ele of object)
+            (object) -> (ele for own id, ele of object)

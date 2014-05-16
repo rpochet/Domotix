@@ -15,6 +15,7 @@ class SerialModem extends events.EventEmitter
     
     # To send a packet to the Swap network
     send: (packet) ->
+        logger.debug packet
         logger.debug "Sent: S#{packet}"
     
     # To set value on modem config

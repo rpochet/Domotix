@@ -207,12 +207,6 @@ exports.actions = (req, res, ss) ->
 
     getConfig: ->
         res Config
-
-    getDefine: ->
-        define =
-            "registers": swap.Registers
-            "functions": swap.Functions
-        res define
     
     getDevices: ->
         logger.debug devices
@@ -244,34 +238,26 @@ exports.actions = (req, res, ss) ->
         res true
     
     # Gets the value of a specific register
-    sendQuery: (address, regId) ->
+    sendQuery: (address, registerId) ->
         sp = new swap.SwapPacket()
         sp.source = Config.network.address
         sp.dest = address
         sp.func = swap.Functions.QUERY
         sp.regAddress = address
-        sp.regId = regId
+        sp.regId = registerId
+        sp.time = new Date()
         serial.send(sp)
 
     # Sets the value of a specific register
-    sendCommand: (address, regId, value) ->
+    sendCommand: (address, registerId, value) ->
         sp = new swap.SwapPacket()
         sp.source = Config.network.address
         sp.dest = address
         sp.func = swap.Functions.COMMAND
         sp.regAddress = address
-        sp.regId = regId
+        sp.regId = registerId
         sp.value = value
-        serial.send(sp)
-    
-    sendMessage: (message) ->
-        sp = new swap.SwapPacket()
-        sp.source = Config.network.address
-        sp.dest = message.address
-        sp.func = message.functionCode
-        sp.regAddress = message.address
-        sp.regId = message.registerId
-        sp.value = message.value
+        sp.time = new Date()
         serial.send(sp)
     
     checkNewDevices: () ->

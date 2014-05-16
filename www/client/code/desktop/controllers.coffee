@@ -1,32 +1,27 @@
 # AngularJS controllers
 
+swap = require '/swap'
+
 module.exports = (swapApp) ->
     'use strict';
     
-    swapApp.controller 'MessageCtrl', ['$scope', 'rpc', ($scope, rpc) ->
-        $scope.registers = []
-        $scope.functions = []
+    swapApp.controller 'UtilitiesCtrl', ['$scope', 'rpc', ($scope, rpc) ->
+        $scope.registers = swap.Registers
+        $scope.functions = swap.Functions
         $scope.message =
             valueLength: 1
-        
-        ss.server.on 'ready', () ->
-            ss.rpc 'swapserver.getDefine', (define) ->
-                for code, value of define.registers
-                    $scope.registers.push
-                        "name": code
-                        "id": value.id
-                        "length": value.length
-                for code, value of define.functions
-                    $scope.functions.push
-                        "name": code
-                        "value": value
-                $scope.message.functionCode = $scope.functions[0]
-                $scope.message.registerId = 11
+            address: 2
+            functionCode: swap.Functions.QUERY
+            register: 
+                id: swap.Registers.txInterval.id + 1
         
         # When a serial packet is received
         $scope.$on 'swapPacket', (e, sp) ->
             $scope.packets.splice(0, 0, sp)
             $scope.packets.pop() if $scope.packets.length > 40
+        
+        $scope.refreshDevices = () ->
+            ss.rpc 'swapserver.refreshDevices'
         
         # When a devicesUpdated event is received, update devices
         $scope.$on 'devicesUpdated', (e) ->
@@ -35,8 +30,13 @@ module.exports = (swapApp) ->
                 $scope.devices = devices
                 
         $scope.sendMessage = () ->
-            ss.rpc 'swapserver.sendMessage', $scope.message
-        
+            if $scope.message.functionCode == swap.Functions.COMMAND
+                ss.rpc 'swapserver.sendCommand', $scope.message.address, $scope.message.register.id, swap.getValue $scope.message.value, $scope.message.valueLength
+            else
+                ss.rpc 'swapserver.sendQuery', $scope.message.address, $scope.message.register.id
+                
+        $scope.checkNewDevices = () ->
+            ss.rpc 'swapserver.sendQuery', swap.Address.BROADCAST, swap.Registers.productCode.id
     ]
     
     swapApp.controller 'DeviceListCtrl', ['$scope', 'rpc', 'pubsub', '$dialog', ($scope, rpc, pubsub, $dialog) ->
@@ -78,38 +78,31 @@ module.exports = (swapApp) ->
             ss.rpc 'swapserver.getDevices', (devices) ->
                 $scope.devices = devices
         
-        $scope.refreshDevices = () ->
-            ss.rpc 'swapserver.refreshDevices'
-        
         $scope.deleteSelectedDevice = () ->
             ss.rpc 'swapserver.deleteDevice', $scope.selectedDevice.address if $scope.selectedDevice
         
         $scope.noSee = (device) ->
             moment().diff(moment(device.lastStatusTime)) / 1000 > 2 * device.txInterval
-        
     ]
     
-    swapApp.controller 'ConfigCtrl', ['$scope', 'rpc', '$dialog', ($scope, rpc, $dialog) ->
-        $scope.config = {}
+    swapApp.controller 'ConfigCtrl', ['$scope', 'rpc', ($scope, rpc) ->
+        $scope.config = undefined
+        $scope.editedConfig = undefined
+        
+        $scope.update = () ->
+            $scope.config = angular.copy $scope.editedConfig
+            ss.rpc 'swapserver.updateConfig', $scope.config if $scope.config
+        
+        $scope.reset = () ->
+            $scope.editedConfig = angular.copy $scope.config
+        
+        $scope.isUnchanged = () ->
+            return angular.equals $scope.editedConfig, $scope.config
         
         ss.server.on 'ready', () ->
             ss.rpc 'swapserver.getConfig', (config) ->
+                console.log config
                 $scope.config = config
-        
-        $scope.refreshDevices = () ->
-            ss.rpc 'swapserver.refreshDevices'
-        
-        $scope.openConfig = () ->
-            $dialog.dialog().open('config.html', 'ConfigCtrl')
-        
-        $scope.close = (res) ->
-            if not res
-                $dialog.dialog().close()
-            else
-                console.log "Saving config"
-                ss.rpc 'swapserver.saveConfig', $scope.config, (res) ->
-                    dialog.close() if not res
-                    #         rpc.exec('swapserver.saveConfig', $scope.config).then (err) ->
-                    #             console.log err if err
+                $scope.reset()
     ]
 

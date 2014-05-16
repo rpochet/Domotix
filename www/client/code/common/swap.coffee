@@ -1,9 +1,8 @@
-logger = require("log4js").getLogger(__filename.split("/").pop(-1).split(".")[0])
 
 class CCPacket
     constructor: (strPacket) ->
         unless (strPacket.length) % 2 is 0
-            logger.error "Packet length must be even: " + strPacket.length
+            throw new error "Packet length must be even: " + strPacket.length
             return
         @RSSI = parseInt(strPacket.slice(1, 3), 16)
         @LQI = parseInt(strPacket.slice(3, 5), 16)
@@ -36,8 +35,10 @@ class SwapPacket
         if @value isnt undefined
             temp = if @value.length is undefined then [@value] else @value
             res += (num2byte(i) for i in temp).join('')
+        return res
 
 # Utility function
+# Convert an int into a hexadecimal byte as a string
 num2byte = (number) ->
     ('00' + number?.toString(16)).slice(-2)
 
@@ -49,26 +50,8 @@ getValue = (value, length) ->
     #TODO: handle string values here, and others
     (value >> 8*i) & 255 for i in [length-1..0]
 
-class SwapMote
-    constructor: (@address, @network, @channel, @security, @nonce) ->
-        # Standards registers
-        @productCode = `undefined`
-        @hardwareVersion = `undefined`
-        @firmwareVersion = `undefined`
-        @state = `undefined`
-        @password = `undefined`
-        @txInterval = `undefined`
-    
-        @lastStatusTime = `undefined`
-        @location = 'Nowhere'
-
-class Endpoint
-    constructor: (@id) ->
-        @name = `undefined`
-        @location = `undefined`   
-        @value = `undefined`
-        @unit = `undefined`
-        @dir = `undefined`
+Address =
+    BROADCAST: 255
 
 Functions =
     STATUS: 0
@@ -87,7 +70,6 @@ Registers =
     network: {id: 8, length: 2}
     address: {id: 9, length: 1}
     txInterval: {id: 10, length: 2}
-
 
 SwapStates =
     RESTART:
@@ -113,11 +95,10 @@ SwapStates =
     get: (val) ->
         [@RESTART, @RXON, @RXOFF, @SYNC, @LOWBAT][val]
 
-
 module.exports =
     CCPacket: CCPacket
     SwapPacket: SwapPacket
-    SwapMote: SwapMote
+    Address: Address
     Functions: Functions
     Registers: Registers
     SwapStates: SwapStates

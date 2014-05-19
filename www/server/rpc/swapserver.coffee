@@ -1,5 +1,7 @@
 #SerialModem = require '../swap/serialmodem'
 SerialModem = require '../swap/dummyserialmodem'
+ThingspeakSubscriber = require '../swap/thingspeaksub'
+UdpSerialBridge = require '../swap/udpserialbridge'
 Config = require 'config'
 swap = require '../../client/code/common/swap'
 cradle = require 'cradle'
@@ -42,8 +44,11 @@ initDevices = () ->
         ss.api.publish.all 'devicesUpdated'
 initDevices()
 
-serialConfig = Config.serial
-serial = new SerialModem serialConfig
+serial = new SerialModem Config.serial
+
+udpSerialBridge = new UdpSerialBridge Config.serialBridge
+
+thingspeakSubscriber = new ThingspeakSubscriber Config.thingspeak
 
 serial.on 'started', () ->
     publisher = new ps.Publisher config

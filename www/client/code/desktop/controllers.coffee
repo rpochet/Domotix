@@ -9,16 +9,11 @@ module.exports = (swapApp) ->
         $scope.registers = swap.Registers
         $scope.functions = swap.Functions
         $scope.message =
-            valueLength: 1
             address: 2
             functionCode: swap.Functions.QUERY
             register: 
                 id: swap.Registers.txInterval.id + 1
-        
-        # When a serial packet is received
-        $scope.$on 'swapPacket', (e, sp) ->
-            $scope.packets.splice(0, 0, sp)
-            $scope.packets.pop() if $scope.packets.length > 40
+                length: 1
         
         $scope.refreshDevices = () ->
             ss.rpc 'swapserver.refreshDevices'
@@ -31,7 +26,7 @@ module.exports = (swapApp) ->
                 
         $scope.sendMessage = () ->
             if $scope.message.functionCode == swap.Functions.COMMAND
-                ss.rpc 'swapserver.sendCommand', $scope.message.address, $scope.message.register.id, swap.getValue $scope.message.value, $scope.message.valueLength
+                ss.rpc 'swapserver.sendCommand', $scope.message.address, $scope.message.register.id, swap.getValue $scope.message.register.value, $scope.message.register.length
             else
                 ss.rpc 'swapserver.sendQuery', $scope.message.address, $scope.message.register.id
                 
@@ -39,8 +34,9 @@ module.exports = (swapApp) ->
             ss.rpc 'swapserver.sendQuery', swap.Address.BROADCAST, swap.Registers.productCode.id
     ]
     
-    swapApp.controller 'DeviceListCtrl', ['$scope', 'rpc', 'pubsub', '$dialog', ($scope, rpc, pubsub, $dialog) ->
-        $scope.packets = []
+    swapApp.controller 'DeviceListCtrl', ['$scope', 'rpc', 'pubsub', ($scope, rpc, pubsub) ->
+        
+        $scope.config = undefined
         $scope.devices = []
         
         $scope.selectedDevice = undefined
@@ -61,28 +57,44 @@ module.exports = (swapApp) ->
             $scope.reset()
         
         ss.server.on 'ready', () ->
-            
             ss.rpc 'swapserver.getDevices', (devices) ->
                 $scope.devices = devices
-            
-            ss.rpc 'swapserver.getPackets', (packets) ->
-                $scope.packets = packets
-        
-        # When a serial packet is received
-        $scope.$on 'swapPacket', (e, sp) ->
-            $scope.packets.splice(0, 0, sp)
-            $scope.packets.pop() if $scope.packets.length > 40
+            ss.rpc 'swapserver.getConfig', (config) ->
+                $scope.config = config
         
         # When a devicesUpdated event is received, update devices
         $scope.$on 'devicesUpdated', (e) ->
             ss.rpc 'swapserver.getDevices', (devices) ->
                 $scope.devices = devices
         
-        $scope.deleteSelectedDevice = () ->
+        $scope.delete = () ->
             ss.rpc 'swapserver.deleteDevice', $scope.selectedDevice.address if $scope.selectedDevice
         
         $scope.noSee = (device) ->
             moment().diff(moment(device.lastStatusTime)) / 1000 > 2 * device.txInterval
+    ]
+    
+    swapApp.controller 'NetworkCtrl', ['$scope', 'rpc', ($scope, rpc) ->
+        
+        $scope.swapPackets = []
+        $scope.swapEvents = []
+        
+        ss.server.on 'ready', () ->
+            ss.rpc 'swapserver.getSwapPackets', (swapPackets) ->
+                $scope.swapPackets = swapPackets
+            ss.rpc 'swapserver.getSwapEvents', (swapEvents) ->
+                $scope.swapEvents = swapEvents
+        
+        # When a serial packet is received
+        $scope.$on 'swapPacket', (e, sp) ->
+            $scope.swapPackets.splice(0, 0, sp)
+            $scope.swapPackets.pop() if $scope.swapPackets.length > 40
+        
+        # When a swap event is received
+        $scope.$on 'swapEvent', (e, se) ->
+            $scope.swapEvents.splice(0, 0, se)
+            $scope.swapEvents.pop() if $scope.swapEvents.length > 40
+        
     ]
     
     swapApp.controller 'ConfigCtrl', ['$scope', 'rpc', ($scope, rpc) ->
@@ -105,4 +117,3 @@ module.exports = (swapApp) ->
                 $scope.config = config
                 $scope.reset()
     ]
-

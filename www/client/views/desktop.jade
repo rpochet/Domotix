@@ -7,10 +7,8 @@ block content
                 hr
                 .row
                     .span12
-                        h3
-                            Stamps
+                        h3 Stamps
                         #devices
-                        
                             table.table.table-hover
                                 thead
                                     tr
@@ -45,7 +43,7 @@ block content
                                         td
                                             {{device.address}}
                                         td
-                                            {{device.lastStatusTime | date:"dd/MM/yyyy @ hh:mm:ss"}}
+                                            {{device.lastStatusTime | date:"dd/MM/yyyy @ HH:mm:ss"}}
                                         td
                                             {{device.productCode}}
                                         td
@@ -114,43 +112,29 @@ block content
                                     .form-group
                                         .col-sm-offset-2.col-sm-10
                                             button.btn.btn-link(ng-click="reset()", ng-disabled="isUnchanged()") Cancel
-                                            button.btn.btn-danger(ng-click="deleteSelectedDevice()") Delete
+                                            button.btn.btn-danger(ng-click="delete()") Delete
                                             button.btn.btn-primary(ng-click="update()", ng-disabled="form.$invalid || isUnchanged()") Save
                                     
                                     fieldset
                                         legend Config registers
-                                        div(ng-repeat="reg in editedDevice.configRegisters")
-                                            legend {{reg.name}}
-                                            div(ng-repeat="ep in reg.params")
+                                        div(ng-repeat="register in editedDevice.configRegisters")
+                                            h4 {{register.name}} ({{register.id}})
+                                            div(ng-repeat="param in register.params")
                                                 .form-group
-                                                    label.col-sm-2.control-label {{ep.name}}
+                                                    label.col-sm-2.control-label {{param.name}}
                                                     .col-sm-10
-                                                        input.form-control(type="{{ep.type == 'num' ? 'number' : 'text'}}", ng-disabled="ep.dir == 'inp'", ng-model="ep.value", required, min="0", max="65535", integer)
+                                                        input.form-control(type="{{param.type}}", title="{{param.name}}", ng-disabled="param.dir == 'output'", ng-model="param.value", required, min="0", max="65535", integer)
                                     fieldset
                                         legend Regular registers
-                                        div(ng-repeat="reg in editedDevice.regularRegisters")
-                                            legend {{reg.name}}
-                                            div(ng-repeat="ep in reg.endpoints")
+                                        div(ng-repeat="register in editedDevice.regularRegisters")
+                                            h4 {{register.name}} ({{register.id}})
+                                            div(ng-repeat="endpoint in register.endpoints")
                                                 .form-group
-                                                    label.col-sm-2.control-label {{ep.name}}
+                                                    label.col-sm-2.control-label {{endpoint.name}}
                                                     .col-sm-10
-                                                        input.form-control(type="{{ep.type == 'num' ? 'number' : 'text'}}", ng-disabled="ep.dir == 'inp'", ng-model="ep.value", required)
-                .row
-                    .span12
-                        h4 Network Events
-                        #events(ng-repeat="se in swapEvents") 
-                            div
-                                span("class"="text-{{se.type}}") {{se.text}}
-                                span.pull-right.muted <small> {{se.time| date:"HH:mm:ss"}} </small>
-                .row
-                    .span12
-                        h4 Last Packets
-                        #packets
-                            div(ng-repeat="packet in packets") 
-                                span {{packet}} 
-                                span.pull-right.muted {{packet.time | date:"HH:mm:ss"}}
-                        .pull-right {{packets.length}} packets
-        
+                                                        {{endpoint.value}}
+                                                        input.form-control(type="{{endpoint.type}}", title="{{endpoint.name}}", ng-disabled="endpoint.dir == 'output'", ng-model="endpoint.value", required, min="0", max="65535", integer)
+                
         pane(title="Config")
             .container(ng-controller="ConfigCtrl")
                 h1 Configuration
@@ -163,7 +147,7 @@ block content
                         li
                             a(href='#broker', data-toggle='tab') Broker
                         li
-                            a(href="#bridge", data-toggle='tab') Bridge
+                            a(href="#bridge", data-toggle='tab') UDP Bridge
                     form.form-horizontal(role="form")
                         .tab-content
                             #serial.tab-pane.active
@@ -205,15 +189,33 @@ block content
                                 .form-group
                                     label.col-sm-2.control-label Host
                                     .col-sm-10
-                                        input.form-control(type="text", placeholder="Host...", ng-model="editedConfig.bridge.host", required)
+                                        input.form-control(type="text", placeholder="Host...", ng-model="editedConfig.udpBridge.host", required)
                                 .form-group
                                     label.col-sm-2.control-label Port
                                     .col-sm-10
-                                        input.form-control(type="number", placeholder="Port...", ng-model="editedConfig.bridge.port", required)
+                                        input.form-control(type="number", placeholder="Port...", ng-model="editedConfig.udpBridge.port", required)
                             .form-group
                                 .col-sm-offset-2.col-sm-10
                                     button.btn.btn-link(ng-click="reset()", ng-disabled="isUnchanged()") Cancel
                                     button.btn.btn-primary(ng-click="update()", ng-disabled="form.$invalid || isUnchanged()") Save
+        
+        pane(title="Network")
+            .container(ng-controller="NetworkCtrl")
+                h1 Network
+                .row
+                    .span12
+                        h4 Network Events
+                        #events
+                            div(ng-repeat="swapEvent in swapEvents")
+                                span("class"="text-{{swapEvent.type}}") {{swapEvent.text}}
+                                span.pull-right.muted <small> {{swapEvent.time| date:"HH:mm:ss"}} </small>
+                .row
+                    .span12
+                        h4 Last Packets
+                        #packets
+                            div(ng-repeat="swapPacket in swapPackets")
+                                span {{swapPacket}} 
+                                span.pull-right.muted {{swapPacket.time | date:"HH:mm:ss"}}
         
         pane(title="Utilities")
             .container(ng-controller="UtilitiesCtrl")
@@ -247,6 +249,7 @@ block content
                             .form-group
                                 label Register Value (Command only - Length and value)
                                 input.form-control(type="number", ng-model="message.register.length", ng-disabled="message.functionCode != 2")
-                                input.form-control(type="number", ng-model="message.value", ng-disabled="message.functionCode != 2")
+                                input.form-control(type="number", ng-model="message.register.value", ng-disabled="message.functionCode != 2")
                             br
                             input("class"="btn-primary", type="submit", value="Send")
+                        

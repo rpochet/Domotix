@@ -1,14 +1,18 @@
 {
   "appenders": [
     {
-      "type": "console"
-    },
-    {
       "type": "file",
       "filename": "logs/domotix.log",
       "maxLogSize": 20480,
+      "backups": 10
+    },
+    {
+      "type": "file",
+      "filename": "logs/thingspeaksub.log",
+      "maxLogSize": 20480,
       "backups": 10,
-      "category": "domotix"
+      "category": "thingspeaksub"
     }
-  ]
+  ],
+  "replaceConsole": true
 }

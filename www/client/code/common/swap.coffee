@@ -48,7 +48,7 @@ bytePad = (byte, number) ->
 getValue = (value, length) ->
     #TODO: transform this to implement to parsing of a value in byte array
     #TODO: handle string values here, and others
-    (value >> 8*i) & 255 for i in [length-1..0]
+    (value >> 8 * i) & 255 for i in [length-1..0]
 
 Address =
     BROADCAST: 255

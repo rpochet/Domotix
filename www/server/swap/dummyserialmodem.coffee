@@ -5,8 +5,6 @@ logger = require('log4js').getLogger(__filename.split('/').pop(-1).split('.')[0]
 Handles communication to and from serial port and relay the information
 Emits:
   - started: once all info from serial device is obtained
-  - data: new packet incoming from swap network
-    - event: SwapPacket
 ###
 class SerialModem extends events.EventEmitter
     
@@ -30,5 +28,8 @@ class SerialModem extends events.EventEmitter
                 logger.warn "Error while pinging: #{data}"
             else
                 callback() if callback()
+    
+    start: ->
+        @emit "started"
     
 module.exports = SerialModem

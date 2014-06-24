@@ -1,6 +1,7 @@
 server:
-    port: 5555
+    port: 4000
 serial:
+    dummy: false
     port: /dev/ttyAMA0
     baudrate: 38400
 devices:
@@ -15,20 +16,26 @@ network:
 broker:
     host: 192.168.1.4
     port: 10000
-bridge:
+udpBridge:
     host: 192.168.1.4
-    port: 54124
+    port: 5555
+couchDB:
+    host: 192.168.1.4
+    port: 5984
 thingspeak:
     host: api.thingspeak.com
+    port: 80
     securehost: https://api.thingspeak.com
     channels:
-        channelId: 8141,
-        writeApiKey: DV1CSLVQ3QIRV0K0
-        readApiKey: 0975Z0F5ERBEUNK9
-    fields:
-        100/1/12:0:
+        8141:
+            writeApiKey: DV1CSLVQ3QIRV0K0
+            readApiKey: 0975Z0F5ERBEUNK9
+    fields: # productcode / address / registerId:endpoint
+        0000006400000001/2/12:0:
             channelId: 8141
             fieldId: field1
-        100/1/12:1:
+            unit: 0
+        0000006400000001/2/12:1:
             channelId: 8141
             fieldId: field2
+            unit: 0

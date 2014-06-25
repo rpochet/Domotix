@@ -31,11 +31,11 @@ thingspeak:
             writeApiKey: DV1CSLVQ3QIRV0K0
             readApiKey: 0975Z0F5ERBEUNK9
     fields: # productcode / address / registerId:endpoint
-        0000006400000001/2/12:0:
+        0000006400000001/2/12:0: #temperature
             channelId: 8141
             fieldId: field1
             unit: 0
-        0000006400000001/2/12:1:
+        0000006400000001/2/12:1: #pressure
             channelId: 8141
             fieldId: field2
-            unit: 0
+            unit: 1

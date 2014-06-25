@@ -18,6 +18,9 @@ module.exports = (swapApp) ->
         $scope.refreshDevices = () ->
             ss.rpc 'swapserver.refreshDevices'
         
+        $scope.refreshSwapPackets = () ->
+            ss.rpc 'swapserver.refreshSwapPackets'
+        
         # When a devicesUpdated event is received, update devices
         $scope.$on 'devicesUpdated', (e) ->
             ss.rpc 'swapserver.getDevices', (devices) ->

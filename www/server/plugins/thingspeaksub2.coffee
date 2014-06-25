@@ -1,26 +1,19 @@
 Config = require "config"
 S = require "string"
+http = require "http"
 zmq = require "zmq"
 swap = require "../../client/code/common/swap"
-ThingSpeakClient = require "thingspeakclient"
-log4js = require "log4js"
-log4js.configure 'config/log4js_configuration.json', {}
-logger = log4js.getLogger(__filename.split("/").pop(-1).split(".")[0])
+logger = require("log4js").getLogger(__filename.split("/").pop(-1).split(".")[0])
 
 class ThingspeakSubscriber
     constructor: (@config) ->
         
         logger.info "Starting Thingspeak Subscriber..."
         
-        client = new ThingSpeakClient()
-        for channelId, channel of config.thingspeak.channels
-            logger.debug channel
-            client.attachChannel parseInt(channelId), { writeKey: channel.writeApiKey }, (err) ->
-                return logger.error err if err?
+        @sub = zmq.socket "sub"
         
         self = this
         
-        @sub = zmq.socket "sub"
         @sub.subscribe ""
         @sub.on "message", (data) ->
             logger.info "Received message:" 
@@ -53,9 +46,25 @@ class ThingspeakSubscriber
                             value = value.toFixed(2)                            
                             logger.debug "Sending field #{thingspeakChannel.fieldId} with value #{value} (raw value #{endpoint.value})"
                             
-                            data[thingspeakChannel.fieldId] = value
-                            client.updateChannel parseInt(thingspeakChannel.channelId), data, (err, body) ->
-                                return logger.error err if err?
+                            options =
+                                hostname: self.config.thingspeak.host
+                                port: self.config.thingspeak.port
+                                path: "/update"
+                                method: "POST"
+                                headers:
+                                    "X-THINGSPEAKAPIKEY": self.config.thingspeak.channels[thingspeakChannel.channelId].writeApiKey
+                            
+                            req = http.request options, (res) ->
+                                res.setEncoding "utf8"
+                                res.on "data", (chunk) ->
+                                    logger.error "Problem with request!" if chunk == 0
+                            
+                            req.on "error", (e) ->
+                                logger.error "Problem with request: error #{e.message}"
+                            
+                            req.write thingspeakChannel.fieldId
+                            req.write "=" + value
+                            req.end()
         
         url = "tcp://#{@config.broker.host}:#{@config.broker.port}"
         logger.info "Connection to broker on #{url}"

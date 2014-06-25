@@ -47,6 +47,24 @@ initDevices = () ->
         ss.api.publish.all "devicesUpdated"
 initDevices()
 
+initSwapPackets = () ->
+    swapPackets = []
+    swapEvents = []
+    options = 
+        include_docs: true
+        limit: 40
+        descending: true
+    
+    dbPanstampPackets.all options, (err, res) ->
+        logger.error err if err?
+        return if err?
+        for row in res.rows
+            delete row.doc._id
+            delete row.doc._rev
+            swapPackets.splice 0, 0, row.doc
+        ss.api.publish.all "swapPacket"
+initSwapPackets()
+
 addSwapEvent = (swapEvent) ->
     ss.api.publish.all "swapEvent", swapEvent
     swapEvents.splice 0, 0, swapEvent
@@ -299,6 +317,11 @@ exports.actions = (req, res, ss) ->
     refreshDevices: ->
         initDevicesConfig()
         initDevices()
+        res true
+    
+    refreshSwapPackets: ->
+        initSwapPackets()
+        res true
     
     updateDevice: (device) ->
         # TODO: handle device update...

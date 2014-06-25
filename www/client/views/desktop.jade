@@ -206,14 +206,14 @@ block content
                     .span12
                         h4 Network Events
                         #events
-                            div(ng-repeat="swapEvent in swapEvents")
+                            div(ng-repeat="swapEvent in swapEvents", ng-class="{even: $even, odd: $odd}")
                                 span("class"="text-{{swapEvent.type}}") {{swapEvent.text}}
                                 span.pull-right.muted <small> {{swapEvent.time| date:"HH:mm:ss"}} </small>
                 .row
                     .span12
                         h4 Last Packets
                         #packets
-                            div(ng-repeat="swapPacket in swapPackets")
+                            div(ng-repeat="swapPacket in swapPackets", ng-class="{even: $even, odd: $odd}")
                                 span {{swapPacket}} 
                                 span.pull-right.muted {{swapPacket.time | date:"HH:mm:ss"}}
         
@@ -230,6 +230,9 @@ block content
                             hr
                             a(ng-click="refreshDevices()")
                                 strong Refresh devices
+                            hr
+                            a(ng-click="refreshSwapPackets()")
+                                strong Refresh Swap packets
                 hr
                 .row
                     .span6

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:padding="10.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_margin="10.0dip"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <LinearLayout android:orientation="vertical" android:background="@drawable/border_view_rounded_single" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <Switch android:id="@id/state" android:layout_width="fill_parent" android:layout_height="wrap_content" android:textOn="ON" android:textOff="OFF" android:text="@string/state" />
+    </LinearLayout>
+    <Space android:layout_gravity="top|left|center" android:layout_width="fill_parent" android:layout_height="10.0dip" />
+    <LinearLayout android:orientation="vertical" android:background="@drawable/border_view_rounded_single" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/dimmer" />
+        <SeekBar android:id="@id/dimmer" android:layout_width="fill_parent" android:layout_height="wrap_content" android:max="100" android:progress="0" android:secondaryProgress="0" android:progressDrawable="@drawable/dimmer" />
+        <LinearLayout android:orientation="horizontal" android:visibility="visible" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_margin="10.0dip" android:weightSum="12.0">
+            <TextView android:textStyle="bold" android:gravity="center_horizontal" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="0" android:layout_weight="2.0" />
+            <TextView android:textStyle="bold" android:gravity="center_horizontal" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="20" android:layout_weight="2.0" />
+            <TextView android:textStyle="bold" android:gravity="center_horizontal" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="40" android:layout_weight="2.0" />
+            <TextView android:textStyle="bold" android:gravity="center_horizontal" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="60" android:layout_weight="2.0" />
+            <TextView android:textStyle="bold" android:gravity="center_horizontal" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="80" android:layout_weight="2.0" />
+            <TextView android:textStyle="bold" android:gravity="center_horizontal" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="100" android:layout_weight="2.0" />
+        </LinearLayout>
+    </LinearLayout>
+    <Space android:layout_gravity="top|left|center" android:layout_width="fill_parent" android:layout_height="10.0dip" />
+    <LinearLayout android:orientation="vertical" android:id="@id/delaySection" android:background="@drawable/border_view_rounded_single" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/delayMinuts" />
+        <LinearLayout android:orientation="vertical" android:id="@id/delayItems" android:layout_width="fill_parent" android:layout_height="fill_parent">
+            <Spinner android:id="@id/delayMinuts" android:layout_width="fill_parent" android:layout_height="40.0dip" android:prompt="@string/delayMinuts" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

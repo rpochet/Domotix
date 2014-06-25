@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen android:title="Domotix"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <EditTextPreference android:title="Domotix Data Host" android:key="domotix.data.host" android:defaultValue="http://192.168.1.4:3000/data/" />
+    <EditTextPreference android:title="Domotix Bus Host" android:key="domotix.in.bus.host" android:defaultValue="192.168.1.4" />
+    <EditTextPreference android:title="Domotix Bus Port" android:key="domotix.in.bus.port" android:defaultValue="54123" />
+    <EditTextPreference android:title="Domotix Bus Output Port" android:key="domotix.out.bus.port" android:defaultValue="54124" />
+</PreferenceScreen>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Domotix</string>    
+    <string name="button_on">ON</string>
+    <string name="button_off">OFF</string>
+    <string name="button_dimm">DIMM</string>
+    <string name="button_toggle">ON/OFF</string>
+</resources>

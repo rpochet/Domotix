@@ -1,0 +1,12 @@
+,1.1.200.v201004290730,"org.eclipse.jst.j2ee.ejb.annotations.ui",1401831106328
+stopped,bundle,org.eclipse.datatools.connectivity.ui.dse,1.1.4.v201107221459,"org.eclipse.datatools.connectivity.ui.dse",1401831106331
+stopped,bundle,org.eclipse.cdt,8.0.2.201202111925,"org.eclipse.cdt",1401831106377
+stopped,bundle,org.eclipse.cdt.doc.user,5.1.1.201202111925,"org.eclipse.cdt.doc.user",1401831106426
+stopped,bundle,com.android.ide.eclipse.ndk,22.6.2.v201403212031-1085508,"com.android.ide.eclipse.ndk",1401831106438
+stopped,bundle,overlay.com.android.ide.eclipse.adt.overlay,22.6.2.v201403212031-1085508,"overlay.com.android.ide.eclipse.adt.overlay",1401831106455
+stopped,bundle,com.android.ide.eclipse.adt,22.6.2.v201403212031-1085508,"com.android.ide.eclipse.adt",1401831106455
+stopped,bundle,org.eclipse.jst.j2ee.xdoclet.runtime,1.1.300.v201004280700,"org.eclipse.jst.j2ee.xdoclet.runtime",1401831106464
+stopped,bundle,org.eclipse.jst.j2ee.ejb.annotations.xdoclet,1.2.200.v201103302125,"org.eclipse.jst.j2ee.ejb.annotations.xdoclet",1401831106480
+stopped,bundle,org.eclipse.jst.jsf.facesconfig.ui,1.2.2.v201103292152,"org.eclipse.jst.jsf.facesconfig.ui",1401831106509
+stopped,bundle,org.eclipse.jst.jsf.facelet.ui,1.0.1.v201104032306,"org.eclipse.jst.jsf.facelet.ui",1401831106534
+stopped,bundle,org.eclipse.jst.jsf.ui,1.3.2

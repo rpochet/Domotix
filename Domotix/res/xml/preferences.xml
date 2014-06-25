@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <PreferenceCategory android:title="Domotix" >
+        <EditTextPreference
+            android:key="domotix.data.host"
+            android:defaultValue="http://192.168.1.2/www/android/data/"
+            android:title="Domotix Data Host" >
+        </EditTextPreference>
+        <EditTextPreference
+            android:key="domotix.bus"
+            android:defaultValue="192.168.1.4:54125"
+            android:title="Domotix Bus (Host:Port)" >
+        </EditTextPreference>
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Notifications" >
+        <RingtonePreference
+            android:key="sonnerie"
+            android:summary="Choisissez la sonnerie pour les notifications"
+            android:title="Sonnerie de notification" >
+        </RingtonePreference>
+        <CheckBoxPreference
+            android:key="vibrate"
+            android:summary="Vibre lors d&apos;une notification"
+            android:title="Vibreur" >
+        </CheckBoxPreference>
+    </PreferenceCategory>
+
+</PreferenceScreen>

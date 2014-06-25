@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item type="id" name="pager">false</item>
+    <item type="id" name="state">false</item>
+    <item type="id" name="dimmer">false</item>
+    <item type="id" name="delaySection">false</item>
+    <item type="id" name="delayItems">false</item>
+    <item type="id" name="delayMinuts">false</item>
+    <item type="id" name="gestures">false</item>
+    <item type="id" name="viewLevelFlipper">false</item>
+    <item type="id" name="houseLevelView0">false</item>
+    <item type="id" name="houseLevelView1">false</item>
+    <item type="id" name="houseLevelView2">false</item>
+    <item type="id" name="houseLevelView3">false</item>
+    <item type="id" name="lightLevelView0">false</item>
+    <item type="id" name="lightLevelView1">false</item>
+    <item type="id" name="lightLevelView2">false</item>
+    <item type="id" name="lightLevelView3">false</item>
+    <item type="id" name="updateLight">false</item>
+    <item type="id" name="updateConfig">false</item>
+    <item type="id" name="itemOptions">false</item>
+</resources>

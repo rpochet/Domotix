@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.gesture.GestureOverlayView
+	    xmlns:android="http://schemas.android.com/apk/res/android"
+	    android:id="@+id/gestures"
+	    android:layout_width="fill_parent"
+	    android:layout_height="fill_parent"	    
+	    android:gestureStrokeType="multiple"
+	    android:gestureColor="@+color/blue"
+	    android:uncertainGestureColor="@+color/red"
+	    android:eventsInterceptionEnabled="true"
+	    android:orientation="vertical">
+    <ViewFlipper android:id="@+id/viewLevelFlipper"
+	    	android:layout_height="fill_parent" 
+	    	android:layout_width="wrap_content">
+
+	    <ListView android:id="@+id/levelView0"
+	        android:layout_width="fill_parent"
+	        android:layout_height="wrap_content" >
+	    </ListView>
+
+	    <ListView android:id="@+id/levelView1"
+	        android:layout_width="fill_parent"
+	        android:layout_height="wrap_content" >
+	    </ListView>
+
+	    <ListView android:id="@+id/levelView2"
+	        android:layout_width="fill_parent"
+	        android:layout_height="wrap_content" >
+	    </ListView>
+
+	    <ListView android:id="@+id/levelView3"
+	        android:layout_width="fill_parent"
+	        android:layout_height="wrap_content" >
+	    </ListView>
+    
+    </ViewFlipper>
+
+</android.gesture.GestureOverlayView>

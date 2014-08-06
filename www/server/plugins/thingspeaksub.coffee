@@ -14,7 +14,6 @@ class ThingspeakSubscriber
         
         client = new ThingSpeakClient()
         for channelId, channel of config.thingspeak.channels
-            logger.debug channel
             client.attachChannel parseInt(channelId), { writeKey: channel.writeApiKey }, (err) ->
                 return logger.error err if err?
         
@@ -24,7 +23,6 @@ class ThingspeakSubscriber
         @sub.subscribe ""
         @sub.on "message", (data) ->
             logger.info "Received message:" 
-            logger.debug data
             data = JSON.parse(data)
             swapPacket = data.swapPacket
             packetDevice = data.packetDevice
@@ -45,15 +43,15 @@ class ThingspeakSubscriber
                         if thingspeakChannel isnt undefined
                             
                             if thingspeakChannel.unit isnt undefined
-                                logger.debug endpoint.units[thingspeakChannel.unit]
-                                value = (endpoint.units[thingspeakChannel.unit].factor || 1) * endpoint.value + (endpoint.units[thingspeakChannel.unit].offset || 0)
+                                value = (endpoint.units[thingspeakChannel.unit].factor or 1) * endpoint.value + (endpoint.units[thingspeakChannel.unit].offset or 0)
                             else
                                 value = endpoint.value
                             
                             value = value.toFixed(2)                            
-                            logger.debug "Sending field #{thingspeakChannel.fieldId} with value #{value} (raw value #{endpoint.value})"
+                            logger.debug "Sending field #{thingspeakChannel.fieldId} with value #{value} (raw value #{endpoint.value}) to channel #{thingspeakChannel.channelId}"
                             
                             data[thingspeakChannel.fieldId] = value
+                            data["created_at"] = swapPacket.time
                             client.updateChannel parseInt(thingspeakChannel.channelId), data, (err, body) ->
                                 return logger.error err if err?
         

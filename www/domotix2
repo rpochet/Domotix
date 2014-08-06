@@ -1,0 +1,33 @@
+#!/bin/sh
+# /etc/init.d/domotix
+
+do_stop()
+{
+    echo "Killing domotix"
+    pkill node
+}
+
+do_start()
+{
+    echo "Starting domotix"
+    cd /home/pi/panStamp/domotix
+    /usr/local/bin/node app.js >logs/domotix_c.log 2>&1 &
+}
+
+case "$1" in
+    stop)
+        do_stop
+        ;;
+    start)
+        do_start
+        ;;
+     restart)
+        do_stop 
+        do_start
+        ;; 
+     *)
+        echo "Usage: start|stop|restart"
+        ;;
+esac
+
+exit 0

@@ -30,12 +30,34 @@ thingspeak:
         8141:
             writeApiKey: DV1CSLVQ3QIRV0K0
             readApiKey: 0975Z0F5ERBEUNK9
+        14164:
+            writeApiKey: CX3JT3EGVNMNWDLX
+            readApiKey: HY9GQMVC4NEDU5IV
+        14293:
+            writeApiKey: Y2I37MDE6X6TDP7V
+            readApiKey: 3BVPCR69485ZL1I2        
+        14320:
+            writeApiKey: 8VH430NK9IUMWN2Q
+            readApiKey: LZCI2SW058UYLBUU
     fields: # productcode / address / registerId:endpoint
-        0000006400000001/2/12:0: #temperature
+        0000006400000001/2/12:0:
             channelId: 8141
             fieldId: field1
             unit: 0
-        0000006400000001/2/12:1: #pressure
+        0000006400000001/2/12:1:
             channelId: 8141
             fieldId: field2
             unit: 1
+        0000006400000001/2/20:0:
+            channelId: 14164
+            fieldId: field2
+            unit: 0        
+        0000006400000001/2/14:0:
+            channelId: 14293
+            fieldId: field2
+            unit: 0        
+        0000006400000001/2/22:0:
+            channelId: 14320
+            fieldId: field2
+            unit: 0
+

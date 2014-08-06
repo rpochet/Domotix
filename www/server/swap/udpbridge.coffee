@@ -22,9 +22,7 @@ class UdpBridge extends events.EventEmitter
             packet = new swap.CCPacket ("(FFFF)" + data)
             if packet.data
                 packet = new swap.SwapPacket packet
-                logger.debug packet
-                logger.debug self.emit "swapPacket",
-                    packet
+                self.emit "swapPacket", packet
         
         server.bind @config.port, @config.host
         

@@ -31,7 +31,6 @@ class SerialModem extends events.EventEmitter
                         packet = new swap.SwapPacket packet
                         self.emit "swapPacket", packet
             self.emit "started"
-            @write "0201000001020b\r"
         
         @serialPort.on "close", ->
             process.kill(process.pid, "SIGTERM")

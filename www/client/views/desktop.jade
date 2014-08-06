@@ -1,258 +1,268 @@
 extends layout
 block content
-    tabs
-        pane(title="Swap Gateway")
-            .container(ng-controller="DeviceListCtrl")
-                h1 Swap Gateway
-                hr
-                .row
-                    .span12
-                        h3 Stamps
-                        #devices
-                            table.table.table-hover
-                                thead
-                                    tr
-                                        th
-                                            | Location
-                                        th
-                                            | Address
-                                        th
-                                            | Last Status
-                                        th
-                                            | Product Code
-                                        th
-                                            | Frequency Channel
-                                        th
-                                            | Network Id
-                                        th
-                                            | Tx Interval
-                                        th
-                                            | Version
-                                        th
-                                            | System State
-                                        th
-                                            | Security Option
-                                        th
-                                            | Security Nonce
-                                        th
-                                            | Security Password
-                                tbody
-                                    tr(ng-repeat="device in devices | objectToArray | orderBy: location", ng-click="selectDevice(device)", ng-class="{ 'warning' : device.address == 255, 'info' : noSee(device), 'danger' : device.networkId != config.network.networkId || device.frequencyChannel != config.network.frequencyChannel }")
-                                        td
-                                            {{device.location}}
-                                        td
-                                            {{device.address}}
-                                        td
-                                            {{device.lastStatusTime | date:"dd/MM/yyyy @ HH:mm:ss"}}
-                                        td
-                                            {{device.productCode}}
-                                        td
-                                            {{device.frequencyChannel}}
-                                        td
-                                            {{device.networkId}}
-                                        td
-                                            {{device.txInterval}}
-                                        td
-                                            {{device.version}}
-                                        td
-                                            {{device.systemState | systemState}}
-                                        td
-                                            {{device.securityOption}}
-                                        td
-                                            {{device.securityNonce}}
-                                        td
-                                            {{device.securityPassword}}
-                                
-                            #selectedDevice(ng-if="selectedDevice")
-                                form.form-horizontal(role="form")
-                                    fieldset
-                                         legend Standard registers
-                                        .form-group
-                                            label.col-sm-2.control-label Product Code
-                                            .col-sm-10
-                                                p.form-control-static {{editedDevice.productCode}}
-                                        .form-group
-                                            label.col-sm-2.control-label State
-                                            .col-sm-10
-                                                p.form-control-static {{editedDevice.systemState | systemState}}
-                                        .form-group
-                                            label.col-sm-2.control-label Version
-                                            .col-sm-10
-                                                p.form-control-static {{editedDevice.version.hardware}}
-                                                p.form-control-static {{editedDevice.version.firmware}}
-                                        .form-group
-                                            label.col-sm-2.control-label Last Status
-                                            .col-sm-10
-                                                p.form-control-static
-                                                    {{editedDevice.lastStatusTime | date:"dd/MM/yyyy @ HH:mm:ss"}}
-                                                    span(ng-show="noSee(editedDevice)").label.bg-danger Last Seen 
-                                                    |  {{editedDevice.lastStatusTime | fromNow}} !
-                                    fieldset
-                                        .form-group
-                                            label.col-sm-2.control-label Location
-                                            .col-sm-10
-                                                input.form-control(type="text", placeholder="Room ...", ng-model="editedDevice.location", required)
-                                        .form-group
-                                            label.col-sm-2.control-label Address
-                                            .col-sm-10
-                                                input.form-control(type="number", placeholder="Not 1 ...", ng-model="editedDevice.address", required, min="1", max="255", integer) span(ng-show="editedDevice.address == 255").label.bg-danger Address to be defined
-                                    fieldset(disabled)
-                                        .form-group
-                                            label.col-sm-2.control-label Frequency Channel
-                                            .col-sm-10
-                                                input.form-control(type="number", placeholder="Frequency Channel ...", ng-model="editedDevice.frequencyChannel", required, min="0", max="255", integer)
-                                        .form-group
-                                            label.col-sm-2.control-label Network Id
-                                            .col-sm-10
-                                                input.form-control(type="number", placeholder="Network Id ...", ng-model="editedDevice.networkId", required, min="0", max="65535", integer)
-                                    .form-group
-                                        label.col-sm-2.control-label Transmit Interval (s)
-                                        .col-sm-10
-                                            input.form-control(type="number", placeholder="In seconds ...", ng-model="editedDevice.txInterval", required, min="0", max="65535", integer)
-                                    .form-group
-                                        .col-sm-offset-2.col-sm-10
-                                            button.btn.btn-link(ng-click="reset()", ng-disabled="isUnchanged()") Cancel
-                                            button.btn.btn-danger(ng-click="delete()") Delete
-                                            button.btn.btn-primary(ng-click="update()", ng-disabled="form.$invalid || isUnchanged()") Save
-                                    
-                                    fieldset
-                                        legend Config registers
-                                        div(ng-repeat="register in editedDevice.configRegisters")
-                                            h4 {{register.name}} ({{register.id}})
-                                            div(ng-repeat="param in register.params")
-                                                .form-group
-                                                    label.col-sm-2.control-label {{param.name}}
-                                                    .col-sm-10
-                                                        input.form-control(type="{{param.type}}", title="{{param.name}}", ng-disabled="param.dir == 'output'", ng-model="param.value", required, min="0", max="65535", integer)
-                                    fieldset
-                                        legend Regular registers
-                                        div(ng-repeat="register in editedDevice.regularRegisters")
-                                            h4 {{register.name}} ({{register.id}})
-                                            div(ng-repeat="endpoint in register.endpoints")
-                                                .form-group
-                                                    label.col-sm-2.control-label {{endpoint.name}}
-                                                    .col-sm-10
-                                                        {{endpoint.value}}
-                                                        input.form-control(type="{{endpoint.type}}", title="{{endpoint.name}}", ng-disabled="endpoint.dir == 'output'", ng-model="endpoint.value", required, min="0", max="65535", integer)
+  tabs
+    pane(title="Swap Gateway")
+      .container(ng-controller="DeviceListCtrl")
+        h1 Swap Gateway
+        hr
+        .row
+          h3 Stamps
+          #devices
+            table.table.table-hover
+              thead
+                tr
+                  th
+                    | Location
+                  th
+                    | Address
+                  th
+                    | Last Status
+                  th
+                    | Product Code
+                  th
+                    | Frequency Channel
+                  th
+                    | Network Id
+                  th
+                    | Tx Interval
+                  th
+                    | Version
+                  th
+                    | System State
+                  th
+                    | Security Option
+                  th
+                    | Security Nonce
+                  th
+                    | Security Password
+              tbody
+                tr(ng-repeat="device in devices | objectToArray | orderBy: location", ng-click="selectDevice(device)", ng-class="{ 'warning' : device.address == 255, 'info' : noSee(device), 'danger' : device.networkId != config.network.networkId || device.frequencyChannel != config.network.frequencyChannel }")
+                  td
+                    {{device.location}}
+                  td
+                    {{device.address}}
+                  td
+                    {{device.lastStatusTime | date:"dd/MM/yyyy @ HH:mm:ss"}}
+                  td
+                    {{device.productCode}}
+                  td
+                    {{device.frequencyChannel}}
+                  td
+                    {{device.networkId}}
+                  td
+                    {{device.txInterval}}
+                  td
+                    {{device.version}}
+                  td
+                    {{device.systemState | systemState}}
+                  td
+                    {{device.securityOption}}
+                  td
+                    {{device.securityNonce}}
+                  td
+                    {{device.securityPassword}}
+              
+            #selectedDevice(ng-if="selectedDevice")
+              form.form-horizontal(role="form")
+                fieldset
+                   legend Standard registers
+                  .form-group
+                    label.col-sm-2.control-label Product Code
+                    .col-sm-10
+                      p.form-control-static {{editedDevice.productCode}}
+                  .form-group
+                    label.col-sm-2.control-label State
+                    .col-sm-10
+                      p.form-control-static {{editedDevice.systemState | systemState}}
+                  .form-group
+                    label.col-sm-2.control-label Version
+                    .col-sm-10
+                      p.form-control-static {{editedDevice.version.hardware}}
+                      p.form-control-static {{editedDevice.version.firmware}}
+                  .form-group
+                    label.col-sm-2.control-label Last Status
+                    .col-sm-10
+                      p.form-control-static
+                        {{editedDevice.lastStatusTime | date:"dd/MM/yyyy @ HH:mm:ss"}}
+                        span(ng-show="noSee(editedDevice)").label.bg-danger Last Seen 
+                        |  {{editedDevice.lastStatusTime | fromNow}} !
+                fieldset
+                  .form-group
+                    label.col-sm-2.control-label Location
+                    .col-sm-10
+                      input.form-control(type="text", placeholder="Room ...", ng-model="editedDevice.location", required)
+                  .form-group
+                    label.col-sm-2.control-label Address
+                    .col-sm-10
+                      input.form-control(type="number", placeholder="Not 1 ...", ng-model="editedDevice.address", required, min="1", max="255", integer) span(ng-show="editedDevice.address == 255").label.bg-danger Address to be defined
+                fieldset(disabled)
+                  .form-group
+                    label.col-sm-2.control-label Frequency Channel
+                    .col-sm-10
+                      input.form-control(type="number", placeholder="Frequency Channel ...", ng-model="editedDevice.frequencyChannel", required, min="0", max="255", integer)
+                  .form-group
+                    label.col-sm-2.control-label Network Id
+                    .col-sm-10
+                      input.form-control(type="number", placeholder="Network Id ...", ng-model="editedDevice.networkId", required, min="0", max="65535", integer)
+                .form-group
+                  label.col-sm-2.control-label Transmit Interval (s)
+                  .col-sm-10
+                    input.form-control(type="number", placeholder="In seconds ...", ng-model="editedDevice.txInterval", required, min="0", max="65535", integer)
+                .form-group
+                  .col-sm-offset-2.col-sm-10
+                    button.btn.btn-link(ng-click="reset()", ng-disabled="isUnchanged()") Cancel
+                    button.btn.btn-danger(ng-click="delete()") Delete
+                    button.btn.btn-primary(ng-click="update()", ng-disabled="form.$invalid || isUnchanged()") Save
                 
-        pane(title="Config")
-            .container(ng-controller="ConfigCtrl")
-                h1 Configuration
-                .tab-pane
-                    ul.nav.nav-tabs
-                        li.active
-                            a(href="#serial", data-toggle='tab') Serial
-                        li
-                            a(href='#network', data-toggle='tab') Network
-                        li
-                            a(href='#broker', data-toggle='tab') Broker
-                        li
-                            a(href="#bridge", data-toggle='tab') UDP Bridge
-                    form.form-horizontal(role="form")
-                        .tab-content
-                            #serial.tab-pane.active
-                                .form-group
-                                    label.col-sm-2.control-label Port
-                                    .col-sm-10
-                                        input.form-control(type="text", placeholder="Port ...", ng-model="editedConfig.serial.port", required)
-                                .form-group
-                                    label.col-sm-2.control-label Speed
-                                    .col-sm-10
-                                        input.form-control(type="number", placeholder="Baudrate...", ng-model="editedConfig.serial.baudrate", required)
-                            #network.tab-pane
-                                .form-group
-                                    label.col-sm-2.control-label Frequency Channel
-                                    .col-sm-10
-                                        input.form-control(type="number", placeholder="Frequency Channel...", ng-model="editedConfig.network.frequencyChannel", required)
-                                .form-group
-                                    label.col-sm-2.control-label Network Id
-                                    .col-sm-10
-                                        input.form-control(type="number", placeholder="Network Id...", ng-model="editedConfig.network.networkId", required)
-                                .form-group
-                                    label.col-sm-2.control-label Modem address
-                                    .col-sm-10
-                                        input.form-control(type="number", placeholder="Modem address...", ng-model="editedConfig.network.address", required)
-                                .form-group
-                                    label.col-sm-2.control-label Security
-                                    .col-sm-10
-                                        input.form-control(type="number", placeholder="Security...", ng-model="editedConfig.network.security", required)
-                            #broker.tab-pane
-                                .form-group
-                                    label.col-sm-2.control-label Host
-                                    .col-sm-10
-                                        input.form-control(type="text", placeholder="Host...", ng-model="editedConfig.broker.host", required)
-                                .form-group
-                                    label.col-sm-2.control-label Port
-                                    .col-sm-10
-                                        input.form-control(type="number", placeholder="Port...", ng-model="editedConfig.broker.port", required)
-                            #bridge.tab-pane
-                                .form-group
-                                    label.col-sm-2.control-label Host
-                                    .col-sm-10
-                                        input.form-control(type="text", placeholder="Host...", ng-model="editedConfig.udpBridge.host", required)
-                                .form-group
-                                    label.col-sm-2.control-label Port
-                                    .col-sm-10
-                                        input.form-control(type="number", placeholder="Port...", ng-model="editedConfig.udpBridge.port", required)
-                            .form-group
-                                .col-sm-offset-2.col-sm-10
-                                    button.btn.btn-link(ng-click="reset()", ng-disabled="isUnchanged()") Cancel
-                                    button.btn.btn-primary(ng-click="update()", ng-disabled="form.$invalid || isUnchanged()") Save
+                fieldset
+                  legend Config registers
+                  div(ng-repeat="register in editedDevice.configRegisters")
+                    h4 {{register.name}} ({{register.id}})
+                    div(ng-repeat="param in register.params")
+                      .form-group
+                        label.col-sm-2.control-label {{param.name}}
+                        .col-sm-10
+                          input.form-control(type="{{param.type}}", title="{{param.name}}", ng-disabled="param.dir == 'output'", ng-model="param.value", required, min="0", max="65535", integer)
+                fieldset
+                  legend Regular registers
+                  div(ng-repeat="register in editedDevice.regularRegisters")
+                    h4 {{register.name}} ({{register.id}})
+                    div(ng-repeat="endpoint in register.endpoints")
+                      .form-group
+                        label.col-sm-2.control-label {{endpoint.name}}
+                        .col-sm-10
+                          {{endpoint.value}}
+                          input.form-control(type="{{endpoint.type}}", title="{{endpoint.name}}", ng-disabled="endpoint.dir == 'output'", ng-model="endpoint.value", required, min="0", max="65535", integer)
         
-        pane(title="Network")
-            .container(ng-controller="NetworkCtrl")
-                h1 Network
-                .row
-                    .span12
-                        h4 Network Events
-                        #events
-                            div(ng-repeat="swapEvent in swapEvents", ng-class="{even: $even, odd: $odd}")
-                                span("class"="text-{{swapEvent.type}}") {{swapEvent.text}}
-                                span.pull-right.muted <small> {{swapEvent.time| date:"HH:mm:ss"}} </small>
-                .row
-                    .span12
-                        h4 Last Packets
-                        #packets
-                            div(ng-repeat="swapPacket in swapPackets", ng-class="{even: $even, odd: $odd}")
-                                span {{swapPacket}} 
-                                span.pull-right.muted {{swapPacket.time | date:"HH:mm:ss"}}
-        
-        pane(title="Utilities")
-            .container(ng-controller="UtilitiesCtrl")
-                h1 Utilities
-                hr
-                .row
-                    .span6
-                        h3 Scan
-                        div
-                            a(ng-click="checkNewDevices()")
-                                strong Check stamps
-                            hr
-                            a(ng-click="refreshDevices()")
-                                strong Refresh devices
-                            hr
-                            a(ng-click="refreshSwapPackets()")
-                                strong Refresh Swap packets
-                hr
-                .row
-                    .span6
-                        h3 Messages
-                        form(ng-submit="sendMessage()", role="form")
-                            legend Send message
-                            .form-group
-                                label Function codes
-                                select.form-control(ng-model="message.functionCode", ng-options="key for (key, value) in functions")
-                            .form-group
-                                label Destination address
-                                input.form-control(type="number", ng-model="message.address")
-                            .form-group
-                                label Register ID
-                                select.form-control(ng-model="message.register", ng-options="name for (name, reg) in registers")
-                                input.form-control(type="number", ng-model="message.register.id")
-                            .form-group
-                                label Register Value (Command only - Length and value)
-                                input.form-control(type="number", ng-model="message.register.length", ng-disabled="message.functionCode != 2")
-                                input.form-control(type="number", ng-model="message.register.value", ng-disabled="message.functionCode != 2")
-                            br
-                            input("class"="btn-primary", type="submit", value="Send")
-                        
+    pane(title="Config")
+      .container(ng-controller="ConfigCtrl")
+        h1 Configuration
+        .tab-pane
+          ul.nav.nav-tabs
+            li.active
+              a(href="#serial", data-toggle='tab') Serial
+            li
+              a(href='#network', data-toggle='tab') Network
+            li
+              a(href='#broker', data-toggle='tab') Broker
+            li
+              a(href="#bridge", data-toggle='tab') UDP Bridge
+          form.form-horizontal(role="form")
+            .tab-content
+              #serial.tab-pane.active
+                .form-group
+                  label.col-sm-2.control-label Port
+                  .col-sm-10
+                    input.form-control(type="text", placeholder="Port ...", ng-model="editedConfig.serial.port", required)
+                .form-group
+                  label.col-sm-2.control-label Speed
+                  .col-sm-10
+                    input.form-control(type="number", placeholder="Baudrate...", ng-model="editedConfig.serial.baudrate", required)
+              #network.tab-pane
+                .form-group
+                  label.col-sm-2.control-label Frequency Channel
+                  .col-sm-10
+                    input.form-control(type="number", placeholder="Frequency Channel...", ng-model="editedConfig.network.frequencyChannel", required)
+                .form-group
+                  label.col-sm-2.control-label Network Id
+                  .col-sm-10
+                    input.form-control(type="number", placeholder="Network Id...", ng-model="editedConfig.network.networkId", required)
+                .form-group
+                  label.col-sm-2.control-label Modem address
+                  .col-sm-10
+                    input.form-control(type="number", placeholder="Modem address...", ng-model="editedConfig.network.address", required)
+                .form-group
+                  label.col-sm-2.control-label Security
+                  .col-sm-10
+                    input.form-control(type="number", placeholder="Security...", ng-model="editedConfig.network.security", required)
+              #broker.tab-pane
+                .form-group
+                  label.col-sm-2.control-label Host
+                  .col-sm-10
+                    input.form-control(type="text", placeholder="Host...", ng-model="editedConfig.broker.host", required)
+                .form-group
+                  label.col-sm-2.control-label Port
+                  .col-sm-10
+                    input.form-control(type="number", placeholder="Port...", ng-model="editedConfig.broker.port", required)
+              #bridge.tab-pane
+                .form-group
+                  label.col-sm-2.control-label Host
+                  .col-sm-10
+                    input.form-control(type="text", placeholder="Host...", ng-model="editedConfig.udpBridge.host", required)
+                .form-group
+                  label.col-sm-2.control-label Port
+                  .col-sm-10
+                    input.form-control(type="number", placeholder="Port...", ng-model="editedConfig.udpBridge.port", required)
+              .form-group
+                .col-sm-offset-2.col-sm-10
+                  button.btn.btn-link(ng-click="reset()", ng-disabled="isUnchanged()") Cancel
+                  button.btn.btn-primary(ng-click="update()", ng-disabled="form.$invalid || isUnchanged()") Save
+    
+    pane(title="Network")
+      .container(ng-controller="NetworkCtrl")
+        h1 Network
+        .row
+          h4 Network Events
+          #events
+            div(ng-repeat="swapEvent in swapEvents", ng-class="{even: $even, odd: $odd}")
+              span("class"="text-{{swapEvent.type}}") {{swapEvent.text}}
+              span.pull-right.muted <small> {{swapEvent.time| date:"HH:mm:ss"}} </small>
+        .row
+          h4 Last Packets
+          #packets
+            div(ng-repeat="swapPacket in swapPackets", ng-class="{even: $even, odd: $odd}")
+              span {{swapPacket}} 
+              span.pull-right.muted {{swapPacket.time | date:"HH:mm:ss"}}
+    
+    pane(title="Utilities")
+      .container(ng-controller="UtilitiesCtrl")
+        h1 Utilities
+        hr
+        .row
+          h3 Scan
+          div
+            a(ng-click="checkNewDevices()")
+              strong Check stamps
+            hr
+            a(ng-click="refreshDevices()")
+              strong Refresh devices
+            hr
+            a(ng-click="refreshSwapPackets()")
+              strong Refresh Swap packets
+        hr
+        .row
+          h3 Messages
+          .panel.panel-default
+            .panel-heading Send message
+            .panel-body
+              form(ng-submit="sendMessage()", role="form")
+                .form-group
+                  label Function codes
+                  select.form-control(ng-model="message.functionCode", ng-options="key for (key, value) in functions")
+                .form-group
+                  label Destination address
+                  input.form-control(type="number", ng-model="message.address")
+                .form-group
+                  label Register ID
+                  select.form-control(ng-model="message.register", ng-options="name for (name, reg) in registers")
+                  input.form-control(type="number", ng-model="message.register.id")
+                .form-group
+                  label Register Value (Command only - Length and value)
+                  input.form-control(type="number", ng-model="message.register.length", ng-disabled="message.functionCode != 2")
+                  input.form-control(type="number", ng-model="message.register.value", ng-disabled="message.functionCode != 2")
+                br
+                input("class"="btn-primary", type="submit", value="Send")
+            
+          .panel.panel-default
+            .panel-heading Decode message
+            .panel-body
+              form(ng-submit="sendMessage()", role="form")
+                .form-group
+                  input(type="text", ng-model="rawMessage", size="30")
+                .form-group
+                  .col-md-1 To {{ decodedMessage.dest }}
+                  .col-md-1 From {{ decodedMessage.source }}
+                  .col-md-1 Nonce {{ decodedMessage.nonce }}
+                  .col-md-1 Function {{ decodedMessage.func }}
+                  .col-md-1 Register {{ decodedMessage.regId }}
+                  .col-md-1 Value {{ decodedMessage.value }}

@@ -1,0 +1,16 @@
+{'level' : {
+'id' : '4',
+'name' : 'Grenier',
+'level' : '2',
+'path' : 'M0 0 h100 v100 h-100 z',
+'x' : 0,
+'y' : 0
+},
+'rooms' : [
+{
+'id' : '21',
+'name' : 'Grenier',
+'path' : 'M0,0 h100 v100 h-100 z'
+}
+]
+}

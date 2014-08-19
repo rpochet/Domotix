@@ -1,0 +1,34 @@
+{'level' : {
+'id' : '1',
+'name' : 'Cave',
+'level' : '-1',
+'path' : 'M0 160 h460 v-160 h739 v1069 h-459 v-44 h-271 v44 h-469 v-909 z',
+'x' : 0,
+'y' : 0
+},
+'rooms' : [
+{
+'id' : '1',
+'name' : 'Cave à vin',
+'path' : 'M1160,1030 h-381 v-341 h381 z'
+}
+,
+{
+'id' : '2',
+'name' : 'Atelier',
+'path' : 'M39,199 h441 v433 l-39,39 l-71,-71 h-331 z'
+}
+,
+{
+'id' : '3',
+'name' : 'Voiture',
+'path' : 'M499,39 h361 v40 h19 v-40 h281 v331 h-20 v19 h20 v281 h-400 v39 h-104 v190 h-50 v101 h-157 v-310 l50,-50 z'
+}
+,
+{
+'id' : '4',
+'name' : 'Chaufferie',
+'path' : 'M316,651 v-23 h-277 v411 h391 v-301 h-36 z'
+}
+]
+}

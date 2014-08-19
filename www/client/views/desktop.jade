@@ -258,11 +258,29 @@ block content
             .panel-body
               form(ng-submit="sendMessage()", role="form")
                 .form-group
-                  input(type="text", ng-model="rawMessage", size="30")
+                  input(type="text", ng-model="rawMessage", size="40")
                 .form-group
+                  .col-md-1 RSSI {{ decodedMessage.rssi }}
+                  .col-md-1 LQI {{ decodedMessage.lqi }}
                   .col-md-1 To {{ decodedMessage.dest }}
                   .col-md-1 From {{ decodedMessage.source }}
                   .col-md-1 Nonce {{ decodedMessage.nonce }}
                   .col-md-1 Function {{ decodedMessage.func }}
                   .col-md-1 Register {{ decodedMessage.regId }}
                   .col-md-1 Value {{ decodedMessage.value }}
+    
+    pane(title="Plugins")
+      .container(data-spy="scroll", data-target=".plugins", style="position: relative;")
+        .plugins
+          ul.nav.nav-tabs(role="tablist")
+            li
+              a(href="#plugin_pressure")
+                | Barometre
+            li
+              a(href="#network_status")
+                | Etat reseau
+          
+          #plugin_pressure
+            iframe(src="/pressure.html", width="100%", height="740", frameborder="0")
+          #network_status
+            iframe(src="/network_status.html", width="100%", height="700", frameborder="0")

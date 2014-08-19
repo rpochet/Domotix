@@ -15,7 +15,8 @@ class CCPacket
 
 class SwapPacket
     constructor: (ccPacket) ->
-        @RSSI = ccPacket?.RSSI
+        # http://www.ti.com/lit/an/swra114d/swra114d.pdf
+        @RSSI = if ccPacket?.RSSI >= 128 then ((ccPacket?.RSSI - 256) / 2 - 74) else (ccPacket?.RSSI / 2 - 74)
         @LQI = ccPacket?.LQI
         @dest = ccPacket?.data[0]
         @source = ccPacket?.data[1]

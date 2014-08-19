@@ -37,11 +37,13 @@ module.exports = (swapApp) ->
     
     $scope.rawMessage = ""
     $scope.$watch 'rawMessage', (newValue, oldValue) ->
-      data = "(0000)" + newValue
+      data = if newValue.charAt(0) == '(' then newValue else "(0000)" + newValue
       ccPacket = new swap.CCPacket data
       swapPacket = new swap.SwapPacket ccPacket
         
       $scope.decodedMessage = 
+        rssi : swapPacket.RSSI 
+        lqi : swapPacket.LQI
         dest : swapPacket.dest
         source : swapPacket.source
         nonce : swapPacket.nonce

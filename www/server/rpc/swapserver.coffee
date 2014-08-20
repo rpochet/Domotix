@@ -111,8 +111,10 @@ swapPacketReceived = (swapPacket) ->
         addSwapEvent {name: "unknownSwapPacketDevice", text:text, type:"warning", time: new Date()}
     else
         packetDevice = devices["DEV" + swap.num2byte(swapPacket.source)]
-        #logger.debug packetDevice
     
+    #logger.debug packetDevice
+    #logger.debug swapPacket 
+
     # Handles STATUS packets
     if swapPacket.func is swap.Functions.STATUS
         value = swapPacket.value
@@ -139,15 +141,21 @@ swapPacketReceived = (swapPacket) ->
             delete packetDevice._id
             delete packetDevice._rev
             
+            # Add to the list before save in DB because packets may be received during saving
+            devices["DEV" + swap.num2byte(packetDevice.address)] = packetDevice
+            
             dbPanstamp.save "DEV" + swap.num2byte(packetDevice.address), packetDevice, (err, doc) ->
                 return logger.error err if err?
-                devices[doc._id] = packetDevice
+                packetDevice._id = doc._id
+                packetDevice._rev = doc._rev
+                #devices[doc._id] = packetDevice
                 text = "New packetDevice #{packetDevice.address} added: #{packetDevice.productCode} - #{devicesConfig[productCode].product} (#{devicesConfig[productCode].developer})"
                 logger.info text
                 addSwapEvent {name:"newSwapPacketDeviceDetected", text:text, packetDevice:packetDevice, time:new Date()}
+            return
         
-        logger.warn "Packet received from unknown source: #{swapPacket.source} and not a productCode status packet" if not packetDevice 
-        return if not packetDevice 
+        #logger.warn "Packet received from unknown source: #{swapPacket.source} and not a productCode status packet" if not packetDevice 
+        #return if not packetDevice 
         
         # handles missing packets ??
         if not Math.abs(packetDevice.securityNonce - swapPacket.nonce) in [1,255]
@@ -251,6 +259,9 @@ swapPacketReceived = (swapPacket) ->
                     addSwapEvent {name: "REG-" + swapPacket.regId, text: text, packetDevice: packetDevice, time: new Date()}
                     return
         
+        text = "Updating device #{packetDevice.address}: Current revision is #{packetDevice._rev}"
+        logger.info text
+        addSwapEvent {name: "REG-" + swapPacket.regId, text: text, packetDevice: packetDevice, time: new Date()}
         dbPanstamp.save "DEV" + swap.num2byte(packetDevice.address), packetDevice._rev, packetDevice, (err, res) ->
             return logger.error err if err?
             devices["DEV" + swap.num2byte(packetDevice.address)]._rev = res.rev

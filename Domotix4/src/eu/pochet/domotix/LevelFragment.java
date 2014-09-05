@@ -1,11 +1,8 @@
-// Decompiled by Jad v1.5.8e. Copyright 2001 Pavel Kouznetsov.
-// Jad home page: http://www.geocities.com/kpdus/jad.html
-// Decompiler options: braces fieldsfirst space lnc 
-
 package eu.pochet.domotix;
 
-import android.app.Activity;
-import android.app.DialogFragment;
+import java.util.ArrayList;
+import java.util.List;
+
 import android.app.Fragment;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -25,406 +22,295 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
-import eu.pochet.android.Util;
 import eu.pochet.domotix.dao.Card;
-import eu.pochet.domotix.dao.LagartoResponse;
-import eu.pochet.domotix.dao.LagartoResponseDao;
 import eu.pochet.domotix.dao.Level;
 import eu.pochet.domotix.dao.LevelDao;
 import eu.pochet.domotix.dao.Light;
 import eu.pochet.domotix.service.LightStatusUpdateService;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import eu.pochet.domotix.service.UDPListenerService;
+import eu.pochet.domotix.service.ZMQListenerService;
 
-// Referenced classes of package eu.pochet.domotix:
-//            LevelView, MessageHelper, CardLevelView, LightLevelView, 
-//            LightDialogFragment, NotificationHelper
+public abstract class LevelFragment extends Fragment implements android.gesture.GestureOverlayView.OnGesturePerformedListener {
+	
+	protected List<Level> levels = null;
 
-public abstract class LevelFragment extends Fragment
-    implements android.gesture.GestureOverlayView.OnGesturePerformedListener
-{
-    public static class CardLevelFragment extends LevelFragment
-    {
+	protected int mCurrentLevelId = 0;
 
-        protected android.view.GestureDetector.SimpleOnGestureListener getGestureDetector()
-        {
-            return new android.view.GestureDetector.SimpleOnGestureListener() {
+	private GestureLibrary mLibrary = null;
 
-                private static final int OFFSET = 100;
-                final CardLevelFragment this$1;
+	private GestureDetector gestureDetector = null;
+			
+	private BroadcastReceiver myBroadcastReceiver = null;
 
-                private Card getCardForEvent(MotionEvent motionevent)
-                {
-                    RectF rectf = new RectF();
-                    Level level = getCurrentLevel();
-                    CardLevelView cardlevelview = (CardLevelView)getCurrentLevelView();
-                    float f = motionevent.getX() / cardlevelview.getRatioX();
-                    float f1 = motionevent.getY() / cardlevelview.getRatioY();
-                    Iterator iterator = level.getCards().iterator();
-                    Card card;
-                    do
-                    {
-                        if (!iterator.hasNext())
-                        {
-                            return null;
-                        }
-                        card = (Card)iterator.next();
-                        float f2 = cardlevelview.getCardX(card);
-                        float f3 = cardlevelview.getCardY(card);
-                        rectf.set(f2 - 100F, f3 - 100F, f2 + 100F, f3 + 100F);
-                    } while (!rectf.contains(f, f1));
-                    return card;
-                }
+	private ViewFlipper viewFlipper = null;
 
-                public boolean onDoubleTap(MotionEvent motionevent)
-                {
-                    getCardForEvent(motionevent);
-                    return true;
-                }
+	public LevelFragment() {
+		myBroadcastReceiver = new BroadcastReceiver() {
+			public void onReceive(Context context, Intent intent) {
+				if (onBroadcastReceive(context, intent)) {
+					NotificationHelper.notify(context);
+				}
+			}
+		};
+	}
 
-            
-            {
-                this$1 = CardLevelFragment.this;
-                super();
-            }
-            };
-        }
+	protected Level getCurrentLevel() {
+		return (Level) levels.get(-1 + mCurrentLevelId);
+	}
 
-        protected int getLevelLayoutViewId()
-        {
-            return 0x7f030002;
-        }
+	protected LevelView getCurrentLevelView() {
+		return (LevelView) viewFlipper.getCurrentView();
+	}
 
-        protected boolean onBroadcastReceive(Context context, Intent intent)
-        {
-            return Boolean.FALSE.booleanValue();
-        }
+	public void onActivityCreated(Bundle bundle) {
+		super.onActivityCreated(bundle);
+		getActivity().registerReceiver(myBroadcastReceiver,
+				new IntentFilter(LightStatusUpdateService.ACTION));
+		getActivity().registerReceiver(myBroadcastReceiver,
+				new IntentFilter(UDPListenerService.ACTION));
+		getActivity().registerReceiver(myBroadcastReceiver,
+				new IntentFilter(ZMQListenerService.ACTION));
+	}
 
-        protected void updateLevel()
-        {
-        }
+	protected abstract boolean onBroadcastReceive(Context context, Intent intent);
 
-        public CardLevelFragment()
-        {
-        }
-    }
+	protected abstract android.view.GestureDetector.SimpleOnGestureListener getGestureDetector();
 
-    public static class LightLevelFragment extends LevelFragment
-    {
+	protected abstract int getLevelLayoutViewId();
 
-        private String lightStatusId;
+	protected abstract int getViewLevelFlipperViewId();
 
-        private void updateLightStatus(String s)
-        {
-            s.length();
-            Iterator iterator = ((Level)levels.get(-1 + mCurrentLevelId)).getLights().iterator();
-            do
-            {
-                if (!iterator.hasNext())
-                {
-                    return;
-                }
-                Light _tmp = (Light)iterator.next();
-            } while (true);
-        }
+	public View onCreateView(LayoutInflater layoutinflater, ViewGroup viewgroup, Bundle bundle) {
+		View view = layoutinflater.inflate(getLevelLayoutViewId(), null);
+		view.setDrawingCacheEnabled(false);
 
-        protected android.view.GestureDetector.SimpleOnGestureListener getGestureDetector()
-        {
-            return new android.view.GestureDetector.SimpleOnGestureListener() {
+		mLibrary = GestureLibraries.fromRawResource(getActivity(), R.raw.gestures);
+		mLibrary.load();
 
-                private static final int OFFSET = 100;
-                final LightLevelFragment this$1;
+		this.gestureDetector = new GestureDetector(getActivity(), getGestureDetector());
+		((GestureOverlayView) view).addOnGesturePerformedListener(this);
+		view.setOnTouchListener(new android.view.View.OnTouchListener() {
+			public boolean onTouch(View view, MotionEvent motionEvent) {
+				return LevelFragment.this.gestureDetector.onTouchEvent(motionEvent);
+			}
+		});
 
-                private Light getLightForEvent(MotionEvent motionevent)
-                {
-                    Level level = getCurrentLevel();
-                    List list = getLightForEvent(motionevent, level.getLights(), 100);
-                    if (list.size() == 1)
-                    {
-                        return (Light)list.get(0);
-                    }
-                    List list1 = getLightForEvent(motionevent, level.getLights(), 70);
-                    if (list1.size() == 1)
-                    {
-                        return (Light)list1.get(0);
-                    } else
-                    {
-                        return null;
-                    }
-                }
+		viewFlipper = (ViewFlipper) view.findViewById(getViewLevelFlipperViewId());
+		this.levels = LevelDao.getLevels(getActivity());
+		if (bundle != null) {
+			mCurrentLevelId = bundle.getInt("level", 2);
+		} else {
+			mCurrentLevelId = 2;
+		}
+		viewFlipper.setDisplayedChild(-1 + mCurrentLevelId);
 
-                private List getLightForEvent(MotionEvent motionevent, List list, int i)
-                {
-                    RectF rectf = new RectF();
-                    LightLevelView lightlevelview = (LightLevelView)getCurrentLevelView();
-                    float f = motionevent.getX() / lightlevelview.getRatioX();
-                    float f1 = motionevent.getY() / lightlevelview.getRatioY();
-                    ArrayList arraylist = new ArrayList();
-                    Iterator iterator = list.iterator();
-                    do
-                    {
-                        Light light;
-                        do
-                        {
-                            if (!iterator.hasNext())
-                            {
-                                return arraylist;
-                            }
-                            light = (Light)iterator.next();
-                            float f2 = lightlevelview.getLightX(light);
-                            float f3 = lightlevelview.getLightY(light);
-                            rectf.set(f2 - (float)i, f3 - (float)i, f2 + (float)i, f3 + (float)i);
-                        } while (!rectf.contains(f, f1));
-                        arraylist.add(light);
-                    } while (true);
-                }
+		for (int i = 0; i < viewFlipper.getChildCount(); i++) {
+			((LevelView) viewFlipper.getChildAt(i)).setLevel(levels.get(i));
+		}
 
-                public boolean onDoubleTap(MotionEvent motionevent)
-                {
-                    Light light = getLightForEvent(motionevent);
-                    if (light != null)
-                    {
-                        LightDialogFragment lightdialogfragment = new LightDialogFragment();
-                        Bundle bundle = new Bundle();
-                        bundle.putSerializable("light", light);
-                        lightdialogfragment.setArguments(bundle);
-                        lightdialogfragment.show(getFragmentManager(), "light");
-                    }
-                    return true;
-                }
+		return view;
+	}
 
-                public void onLongPress(MotionEvent motionevent)
-                {
-                    Light light = getLightForEvent(motionevent);
-                    if (light != null)
-                    {
-                        Toast.makeText(getActivity(), (new StringBuilder("onDoubleTap light ")).append(light.getName()).toString(), 0).show();
-                    }
-                }
+	public void onDestroy() {
+		super.onDestroy();
+		getActivity().unregisterReceiver(myBroadcastReceiver);
+	}
 
-                public boolean onSingleTapConfirmed(MotionEvent motionevent)
-                {
-                    Light light = getLightForEvent(motionevent);
-                    if (light != null)
-                    {
-                        Bundle bundle = new Bundle();
-                        bundle.putString("Domotix.MessageService.ACTION", "toggle_light");
-                        bundle.putInt("Domotix.MessageService.LIGHT", light.getId());
-                        MessageHelper.sendMessage(getActivity(), bundle);
-                        Toast.makeText(getActivity(), (new StringBuilder("Toggle light ")).append(light.getName()).toString(), 0).show();
-                    }
-                    return true;
-                }
+	public void onGesturePerformed(GestureOverlayView gestureoverlayview, Gesture gesture) {
+		List<Prediction> predictions = mLibrary.recognize(gesture);
+		if (predictions.size() > 0 && ((Prediction) predictions.get(0)).score > 1.0D) {
+			String name = predictions.get(0).name;
+			if ("ltr".equals(name)) {
+				viewFlipper.showPrevious();
+				mCurrentLevelId = 1 + viewFlipper.getDisplayedChild();
+				updateLevel();
+			} else if ("rtl".equals(name)) {
+				viewFlipper.showNext();
+				mCurrentLevelId = 1 + viewFlipper.getDisplayedChild();
+				updateLevel();
+			} else if ("startall".startsWith(name)) {
+				Bundle bundle = new Bundle();
+				bundle.putString("Domotix.MessageService.ACTION", "switch_on_all");
+				bundle.putInt("Domotix.MessageService.LEVEL", mCurrentLevelId);
+				MessageHelper.sendMessage(getActivity(), bundle);
+			} else if ("stopall".startsWith(name)) {
+				Bundle bundle1 = new Bundle();
+				bundle1.putString("Domotix.MessageService.ACTION", "switch_off_all");
+				bundle1.putInt("Domotix.MessageService.LEVEL", mCurrentLevelId);
+				MessageHelper.sendMessage(getActivity(), bundle1);
+			}
+		}
+	}
 
-            
-            {
-                this$1 = LightLevelFragment.this;
-                super();
-            }
-            };
-        }
+	public void onSaveInstanceState(Bundle bundle) {
+		super.onSaveInstanceState(bundle);
+		bundle.putInt("level", mCurrentLevelId);
+	}
 
-        protected int getLevelLayoutViewId()
-        {
-            return 0x7f030003;
-        }
+	protected abstract void updateLevel();
 
-        protected boolean onBroadcastReceive(Context context, Intent intent)
-        {
-            String s = intent.getAction();
-            if ("LightStatusUpdateService".equals(s))
-            {
-                updateLightStatus(intent.getStringExtra("status"));
-                return Boolean.TRUE.booleanValue();
-            }
-            if ("UDPListenerService".equals(s))
-            {
-                updateLightStatus(Util.ByteArrayToHexString(intent.getByteArrayExtra("message")).substring(22, 2 * intent.getIntExtra("messageLength", 32)));
-                return Boolean.TRUE.booleanValue();
-            }
-            if ("LagartoEventService".equals(s))
-            {
-                eu.pochet.domotix.dao.LagartoResponse.Status status = LagartoResponseDao.getLagartoResponse(intent.getStringExtra("message")).getStatus(lightStatusId);
-                if (status != null)
-                {
-                    updateLightStatus(status.getValue());
-                }
-                return Boolean.TRUE.booleanValue();
-            } else
-            {
-                return Boolean.FALSE.booleanValue();
-            }
-        }
+	public static class CardLevelFragment extends LevelFragment {
+		protected android.view.GestureDetector.SimpleOnGestureListener getGestureDetector() {
+			return new android.view.GestureDetector.SimpleOnGestureListener() {
 
-        protected void updateLevel()
-        {
-            Intent intent = new Intent(getActivity(), eu/pochet/domotix/service/LightStatusUpdateService);
-            getActivity().startService(intent);
-        }
+				private static final int OFFSET = 100;
 
-        public LightLevelFragment()
-        {
-            lightStatusId = "xxxx";
-        }
-    }
+				private Card getCardForEvent(MotionEvent motionevent) {
+					RectF rectf = new RectF();
+					Level level = getCurrentLevel();
+					CardLevelView cardlevelview = (CardLevelView) getCurrentLevelView();
+					float f = motionevent.getX() / cardlevelview.getRatioX();
+					float f1 = motionevent.getY() / cardlevelview.getRatioY();
+					for (Card card : level.getCards()) {
+						float f2 = cardlevelview.getCardX(card);
+						float f3 = cardlevelview.getCardY(card);
+						rectf.set(f2 - OFFSET, f3 - OFFSET, f2 + OFFSET, f3 + OFFSET);
+						if (rectf.contains(f, f1)) {
+							return card;
+						}
+					}
+					return null;
+				}
 
+				public boolean onDoubleTap(MotionEvent motionevent) {
+					getCardForEvent(motionevent);
+					return true;
+				}
+			};
+		}
 
-    protected List levels;
-    protected int mCurrentLevelId;
-    private GestureLibrary mLibrary;
-    BroadcastReceiver myBroadcastReceiver;
-    private ViewFlipper viewFlipper;
+		@Override
+		protected int getLevelLayoutViewId() {
+			return R.layout.house_level;
+		}
+		
+		@Override
+		protected int getViewLevelFlipperViewId() {
+			return R.id.cardLevelViewFlipper;
+		}
 
-    public LevelFragment()
-    {
-        viewFlipper = null;
-        mLibrary = null;
-        levels = null;
-        mCurrentLevelId = 0;
-        myBroadcastReceiver = new BroadcastReceiver() {
+		protected boolean onBroadcastReceive(Context context, Intent intent) {
+			return Boolean.FALSE.booleanValue();
+		}
 
-            final LevelFragment this$0;
+		protected void updateLevel() {
+		}
+	}
 
-            public void onReceive(Context context, Intent intent)
-            {
-                if (onBroadcastReceive(context, intent))
-                {
-                    NotificationHelper.notify(context);
-                }
-            }
+	public static class LightLevelFragment extends LevelFragment {
 
-            
-            {
-                this$0 = LevelFragment.this;
-                super();
-            }
-        };
-    }
+		private void updateLightStatus(int lightId, int lightStatus) {
+			for (Light light : levels.get(-1 + mCurrentLevelId).getLights()) {
+				if(light.getId() == lightId) {
+					light.setStatus(lightStatus);
+				}
+			}
+		}
 
-    protected Level getCurrentLevel()
-    {
-        return (Level)levels.get(-1 + mCurrentLevelId);
-    }
+		protected android.view.GestureDetector.SimpleOnGestureListener getGestureDetector() {
+			return new android.view.GestureDetector.SimpleOnGestureListener() {
 
-    protected LevelView getCurrentLevelView()
-    {
-        return (LevelView)viewFlipper.getCurrentView();
-    }
+				private static final int OFFSET_LONG = 100;
+				private static final int OFFSET_SHORT = 70;
 
-    protected abstract android.view.GestureDetector.SimpleOnGestureListener getGestureDetector();
+				private Light getLightForEvent(MotionEvent motionevent) {
+					Level level = getCurrentLevel();
+					List<Light> lights = getLightForEvent(motionevent, level.getLights(), OFFSET_LONG);
+					if (lights.size() == 1) {
+						return lights.get(0);
+					}
+					lights = getLightForEvent(motionevent, level.getLights(), OFFSET_SHORT);
+					if (lights.size() == 1) {
+						return lights.get(0);
+					} else {
+						return null;
+					}
+				}
 
-    protected abstract int getLevelLayoutViewId();
+				private List<Light> getLightForEvent(MotionEvent motionevent, List<Light> lights, int i) {
+					RectF rectf = new RectF();
+					LightLevelView lightlevelview = (LightLevelView) getCurrentLevelView();
+					float f = motionevent.getX() / lightlevelview.getRatioX();
+					float f1 = motionevent.getY() / lightlevelview.getRatioY();
 
-    public void onActivityCreated(Bundle bundle)
-    {
-        super.onActivityCreated(bundle);
-        getActivity().registerReceiver(myBroadcastReceiver, new IntentFilter("LightStatusUpdateService"));
-        getActivity().registerReceiver(myBroadcastReceiver, new IntentFilter("UDPListenerService"));
-    }
+					List<Light> res = new ArrayList<Light>();
+					for (Light light : lights) {
+						float f2 = lightlevelview.getLightX(light);
+						float f3 = lightlevelview.getLightY(light);
+						rectf.set(f2 - (float) i, f3 - (float) i, f2 + (float) i, f3 + (float) i);
+						if (rectf.contains(f, f1)) {
+							res.add(light);
+						}
+					}
+					return res;
+				}
 
-    protected abstract boolean onBroadcastReceive(Context context, Intent intent);
+				@Override
+				public boolean onDoubleTap(MotionEvent motionevent) {
+					Light light = getLightForEvent(motionevent);
+					if (light != null) {
+						LightDialogFragment lightdialogfragment = new LightDialogFragment();
+						Bundle bundle = new Bundle();
+						bundle.putSerializable("light", light);
+						lightdialogfragment.setArguments(bundle);
+						lightdialogfragment.show(getFragmentManager(), "light");
+					}
+					return true;
+				}
 
-    public View onCreateView(LayoutInflater layoutinflater, ViewGroup viewgroup, Bundle bundle)
-    {
-        int i;
-        View view = layoutinflater.inflate(getLevelLayoutViewId(), null);
-        viewFlipper = (ViewFlipper)view.findViewById(0x7f0c0007);
-        levels = LevelDao.getLevels(getActivity());
-        if (bundle != null)
-        {
-            mCurrentLevelId = bundle.getInt("level", 2);
-        } else
-        {
-            mCurrentLevelId = 2;
-        }
-        viewFlipper.setDisplayedChild(-1 + mCurrentLevelId);
-        if (levels == null || levels.size() <= 0) goto _L2; else goto _L1
-_L1:
-        i = 0;
-_L5:
-        if (i < viewFlipper.getChildCount()) goto _L3; else goto _L2
-_L2:
-        view.setDrawingCacheEnabled(false);
-        mLibrary = GestureLibraries.fromRawResource(getActivity(), 0x7f050000);
-        mLibrary.load();
-        ((GestureOverlayView)view).addOnGesturePerformedListener(this);
-        view.setOnTouchListener(new android.view.View.OnTouchListener() {
+				public void onLongPress(MotionEvent motionevent) {
+					Light light = getLightForEvent(motionevent);
+					if (light != null) {
+						Toast.makeText(
+								getActivity(),
+								new StringBuilder("onLongPress light ").append(light.getName()).toString(), 0)
+							.show();
+					}
+				}
 
-            final LevelFragment this$0;
-            private final GestureDetector val$gestureDetector;
+				public boolean onSingleTapConfirmed(MotionEvent motionevent) {
+					Light light = getLightForEvent(motionevent);
+					if (light != null) {
+						Bundle bundle = new Bundle();
+						bundle.putString("Domotix.MessageService.ACTION", "toggle_light");
+						bundle.putInt("Domotix.MessageService.LIGHT", light.getId());
+						MessageHelper.sendMessage(getActivity(), bundle);
+						Toast.makeText(
+								getActivity(),
+								new StringBuilder("Toggle light ").append(light.getName()).toString(), 0)
+							.show();
+					}
+					return true;
+				}
+			};
+		}
 
-            public boolean onTouch(View view1, MotionEvent motionevent)
-            {
-                return gestureDetector.onTouchEvent(motionevent);
-            }
+		@Override
+		protected int getLevelLayoutViewId() {
+			return R.layout.light_level;
+		}
+		
+		@Override
+		protected int getViewLevelFlipperViewId() {
+			return R.id.lightLevelViewFlipper;
+		}
 
-            
-            {
-                this$0 = LevelFragment.this;
-                gestureDetector = gesturedetector;
-                super();
-            }
-        });
-        return view;
-_L3:
-        ((LevelView)viewFlipper.getChildAt(i)).setLevel((Level)levels.get(i));
-        i++;
-        if (true) goto _L5; else goto _L4
-_L4:
-    }
+		protected boolean onBroadcastReceive(Context context, Intent intent) {
+			String action = intent.getAction();
+			if (LightStatusUpdateService.ACTION.equals(action) || UDPListenerService.ACTION.equals(action) || ZMQListenerService.ACTION.equals(action)) {
+				updateLightStatus(intent.getIntExtra(Constants.MESSAGE_LIGHT_ID, -1), intent.getIntExtra(Constants.MESSAGE_LIGHT_STATUS, -1));
+				return Boolean.TRUE;
+			}
+			return Boolean.FALSE;
+		}
 
-    public void onDestroy()
-    {
-        super.onDestroy();
-        getActivity().unregisterReceiver(myBroadcastReceiver);
-    }
+		protected void updateLevel() {
+			Intent intent = new Intent(getActivity(), LightStatusUpdateService.class);
+			getActivity().startService(intent);
+		}
 
-    public void onGesturePerformed(GestureOverlayView gestureoverlayview, Gesture gesture)
-    {
-        ArrayList arraylist = mLibrary.recognize(gesture);
-        if (arraylist.size() > 0 && ((Prediction)arraylist.get(0)).score > 1.0D)
-        {
-            String s = ((Prediction)arraylist.get(0)).name;
-            if ("ltr".equals(s))
-            {
-                viewFlipper.showPrevious();
-                mCurrentLevelId = 1 + viewFlipper.getDisplayedChild();
-                updateLevel();
-            } else
-            {
-                if ("rtl".equals(s))
-                {
-                    viewFlipper.showNext();
-                    mCurrentLevelId = 1 + viewFlipper.getDisplayedChild();
-                    updateLevel();
-                    return;
-                }
-                if (s.startsWith("startall"))
-                {
-                    Bundle bundle = new Bundle();
-                    bundle.putString("Domotix.MessageService.ACTION", "switch_on_all");
-                    bundle.putInt("Domotix.MessageService.LEVEL", mCurrentLevelId);
-                    MessageHelper.sendMessage(getActivity(), bundle);
-                    return;
-                }
-                if (s.startsWith("stopall"))
-                {
-                    Bundle bundle1 = new Bundle();
-                    bundle1.putString("Domotix.MessageService.ACTION", "switch_off_all");
-                    bundle1.putInt("Domotix.MessageService.LEVEL", mCurrentLevelId);
-                    MessageHelper.sendMessage(getActivity(), bundle1);
-                    return;
-                }
-            }
-        }
-    }
+		public LightLevelFragment() {
+		}
+	}
 
-    public void onSaveInstanceState(Bundle bundle)
-    {
-        super.onSaveInstanceState(bundle);
-        bundle.putInt("level", mCurrentLevelId);
-    }
-
-    protected abstract void updateLevel();
 }

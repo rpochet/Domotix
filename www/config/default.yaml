@@ -60,4 +60,8 @@ thingspeak:
             channelId: 14320
             fieldId: field2
             unit: 0
+        0000006400000002/3/12:0:
+            channelId: 14164
+            fieldId: field1
+            unit: 0
 

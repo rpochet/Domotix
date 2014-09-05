@@ -18,19 +18,18 @@
 #include "Adafruit_Sensor.h"
 #include "Adafruit_BMP085.h"
 
+//#define DEBUG
 
 /**
  * LED pin
  */
-#define LEDPIN         4
-//#define DEBUG
-
+#define ledPin         4
 
 /**
  * SENSOR
  */
 static byte dtSensorDelay[2];
-unsigned long sensorDelay; // s 60*10*3 = 3h
+unsigned long sensorDelay; // s
 unsigned long nextUpdate;
 
 #define TEMPPRESS        1     // Temperature + Pressure sensor = BMP085
@@ -62,7 +61,7 @@ unsigned int currentOutputBoard;
 unsigned int currentOutputInBoard;
 
 boolean bStartPulse = false;
-boolean bStopPulse = false;
+volatile boolean bStopPulse = false;
 
 ISR(TIMER1_OVF_vect)
 {
@@ -78,65 +77,81 @@ ISR(TIMER1_OVF_vect)
  */
 void setup()
 {
-    //unsigned char clockSelectBits;
-    int i;
-    pinMode(LEDPIN, OUTPUT);
-  
-    // Init panStamp
-    //eepromToFactoryDefaults();
-    panstamp.init();
-  
-    // panstamp init only read register value from EEPROM, 
-    // so initialize other dependant value here
-    initRegister();
-    
-    // Enter SYNC state
-    panstamp.enterSystemState(SYSTATE_SYNC);
-  
-    // During 3 seconds, listen the network for possible commands whilst the LED blinks
-    for(i = 0 ; i < 6 ; i++)
-    {
-      digitalWrite(LEDPIN, LOW);
-      delay(400);
-      digitalWrite(LEDPIN, HIGH);
-      delay(100);
-    }
-    
-    // initialize timer1 
-    TCCR1A = 0;               // set TCCR1A register to 0
-    TCCR1B = 0;               // same for TCCR1B
-    startCounter = 0x0000 - (F_CPU / 256 * pulseWidth /1000);
-    
-    delay(1000);
-
+  int i;
 #ifdef DEBUG
-    Serial.begin(115200);
-    Serial.println(pulseWidth);
-    Serial.println(startCounter);
-    Serial.println(sensorDelay);
-    Serial.println(freeRam());
+  Serial.begin(115200);
+  delay(2000); // to allow starting serial console
 #endif
 
-    digitalWrite(LEDPIN, HIGH);
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, HIGH);
   
-    // Initialize BMP085 boards
-    initSensor();
+  //eepromToDefaults();
   
-    // Initialize PCF8574 boards
-    initBoards();
+  // Init panStamp
+  panstamp.init();
   
-    nextUpdate = millis(); 
+  //panstamp.cc1101.setDevAddress(0xFF, true);
+  //panstamp.setLowTxPower();
   
-    // Transmit configuration
-    getRegister(REGI_PRODUCTCODE)->getData();
-    getRegister(REGI_TXINTERVAL)->getData();
-    getRegister(REGI_PULSE_WIDTH)->getData();
-    getRegister(REGI_SENSOR_DELAY)->getData();
+  getRegister(REGI_PRODUCTCODE)->getData();
   
-    // Switch to Rx OFF state
-    panstamp.enterSystemState(SYSTATE_RXON);
+  // panstamp init only read register value from EEPROM, 
+  // so initialize other dependant value here
+  initRegister();
+    
+  // Enter SYNC state
+  panstamp.enterSystemState(SYSTATE_SYNC);
   
-    digitalWrite(LEDPIN, LOW);
+  // During 3 seconds, listen the network for possible commands whilst the LED blinks
+  for(i = 0 ; i < 6 ; i++)
+  {
+    digitalWrite(ledPin, LOW);
+    delay(400);
+    digitalWrite(ledPin, HIGH);
+    delay(100);
+  }
+  
+  // initialize timer1 
+  TCCR1A = 0;               // set TCCR1A register to 0
+  TCCR1B = 0;               // same for TCCR1B
+  startCounter = 0x0000 - (F_CPU / 256 * pulseWidth /1000);
+
+#ifdef DEBUG
+  Serial.println(sensorDelay);
+  Serial.println(pulseWidth);
+  Serial.println(startCounter);
+  Serial.println(freeRam());
+#endif
+
+  digitalWrite(ledPin, HIGH);
+
+  // Initialize BMP085 boards
+  initSensor();
+
+  // Initialize PCF8574 boards
+  initBoards();
+
+  nextUpdate = millis(); 
+
+  // Transmit configuration
+  getRegister(REGI_TXINTERVAL)->getData();
+  getRegister(REGI_PULSE_WIDTH)->getData();
+  getRegister(REGI_SENSOR_DELAY)->getData();
+
+  // Switch to Rx OFF state
+  panstamp.enterSystemState(SYSTATE_RXON);
+
+  digitalWrite(ledPin, LOW);
+}
+
+void eepromToDefaults()
+{
+  eepromToFactoryDefaults();
+  EEPROM.write(EEPROM_CONFIG_SENSOR_DELAY, 0);
+  EEPROM.write(EEPROM_CONFIG_SENSOR_DELAY + 1, 0);
+  EEPROM.write(EEPROM_CONFIG_PULSE_WIDTH, 0);
+  EEPROM.write(EEPROM_CONFIG_PULSE_WIDTH + 1, 0);
 }
 
 int freeRam() {
@@ -147,16 +162,20 @@ int freeRam() {
 
 void initRegister() 
 {
-    pulseWidth = dtPulseWidth[1] << 8 | dtPulseWidth[0];
-    if(pulseWidth == 0) 
-    {
-        pulseWidth = 1000;
-    }
-    sensorDelay = dtSensorDelay[1] << 8 | dtSensorDelay[0];
-    if(sensorDelay == 0) 
-    {
-      sensorDelay = 3600;
-    }
+  pulseWidth = (dtPulseWidth[1] << 8) | dtPulseWidth[0];
+  if(pulseWidth == 0) 
+  {
+    pulseWidth = 1000; // 0x0384
+    EEPROM.write(EEPROM_CONFIG_PULSE_WIDTH + 1, 0x03);
+    EEPROM.write(EEPROM_CONFIG_PULSE_WIDTH, 0x84);
+  }
+  sensorDelay = (dtSensorDelay[1] << 8) | dtSensorDelay[0];
+  if(sensorDelay == 0) 
+  {
+    sensorDelay = 3600; // 0x0E10
+    EEPROM.write(EEPROM_CONFIG_SENSOR_DELAY + 1, 0x0E);
+    EEPROM.write(EEPROM_CONFIG_SENSOR_DELAY, 0x10);
+  }
 }
 
 void initSensor() 
@@ -256,7 +275,7 @@ void loop()
         Serial.println("Pulse started...");
     #endif
     
-        digitalWrite(LEDPIN, HIGH);
+        digitalWrite(ledPin, HIGH);
         
         noInterrupts();           // disable all interrupts
         TCNT1 = startCounter;     // initialize counter value to 0
@@ -298,7 +317,7 @@ void stopPulse()
     Serial.println("Pulse stopped");
 #endif
 
-    digitalWrite(LEDPIN, LOW);
+    digitalWrite(ledPin, LOW);
     
     x &= ~(1 << currentOutputInBoard); //Toogle n bit position to 0
     Wire.beginTransmission(boardsAddr[currentOutputBoard]); 

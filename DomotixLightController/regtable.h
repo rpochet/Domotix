@@ -13,6 +13,13 @@
 #include "Arduino.h"
 #include "register.h"
 #include "commonregs.h"
+
+/**
+ * EEPROM addresses
+ */
+#define EEPROM_CONFIG_SENSOR_DELAY   EEPROM_FIRST_CUSTOM
+#define EEPROM_CONFIG_PULSE_WIDTH    EEPROM_CONFIG_SENSOR_DELAY + 2
+
 /**
  * Register indexes
  */

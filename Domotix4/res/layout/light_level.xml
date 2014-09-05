@@ -1,10 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.gesture.GestureOverlayView android:orientation="vertical" android:id="@id/gestures" android:layout_width="fill_parent" android:layout_height="fill_parent" android:gestureColor="@*android:color/bright_foreground_dark" android:uncertainGestureColor="@*android:color/bright_foreground_dark_inverse" android:gestureStrokeType="multiple" android:eventsInterceptionEnabled="true"
-  xmlns:android="http://schemas.android.com/apk/res/android">
-    <ViewFlipper android:id="@id/viewLevelFlipper" android:paddingLeft="20.0dip" android:paddingTop="20.0dip" android:layout_width="fill_parent" android:layout_height="fill_parent">
-        <eu.pochet.domotix.LightLevelView android:id="@id/lightLevelView0" android:background="@drawable/level_1" android:layout_width="wrap_content" android:layout_height="wrap_content" />
-        <eu.pochet.domotix.LightLevelView android:id="@id/lightLevelView1" android:background="@drawable/level_2" android:layout_width="wrap_content" android:layout_height="wrap_content" />
-        <eu.pochet.domotix.LightLevelView android:id="@id/lightLevelView2" android:background="@drawable/level_3" android:layout_width="wrap_content" android:layout_height="wrap_content" />
-        <eu.pochet.domotix.LightLevelView android:id="@id/lightLevelView3" android:background="@drawable/level_3" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+<android.gesture.GestureOverlayView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/gestures"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:eventsInterceptionEnabled="true"
+    android:gestureColor="@android:color/holo_blue_dark"
+    android:gestureStrokeType="multiple"
+    android:orientation="vertical"
+    android:uncertainGestureColor="@android:color/holo_red_dark" >
+
+    <ViewFlipper
+        android:id="@+id/lightLevelViewFlipper"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:paddingLeft="20.0dip"
+        android:paddingRight="20.0dip"
+        android:paddingTop="20.0dip" >
+
+        <eu.pochet.domotix.LightLevelView
+            android:id="@+id/lightLevelView0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/level_1" />
+
+        <eu.pochet.domotix.LightLevelView
+            android:id="@+id/lightLevelView1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/level_2" />
+
+        <eu.pochet.domotix.LightLevelView
+            android:id="@+id/lightLevelView2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/level_3" />
+
+        <eu.pochet.domotix.LightLevelView
+            android:id="@+id/lightLevelView3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/level_3" />
     </ViewFlipper>
+
 </android.gesture.GestureOverlayView>

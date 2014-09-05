@@ -63,10 +63,6 @@ ss.start(server);
     ss.api.publish.all('foo:bar', new Date());
 }, 3000);*/
 
-process.on('uncaughtException', function (err) {
-    console.log('ERR (uncaught) ', err);
-});
-
 process.on('SIGINT', function(){
     console.log(arguments);
     process.exit()

@@ -14,12 +14,6 @@
 #include "regtable.h"
 
 /**
- * EEPROM addresses
- */
-#define EEPROM_CONFIG_SENSOR_DELAY   EEPROM_FIRST_CUSTOM
-#define EEPROM_CONFIG_PULSE_WIDTH    EEPROM_CONFIG_SENSOR_DELAY + 2
-
-/**
  * Declaration of common callback functions
  */
 DECLARE_COMMON_CALLBACKS()
@@ -213,22 +207,38 @@ const void updtPulseWidth(byte rId, byte *value)
  * updtOutput
  *
  * Set output. Only ON / OFF level allowed. Both value requires a toggle via a pulse.
- *
+ * Output is rId - REGI_OUTPUT0
+ 
  * rId: register ID
  * value: New register value
  */
 const void updtOutput(byte rId, byte *value)
 {
-    // Update register from:
-    // level (Position = byte 0 bit 0 - Size = 8 bits)
-    // Output is rId - REGI_OUTPUT0
-  
-    // Set new Sensor Delay. BE to LE conversion
+  byte newRegValue = value[0];
+  byte currRegValue = getRegister(rId)->value[0];
+  if(newRegValue == -1) 
+  {
+    if(currRegValue == 0)
+    {
+      getRegister(rId)->setRegValue(254);
+    }
+    else
+    {
+      getRegister(rId)->setRegValue(0);
+    }
+  }
+  else if(newRegValue != currRegValue)
+  {
     getRegister(rId)->setValueFromBeBuffer(value);
-  
-    currentOutput = rId - REGI_OUTPUT0;
-    currentOutputBoard = currentOutput / OUTPUT_PER_BOARD;
-    currentOutputInBoard = currentOutput % OUTPUT_PER_BOARD;
+  }
+  else
+  {
+    return;
+  }
 
-    startPulse();
+  currentOutput = rId - REGI_OUTPUT0;
+  currentOutputBoard = currentOutput / OUTPUT_PER_BOARD;
+  currentOutputInBoard = currentOutput % OUTPUT_PER_BOARD;
+
+  startPulse();
 }

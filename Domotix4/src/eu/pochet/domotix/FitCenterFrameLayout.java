@@ -1,6 +1,18 @@
-// Decompiled by Jad v1.5.8e. Copyright 2001 Pavel Kouznetsov.
-// Jad home page: http://www.geocities.com/kpdus/jad.html
-// Decompiler options: braces fieldsfirst space lnc 
+/*
+ * Copyright (C) 2011 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package eu.pochet.domotix;
 
@@ -9,91 +21,88 @@ import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
 
-public class FitCenterFrameLayout extends ViewGroup
-{
-
-    public FitCenterFrameLayout(Context context)
-    {
+/**
+ * A simple layout that fits and centers each child view, maintaining aspect ratio.
+ */
+public class FitCenterFrameLayout extends ViewGroup {
+    public FitCenterFrameLayout(Context context) {
         super(context);
     }
 
-    public FitCenterFrameLayout(Context context, AttributeSet attributeset)
-    {
-        super(context, attributeset);
+    public FitCenterFrameLayout(Context context, AttributeSet attrs) {
+        super(context, attrs);
     }
 
-    protected void onLayout(boolean flag, int i, int j, int k, int l)
-    {
-        int i1;
-        int j1;
-        int k1;
-        int l1;
-        int i2;
-        int j2;
-        int k2;
-        int l2;
-        i1 = getChildCount();
-        j1 = getPaddingLeft();
-        k1 = getPaddingTop();
-        l1 = k - i - getPaddingRight();
-        i2 = l - j - getPaddingBottom();
-        j2 = l1 - j1;
-        k2 = i2 - k1;
-        l2 = 0;
-_L2:
-        View view;
-        if (l2 >= i1)
-        {
-            return;
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        // We purposely disregard child measurements.
+        final int width = resolveSize(getSuggestedMinimumWidth(), widthMeasureSpec);
+        final int height = resolveSize(getSuggestedMinimumHeight(), heightMeasureSpec);
+        setMeasuredDimension(width, height);
+
+        int childWidthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.UNSPECIFIED);
+        int childHeightSpec = MeasureSpec.makeMeasureSpec(height, MeasureSpec.UNSPECIFIED);
+
+        int childCount = getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            getChildAt(i).measure(childWidthSpec, childHeightSpec);
         }
-        view = getChildAt(l2);
-        if (view.getVisibility() != 8)
-        {
-            break; /* Loop/switch isn't completed */
-        }
-_L3:
-        l2++;
-        if (true) goto _L2; else goto _L1
-_L1:
-        int i3 = view.getPaddingLeft();
-        int j3 = view.getPaddingTop();
-        int k3 = view.getPaddingRight();
-        int l3 = view.getPaddingBottom();
-        int i4 = view.getMeasuredWidth() - i3 - k3;
-        int j4 = view.getMeasuredHeight() - j3 - l3;
-        int k4 = j2 - i3 - k3;
-        int l4 = k2 - j3 - l3;
-        if (k4 * j4 > l4 * i4)
-        {
-            int j5 = k3 + (i3 + (i4 * l4) / j4);
-            view.layout(j1 + (j2 - j5) / 2, k1, l1 - (j2 - j5) / 2, i2);
-        } else
-        {
-            int i5 = l3 + (j3 + (j4 * k4) / i4);
-            view.layout(j1, k1 + (k2 - i5) / 2, l1, k1 + (k2 + i5) / 2);
-        }
-          goto _L3
-        if (true) goto _L2; else goto _L4
-_L4:
     }
 
-    protected void onMeasure(int i, int j)
-    {
-        int k = resolveSize(getSuggestedMinimumWidth(), i);
-        int l = resolveSize(getSuggestedMinimumHeight(), j);
-        setMeasuredDimension(k, l);
-        int i1 = android.view.View.MeasureSpec.makeMeasureSpec(k, 0);
-        int j1 = android.view.View.MeasureSpec.makeMeasureSpec(l, 0);
-        int k1 = getChildCount();
-        int l1 = 0;
-        do
-        {
-            if (l1 >= k1)
-            {
-                return;
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        final int childCount = getChildCount();
+
+        final int parentLeft = getPaddingLeft();
+        final int parentTop = getPaddingTop();
+        final int parentRight = r - l - getPaddingRight();
+        final int parentBottom = b - t - getPaddingBottom();
+
+        final int parentWidth = parentRight - parentLeft;
+        final int parentHeight = parentBottom - parentTop;
+
+        int unpaddedWidth, unpaddedHeight, parentUnpaddedWidth, parentUnpaddedHeight;
+        int childPaddingLeft, childPaddingTop, childPaddingRight, childPaddingBottom;
+
+        for (int i = 0; i < childCount; i++) {
+            final View child = getChildAt(i);
+            if (child.getVisibility() == GONE) {
+                continue;
             }
-            getChildAt(l1).measure(i1, j1);
-            l1++;
-        } while (true);
+
+            // Fit and center the child within the parent. Make sure not to consider padding
+            // as part of the child's aspect ratio.
+
+            childPaddingLeft = child.getPaddingLeft();
+            childPaddingTop = child.getPaddingTop();
+            childPaddingRight = child.getPaddingRight();
+            childPaddingBottom = child.getPaddingBottom();
+
+            unpaddedWidth = child.getMeasuredWidth() - childPaddingLeft - childPaddingRight;
+            unpaddedHeight = child.getMeasuredHeight() - childPaddingTop - childPaddingBottom;
+
+            parentUnpaddedWidth = parentWidth - childPaddingLeft - childPaddingRight;
+            parentUnpaddedHeight = parentHeight - childPaddingTop - childPaddingBottom;
+
+            if (parentUnpaddedWidth * unpaddedHeight > parentUnpaddedHeight * unpaddedWidth) {
+                // The child view should be left/right letterboxed.
+                final int scaledChildWidth = unpaddedWidth * parentUnpaddedHeight
+                        / unpaddedHeight + childPaddingLeft + childPaddingRight;
+                child.layout(
+                        parentLeft + (parentWidth - scaledChildWidth) / 2,
+                        parentTop,
+                        parentRight - (parentWidth - scaledChildWidth) / 2,
+                        parentBottom);
+            } else {
+                // The child view should be top/bottom letterboxed.
+                final int scaledChildHeight = unpaddedHeight * parentUnpaddedWidth
+                        / unpaddedWidth + childPaddingTop + childPaddingBottom;
+                child.layout(
+                        parentLeft,
+                        parentTop + (parentHeight - scaledChildHeight) / 2,
+                        parentRight,
+                        parentTop + (parentHeight + scaledChildHeight) / 2);
+            }
+        }
     }
 }

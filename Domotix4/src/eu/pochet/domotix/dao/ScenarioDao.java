@@ -1,13 +1,5 @@
-// Decompiled by Jad v1.5.8e. Copyright 2001 Pavel Kouznetsov.
-// Jad home page: http://www.geocities.com/kpdus/jad.html
-// Decompiler options: braces fieldsfirst space lnc 
-
 package eu.pochet.domotix.dao;
 
-import android.content.Context;
-import android.util.JsonReader;
-import eu.pochet.domotix.service.DownloadFilesTask;
-import eu.pochet.domotix.service.DownloadableFile;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
@@ -15,128 +7,107 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
-// Referenced classes of package eu.pochet.domotix.dao:
-//            Scenario
+import android.content.Context;
+import android.util.JsonReader;
+import eu.pochet.domotix.service.DownloadFilesTask;
+import eu.pochet.domotix.service.DownloadableFile;
 
-public class ScenarioDao
+public class ScenarioDao 
 {
+	private static final String SCENARIOS_FILE_NAME = "scenarios.json";
+	
+	private static List<Scenario> scenarios = null; 
+	
+	public static List<Scenario> getScenarios(Context ctx) 
+	{		
+		if(scenarios == null) 
+		{
+			scenarios = new ArrayList<Scenario>();
+			try 
+			{
+				JsonReader reader = new JsonReader(new InputStreamReader(ctx.openFileInput(SCENARIOS_FILE_NAME)));
+				reader.setLenient(true);
+				reader.beginObject();
+				while (reader.hasNext()) {
+					String name = reader.nextName();
+		     		if (name.equals("scenarios")) 
+		     		{
+		     			reader.beginArray();
+						while (reader.hasNext()) 
+						{
+							scenarios.add(readScenario(ctx, reader));
+						}
+		     			reader.endArray();
+		     		} 
+		     		else 
+		     		{
+		     			reader.skipValue();
+		     		}
+				}
+				reader.endObject();
+			} 
+			catch (Exception e) 
+			{
+				e.printStackTrace();
+			}
+		}
+	    return scenarios;
+	}
+	
+	public static void reset() 
+	{
+		scenarios = null;
+	}
 
-    private static final String SCENARIOS_FILE_NAME = "scenarios.json";
-    private static List scenarios = null;
-
-    public ScenarioDao()
+    private static Scenario readScenario(Context ctx, JsonReader reader) throws IOException 
     {
-    }
-
-    public static List getScenarios(Context context)
-    {
-        if (scenarios != null) goto _L2; else goto _L1
-_L1:
-        scenarios = new ArrayList();
-        JsonReader jsonreader;
-        jsonreader = new JsonReader(new InputStreamReader(context.openFileInput("scenarios.json")));
-        jsonreader.setLenient(true);
-        jsonreader.beginObject();
-_L5:
-        if (jsonreader.hasNext()) goto _L4; else goto _L3
-_L3:
-        jsonreader.endObject();
-_L2:
-        return scenarios;
-_L4:
-        if (!jsonreader.nextName().equals("scenarios"))
-        {
-            break MISSING_BLOCK_LABEL_116;
-        }
-        jsonreader.beginArray();
-_L6:
-        if (jsonreader.hasNext())
-        {
-            break MISSING_BLOCK_LABEL_99;
-        }
-        jsonreader.endArray();
-          goto _L5
-        Exception exception;
-        exception;
-        exception.printStackTrace();
-          goto _L2
-        scenarios.add(readScenario(context, jsonreader));
-          goto _L6
-        jsonreader.skipValue();
-          goto _L5
-    }
-
-    private static Scenario readScenario(Context context, JsonReader jsonreader)
-        throws IOException
-    {
-        Scenario scenario = new Scenario();
-        jsonreader.beginObject();
-        do
-        {
-            if (!jsonreader.hasNext())
-            {
-                jsonreader.endObject();
-                return scenario;
-            }
-            String s = jsonreader.nextName();
-            if (s.equals("id"))
-            {
-                scenario.setId(jsonreader.nextInt());
-            } else
-            if (s.equals("name"))
-            {
-                scenario.setName(jsonreader.nextString());
-            } else
-            if (s.equals("level"))
-            {
-                scenario.setLevel(jsonreader.nextInt());
-            } else
-            if (s.equals("message"))
-            {
-                scenario.setMessage(jsonreader.nextString());
-            } else
-            {
-                jsonreader.skipValue();
-            }
-        } while (true);
-    }
-
-    public static void reset()
-    {
-        scenarios = null;
-    }
-
-    public static boolean updateFiles(String s, final Context final_context, Runnable runnable)
-    {
-        DownloadableFile adownloadablefile[] = new DownloadableFile[1];
-        int _tmp = 0 + 1;
-        try
-        {
-            adownloadablefile[0] = new DownloadableFile(new URI((new StringBuilder(String.valueOf(s))).append("domotix/").append("scenarios.json").toString()), "scenarios.json");
-            (new DownloadFilesTask(runnable) {
-
-                private final Runnable val$postExecute;
-
-                protected void onPostExecute(Long long1)
-                {
-                    super.onPostExecute(long1);
-                    ScenarioDao.reset();
-                    postExecute.run();
-                }
-
-            
-            {
-                postExecute = runnable;
-                super(final_context);
-            }
-            }).execute(adownloadablefile);
-        }
-        catch (URISyntaxException urisyntaxexception)
-        {
-            urisyntaxexception.printStackTrace();
-            return false;
-        }
-        return true;
-    }
-
+    	Scenario scenario = new Scenario();
+     	reader.beginObject();
+     	while (reader.hasNext()) {
+     		String name = reader.nextName();
+     		if (name.equals("id")) {
+     			scenario.setId(reader.nextInt());
+     		} else if (name.equals("name")) {
+     			scenario.setName(reader.nextString());
+     		} else if (name.equals("level")) {
+     			scenario.setLevel(reader.nextInt());
+     		} else if (name.equals("message")) {
+     			scenario.setMessage(reader.nextString());
+     		} else {
+     			reader.skipValue();
+     		}
+     	}
+     	reader.endObject();
+     	return scenario;
+	}
+	
+	public static boolean updateFiles(String server, Context ctx, final Runnable postExecute) 
+	{
+		int j = 0;
+		DownloadableFile[] downloadableFiles = new DownloadableFile[1];
+		try 
+		{
+			downloadableFiles[j++] = new DownloadableFile(
+			    new URI(server + "domotix/" + SCENARIOS_FILE_NAME),
+			    SCENARIOS_FILE_NAME
+			);
+			new DownloadFilesTask(ctx) 
+			{		
+				@Override
+				protected void onPostExecute(Long result)
+				{
+				    super.onPostExecute(result);
+			    	ScenarioDao.reset();
+			    	postExecute.run();
+				}
+			}.execute(downloadableFiles);
+		} 
+		catch (URISyntaxException e) 
+		{
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+	
 }

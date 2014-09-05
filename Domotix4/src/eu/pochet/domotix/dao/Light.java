@@ -1,136 +1,126 @@
-// Decompiled by Jad v1.5.8e. Copyright 2001 Pavel Kouznetsov.
-// Jad home page: http://www.geocities.com/kpdus/jad.html
-// Decompiler options: braces fieldsfirst space lnc 
-
 package eu.pochet.domotix.dao;
 
 import java.io.Serializable;
 
-// Referenced classes of package eu.pochet.domotix.dao:
-//            Room
+public class Light implements Serializable 
+{	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 
-public class Light
-    implements Serializable
-{
+	private int id;
+	
+	private String name;
+	
+	private Room room;
+	
+	private int x;
+	
+	private int y;
+	
+	private int z;
+	
+	private String type;
 
-    private static final long serialVersionUID = 1L;
-    private String cardAddress;
-    private int id;
-    private String name;
-    private String outputNb;
-    private Room room;
-    private String status;
-    private String type;
-    private int x;
-    private int y;
-    private int z;
+	private int status;
+	
+	private int outputNb;
+	
+	private String cardAddress;
+	
+	public int getId() {
+		return id;
+	}
 
-    public Light()
-    {
-    }
+	public void setId(int id) {
+		this.id = id;
+	}
 
-    public String getCardAddress()
-    {
-        return cardAddress;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public int getId()
-    {
-        return id;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public String getName()
-    {
-        return name;
-    }
+	public Room getRoom() {
+		return room;
+	}
+	
+	public void setRoom(Room room) {
+		this.room = room;
+	}
+	
+	public int getX() {
+		return x;
+	}
 
-    public String getOutputNb()
-    {
-        return outputNb;
-    }
+	public void setX(int x) {
+		this.x = x;
+	}
 
-    public Room getRoom()
-    {
-        return room;
-    }
+	public int getY() {
+		return y;
+	}
 
-    public String getStatus()
-    {
-        return status;
-    }
+	public void setY(int y) {
+		this.y = y;
+	}
 
-    public String getType()
-    {
-        return type;
-    }
+	public int getZ() {
+		return z;
+	}
 
-    public int getX()
-    {
-        return x;
-    }
+	public void setZ(int z) {
+		this.z = z;
+	}
 
-    public int getY()
-    {
-        return y;
-    }
+	public String getType() {
+		return type;
+	}
 
-    public int getZ()
-    {
-        return z;
-    }
+	public void setType(String type) {
+		this.type = type;
+	}
 
-    public void setCardAddress(String s)
-    {
-        cardAddress = s;
-    }
+	public int getStatus() {
+		return status;
+	}
 
-    public void setId(int i)
-    {
-        id = i;
-    }
+	public void setStatus(int status) {
+		this.status = status;
+	}
 
-    public void setName(String s)
-    {
-        name = s;
-    }
+	public int getOutputNb() {
+		return outputNb;
+	}
 
-    public void setOutputNb(String s)
-    {
-        outputNb = s;
-    }
-
-    public void setRoom(Room room1)
-    {
-        room = room1;
-    }
-
-    public void setStatus(String s)
-    {
-        status = s;
-    }
-
-    public void setType(String s)
-    {
-        type = s;
-    }
-
-    public void setX(int i)
-    {
-        x = i;
-    }
-
-    public void setY(int i)
-    {
-        y = i;
-    }
-
-    public void setZ(int i)
-    {
-        z = i;
-    }
-
-    public String toString()
-    {
-        return (new StringBuilder()).append(name).append(", Status: ").append(status).append("\nRoom: ").append(getRoom().getName()).toString();
-    }
+	public void setOutputNb(int outputNb) {
+		this.outputNb = outputNb;
+	}
+	
+	public String getCardAddress() {
+		return cardAddress;
+	}
+	
+	public void setCardAddress(String cardAddress) {
+		this.cardAddress = cardAddress;
+	}
+	
+	/*public int getLevelX() {
+		return getRoom().getLevel().getX() + getRoom().getX() + getX();
+	}
+	
+	public int getLevelY() {
+		return getRoom().getLevel().getY() + getRoom().getY() + getY();
+	}*/
+	
+	@Override
+	public String toString()
+	{
+	    return new StringBuilder().append(this.name).append(", Status: ").append(this.status).append("\nRoom: ").append(this.getRoom().getName()).toString();
+	}
+	
 }

@@ -14,23 +14,18 @@
 #include "register.h"
 #include "commonregs.h"
 
-const int REGI_TOUCH_START_IDX = 13;
+#define EEPROM_CONFIG_SENSOR_DELAY   EEPROM_FIRST_CUSTOM
+#define EEPROM_TOUCH_CONFIG          EEPROM_CONFIG_SENSOR_DELAY + 2
 
 /**
  * Register indexes
  */
 DEFINE_REGINDEX_START()
   // First index here = 11
+  REGI_VOLTSUPPLY,
   REGI_SENSOR_DELAY,
   REGI_SENSOR,
-  REGI_TOUCH_0,
-  REGI_TOUCH_1,
-  REGI_TOUCH_2,
-  REGI_TOUCH_3,
-  REGI_TOUCH_4,
-  REGI_TOUCH_5,
-  REGI_TOUCH_6,
-  REGI_TOUCH_7
+  REGI_TOUCH_CONFIG
 DEFINE_REGINDEX_END()
 
 #endif

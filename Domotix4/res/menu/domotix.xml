@@ -1,7 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu
-  xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:icon="@drawable/ic_action_refresh" android:id="@id/updateLight" android:title="Update Light" />
-    <item android:icon="@drawable/ic_action_refresh" android:id="@id/updateConfig" android:title="Update Configuration" />
-    <item android:icon="@drawable/ic_action_settings" android:id="@id/itemOptions" android:orderInCategory="100" android:title="Options" android:showAsAction="never" />
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item
+        android:id="@+id/updateLight"
+        android:icon="@drawable/ic_action_refresh"
+        android:title="Update Light"/>
+    <item
+        android:id="@+id/updateConfig"
+        android:icon="@drawable/ic_action_refresh"
+        android:title="Update Configuration"/>
+    <item
+        android:id="@+id/itemOptions"
+        android:icon="@drawable/ic_action_settings"
+        android:orderInCategory="100"
+        android:showAsAction="never"
+        android:title="Options"/>
+
 </menu>

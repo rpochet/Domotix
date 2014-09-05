@@ -1,101 +1,83 @@
-// Decompiled by Jad v1.5.8e. Copyright 2001 Pavel Kouznetsov.
-// Jad home page: http://www.geocities.com/kpdus/jad.html
-// Decompiler options: braces fieldsfirst space lnc 
-
 package eu.pochet.domotix.dao;
 
 import java.util.List;
 
-// Referenced classes of package eu.pochet.domotix.dao:
-//            Level
-
-public class Room
+public class Room 
 {
+	private int id;
+	
+	private String name;
+	
+	private String path;
+	
+	private List<Light> lights;
+	
+	private Level level;
+	
+	private int x;
+	
+	private int y;
 
-    private int id;
-    private Level level;
-    private List lights;
-    private String name;
-    private String path;
-    private int x;
-    private int y;
+	public int getId() {
+		return id;
+	}
 
-    public Room()
-    {
-    }
+	public void setId(int id) {
+		this.id = id;
+	}
 
-    public int getId()
-    {
-        return id;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public Level getLevel()
-    {
-        return level;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public List getLights()
-    {
-        return lights;
-    }
+	public String getPath() {
+		return path;
+	}
 
-    public String getName()
-    {
-        return name;
-    }
+	public void setPath(String path) {
+		this.path = path;
+	}
 
-    public String getPath()
-    {
-        return path;
-    }
+	public List<Light> getLights() {
+		return lights;
+	}
 
-    public int getX()
-    {
-        return x;
-    }
+	public void setLights(List<Light> lights) {
+		this.lights = lights;
+	}
+	
+	public Level getLevel() {
+		return level;
+	}
+	
+	public void setLevel(Level level) {
+		this.level = level;
+	}
 
-    public int getY()
-    {
-        return y;
-    }
+	public int getX() {
+		return x;
+	}
 
-    public void setId(int i)
-    {
-        id = i;
-    }
+	public void setX(int x) {
+		this.x = x;
+	}
 
-    public void setLevel(Level level1)
-    {
-        level = level1;
-    }
+	public int getY() {
+		return y;
+	}
 
-    public void setLights(List list)
-    {
-        lights = list;
-    }
+	public void setY(int y) {
+		this.y = y;
+	}
+	
+	@Override
+	public String toString()
+	{
+	    return new StringBuilder().append(this.name).append(this.getLevel().getName()).toString();
+	}
 
-    public void setName(String s)
-    {
-        name = s;
-    }
-
-    public void setPath(String s)
-    {
-        path = s;
-    }
-
-    public void setX(int i)
-    {
-        x = i;
-    }
-
-    public void setY(int i)
-    {
-        y = i;
-    }
-
-    public String toString()
-    {
-        return (new StringBuilder()).append(name).append(getLevel().getName()).toString();
-    }
 }

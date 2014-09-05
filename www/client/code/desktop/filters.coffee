@@ -16,3 +16,10 @@ module.exports = (swapApp) ->
             (systemState) -> systemStates[systemState]
         .filter 'objectToArray', () ->
             (object) -> (ele for own id, ele of object)
+        .filter 'num', () ->
+            (value) -> 
+                res = 0;
+                mul = 1;
+                for item, index in value by -1
+                    res += mul * item
+                    mul *= 256

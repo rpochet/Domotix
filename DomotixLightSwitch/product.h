@@ -23,12 +23,12 @@
 /**
  * Manufacturer SWAP ID
  */
-#define SWAP_MANUFACT_ID        1000
+#define SWAP_MANUFACT_ID        100
 
 /**
  * Product SWAP ID
  */
-#define SWAP_PRODUCT_ID         1002
+#define SWAP_PRODUCT_ID         2
 
 #endif
 

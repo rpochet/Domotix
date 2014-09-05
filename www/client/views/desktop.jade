@@ -206,13 +206,13 @@ block content
           #events
             div(ng-repeat="swapEvent in swapEvents", ng-class="{even: $even, odd: $odd}")
               span("class"="text-{{swapEvent.type}}") {{swapEvent.text}}
-              span.pull-right.muted <small> {{swapEvent.time| date:"HH:mm:ss"}} </small>
+              span.pull-right.muted <small> {{swapEvent.time| date:"dd/MM/yyyy @ HH:mm:ss"}} </small>
         .row
           h4 Last Packets
           #packets
             div(ng-repeat="swapPacket in swapPackets", ng-class="{even: $even, odd: $odd}")
               span {{swapPacket}} 
-              span.pull-right.muted {{swapPacket.time | date:"HH:mm:ss"}}
+              span.pull-right.muted {{swapPacket.time | date:"dd/MM/yyyy @ HH:mm:ss"}}
     
     pane(title="Utilities")
       .container(ng-controller="UtilitiesCtrl")

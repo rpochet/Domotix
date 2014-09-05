@@ -1,125 +1,108 @@
-// Decompiled by Jad v1.5.8e. Copyright 2001 Pavel Kouznetsov.
-// Jad home page: http://www.geocities.com/kpdus/jad.html
-// Decompiler options: braces fieldsfirst space lnc 
-
 package eu.pochet.domotix.dao;
 
 import java.io.Serializable;
 
-// Referenced classes of package eu.pochet.domotix.dao:
-//            Room
+public class Card implements Serializable 
+{	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 
-public class Card
-    implements Serializable
-{
+	private int id;
+	
+	private String name;
+	
+	private Room room;
+	
+	private int x;
+	
+	private int y;
+	
+	private int z;
+	
+	private String type;
 
-    private static final long serialVersionUID = 1L;
-    private String cardAddress;
-    private int id;
-    private String name;
-    private Room room;
-    private int status;
-    private String type;
-    private int x;
-    private int y;
-    private int z;
+	private int status;
+	
+	private String cardAddress;
+	
+	public int getId() {
+		return id;
+	}
 
-    public Card()
-    {
-    }
+	public void setId(int id) {
+		this.id = id;
+	}
 
-    public String getCardAddress()
-    {
-        return cardAddress;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public int getId()
-    {
-        return id;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public String getName()
-    {
-        return name;
-    }
+	public Room getRoom() {
+		return room;
+	}
+	
+	public void setRoom(Room room) {
+		this.room = room;
+	}
+	
+	public int getX() {
+		return x;
+	}
 
-    public Room getRoom()
-    {
-        return room;
-    }
+	public void setX(int x) {
+		this.x = x;
+	}
 
-    public int getStatus()
-    {
-        return status;
-    }
+	public int getY() {
+		return y;
+	}
 
-    public String getType()
-    {
-        return type;
-    }
+	public void setY(int y) {
+		this.y = y;
+	}
 
-    public int getX()
-    {
-        return x;
-    }
+	public int getZ() {
+		return z;
+	}
 
-    public int getY()
-    {
-        return y;
-    }
+	public void setZ(int z) {
+		this.z = z;
+	}
 
-    public int getZ()
-    {
-        return z;
-    }
+	public String getType() {
+		return type;
+	}
 
-    public void setCardAddress(String s)
-    {
-        cardAddress = s;
-    }
+	public void setType(String type) {
+		this.type = type;
+	}
 
-    public void setId(int i)
-    {
-        id = i;
-    }
+	public int getStatus() {
+		return status;
+	}
 
-    public void setName(String s)
-    {
-        name = s;
-    }
+	public void setStatus(int status) {
+		this.status = status;
+	}
 
-    public void setRoom(Room room1)
-    {
-        room = room1;
-    }
+	public String getCardAddress() {
+		return cardAddress;
+	}
 
-    public void setStatus(int i)
-    {
-        status = i;
-    }
-
-    public void setType(String s)
-    {
-        type = s;
-    }
-
-    public void setX(int i)
-    {
-        x = i;
-    }
-
-    public void setY(int i)
-    {
-        y = i;
-    }
-
-    public void setZ(int i)
-    {
-        z = i;
-    }
-
-    public String toString()
-    {
-        return (new StringBuilder()).append(name).append(", Status: ").append(status).append("\nRoom: ").append(getRoom().getName()).toString();
-    }
+	public void setCardAddress(String cardAddress) {
+		this.cardAddress = cardAddress;
+	}
+	
+	@Override
+	public String toString()
+	{
+	    return new StringBuilder().append(this.name).append(", Status: ").append(this.status).append("\nRoom: ").append(this.getRoom().getName()).toString();
+	}
+	
 }

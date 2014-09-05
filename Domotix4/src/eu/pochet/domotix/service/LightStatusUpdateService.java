@@ -1,46 +1,67 @@
-// Decompiled by Jad v1.5.8e. Copyright 2001 Pavel Kouznetsov.
-// Jad home page: http://www.geocities.com/kpdus/jad.html
-// Decompiler options: braces fieldsfirst space lnc 
-
 package eu.pochet.domotix.service;
+
+import java.util.Timer;
+import java.util.TimerTask;
+
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpConnectionParams;
 
 import android.app.Service;
 import android.content.Intent;
 import android.net.http.AndroidHttpClient;
 import android.os.IBinder;
-import android.util.JsonReader;
 import android.util.Log;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-import java.util.Timer;
-import java.util.TimerTask;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpConnectionParams;
 
 public class LightStatusUpdateService extends Service
 {
+    public static final String ACTION = LightStatusUpdateService.class.getName();
+    
+    private AndroidHttpClient client = null;;
+    
+    private int delay = 5000;
+    
+    private long lastTimestamp = -1;
+    
+    private String lightStatusUrl = "http://192.168.1.4:3000/data/lights/status";
+    
+    private Timer timer = null;
 
-    public static final String BROADCAST_ACTION = "LightStatusUpdateService";
-    private AndroidHttpClient client;
-    private int delay;
-    private long lastTimestamp;
-    private String lightStatusUrl;
-    private Timer timer;
-
-    public LightStatusUpdateService()
+    public IBinder onBind(Intent intent)
     {
-        lightStatusUrl = "http://192.168.1.4:3000/data/lights/status";
-        delay = 5000;
-        timer = null;
-        client = null;
+        return null;
+    }
+
+    public void onCreate()
+    {
+        Log.d("LightStatusUpdateService", "Service onCreate");
+    }
+
+    public void onDestroy()
+    {
+        Log.d(ACTION, "Service onDestroy");
+        if (timer != null)
+        {
+            timer.cancel();
+        }
+        //client.close();
+    }
+
+    @Override
+    public void onStart(Intent intent, int startId)
+    {
+        Log.d(ACTION, "Service onStartCommand");
         lastTimestamp = -1L;
+        //client = AndroidHttpClient.newInstance("Domotix");
+        BasicHttpParams basichttpparams = new BasicHttpParams();
+        HttpConnectionParams.setConnectionTimeout(basichttpparams, 4000);
+        HttpConnectionParams.setSoTimeout(basichttpparams, 4000);
+        if (intent != null && intent.getBooleanExtra("pool", false))
+        {
+            startPollingLightStatusUpdate();
+        } else
+        {
+            startLightStatusUpdateOnce();
+        }
     }
 
     private void broadcastIntent(String s, String s1)
@@ -53,46 +74,28 @@ public class LightStatusUpdateService extends Service
 
     private void startLightStatusUpdateOnce()
     {
-        (new Thread(new Runnable() {
-
-            final LightStatusUpdateService this$0;
-
+        new Thread(new Runnable() {
             public void run()
             {
                 updateLightStatus();
             }
-
-            
-            {
-                this$0 = LightStatusUpdateService.this;
-                super();
-            }
-        })).start();
+        }).start();
     }
 
     private void startPollingLightStatusUpdate()
     {
         timer = new Timer();
         timer.scheduleAtFixedRate(new TimerTask() {
-
-            final LightStatusUpdateService this$0;
-
             public void run()
             {
                 updateLightStatus();
-            }
-
-            
-            {
-                this$0 = LightStatusUpdateService.this;
-                super();
             }
         }, 0L, delay);
     }
 
     private void updateLightStatus()
     {
-        JsonReader jsonreader;
+        /*JsonReader jsonreader;
         String s;
         String s1;
         long l;
@@ -220,45 +223,7 @@ _L14:
           goto _L16
         illegalstateexception;
         jsonreader = null;
-          goto _L17
-    }
-
-    public IBinder onBind(Intent intent)
-    {
-        return null;
-    }
-
-    public void onCreate()
-    {
-        Log.d("LightStatusUpdateService", "Service onCreate");
-    }
-
-    public void onDestroy()
-    {
-        Log.d("LightStatusUpdateService", "Service onDestroy");
-        if (timer != null)
-        {
-            timer.cancel();
-        }
-        client.close();
-    }
-
-    public int onStartCommand(Intent intent, int i, int j)
-    {
-        Log.d("LightStatusUpdateService", "Service onStartCommand");
-        lastTimestamp = -1L;
-        client = AndroidHttpClient.newInstance("Domotix");
-        BasicHttpParams basichttpparams = new BasicHttpParams();
-        HttpConnectionParams.setConnectionTimeout(basichttpparams, 4000);
-        HttpConnectionParams.setSoTimeout(basichttpparams, 4000);
-        if (intent != null && intent.getBooleanExtra("pool", false))
-        {
-            startPollingLightStatusUpdate();
-        } else
-        {
-            startLightStatusUpdateOnce();
-        }
-        return 1;
+          goto _L17*/
     }
 
 }

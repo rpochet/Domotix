@@ -64,7 +64,7 @@ module.exports = (swapApp) ->
     
     $scope.update = () ->
       $scope.selectedDevice = angular.copy $scope.editedDevice
-      ss.rpc 'swapserver.updateDevice', $scope.selectedDevice if $scope.selectedDevice
+      ss.rpc 'swapserver.updateDevice', $scope.editedDevice, $scope.selectedDevice if $scope.selectedDevice
     
     $scope.reset = () ->
       $scope.editedDevice = angular.copy $scope.selectedDevice

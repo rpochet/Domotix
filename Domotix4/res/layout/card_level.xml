@@ -10,34 +10,34 @@
     android:uncertainGestureColor="@android:color/holo_red_dark" >
 
     <ViewFlipper
-        android:id="@+id/houseLevelViewFlipper"
+        android:id="@+id/cardLevelViewFlipper"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:paddingLeft="20.0dip"
         android:paddingRight="20.0dip"
         android:paddingTop="20.0dip" >
 
-        <eu.pochet.domotix.HouseLevelView
-            android:id="@+id/houseLevelView0"
-            android:layout_width="fill_parent"
+        <eu.pochet.domotix.CardLevelView
+            android:id="@+id/cardLevelView0"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/level_1" />
 
-        <eu.pochet.domotix.HouseLevelView
-            android:id="@+id/houseLevelView1"
-            android:layout_width="fill_parent"
+        <eu.pochet.domotix.CardLevelView
+            android:id="@+id/cardLevelView1"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/level_2" />
 
-        <eu.pochet.domotix.HouseLevelView
-            android:id="@+id/houseLevelView2"
-            android:layout_width="fill_parent"
+        <eu.pochet.domotix.CardtLevelView
+            android:id="@+id/cardLevelView2"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/level_3" />
 
-        <eu.pochet.domotix.HouseLevelView
-            android:id="@+id/houseLevelView3"
-            android:layout_width="fill_parent"
+        <eu.pochet.domotix.CardtLevelView
+            android:id="@+id/cardLevelView3"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/level_3" />
     </ViewFlipper>

@@ -1,142 +1,115 @@
-// Decompiled by Jad v1.5.8e. Copyright 2001 Pavel Kouznetsov.
-// Jad home page: http://www.geocities.com/kpdus/jad.html
-// Decompiler options: braces fieldsfirst space lnc 
-
 package eu.pochet.domotix.dao;
 
 import java.util.ArrayList;
 import java.util.List;
 
-// Referenced classes of package eu.pochet.domotix.dao:
-//            Card, Light, Room
+public class Level {
+	
+	private int id;
 
-public class Level
-{
+	private int level;
 
-    private List cards;
-    private int id;
-    private int level;
-    private List lights;
-    private String name;
-    private String path;
-    private List rooms;
-    private int x;
-    private int y;
+	private String name;
 
-    public Level()
-    {
-        rooms = new ArrayList();
-        cards = new ArrayList();
-        lights = new ArrayList();
-    }
+	private String path;
 
-    public void addCard(Card card)
-    {
-        getCards().add(card);
-    }
+	private List<Room> rooms = new ArrayList<Room>();
 
-    public void addLight(Light light)
-    {
-        getLights().add(light);
-    }
+	private List<Card> cards = new ArrayList<Card>();
 
-    public void addRoom(Room room)
-    {
-        getRooms().add(room);
-    }
+	private List<Light> lights = new ArrayList<Light>();
 
-    public List getCards()
-    {
-        return cards;
-    }
+	private int x;
 
-    public int getId()
-    {
-        return id;
-    }
+	private int y;
 
-    public int getLevel()
-    {
-        return level;
-    }
+	public int getId() {
+		return id;
+	}
 
-    public List getLights()
-    {
-        return lights;
-    }
+	public void setId(int id) {
+		this.id = id;
+	}
 
-    public String getName()
-    {
-        return name;
-    }
+	public int getLevel() {
+		return level;
+	}
 
-    public String getPath()
-    {
-        return path;
-    }
+	public void setLevel(int level) {
+		this.level = level;
+	}
 
-    public List getRooms()
-    {
-        return rooms;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public int getX()
-    {
-        return x;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public int getY()
-    {
-        return y;
-    }
+	public String getPath() {
+		return path;
+	}
 
-    public void setCards(List list)
-    {
-        cards = list;
-    }
+	public void setPath(String path) {
+		this.path = path;
+	}
 
-    public void setId(int i)
-    {
-        id = i;
-    }
+	public List<Room> getRooms() {
+		return rooms;
+	}
 
-    public void setLevel(int i)
-    {
-        level = i;
-    }
+	public void setRooms(List<Room> rooms) {
+		this.rooms = rooms;
+	}
 
-    public void setLights(List list)
-    {
-        lights = list;
-    }
+	public void addRoom(Room room) {
+		getRooms().add(room);
+	}
 
-    public void setName(String s)
-    {
-        name = s;
-    }
+	public List<Light> getLights() {
+		return lights;
+	}
 
-    public void setPath(String s)
-    {
-        path = s;
-    }
+	public void setLights(List<Light> lights) {
+		this.lights = lights;
+	}
 
-    public void setRooms(List list)
-    {
-        rooms = list;
-    }
+	public void addLight(Light light) {
+		getLights().add(light);
+	}
 
-    public void setX(int i)
-    {
-        x = i;
-    }
+	public List<Card> getCards() {
+		return cards;
+	}
 
-    public void setY(int i)
-    {
-        y = i;
-    }
+	public void setCards(List<Card> cards) {
+		this.cards = cards;
+	}
 
-    public String toString()
-    {
-        return (new StringBuilder()).append(name).toString();
-    }
+	public void addCard(Card card) {
+		getCards().add(card);
+	}
+
+	public int getX() {
+		return x;
+	}
+
+	public void setX(int x) {
+		this.x = x;
+	}
+
+	public int getY() {
+		return y;
+	}
+
+	public void setY(int y) {
+		this.y = y;
+	}
+
+	@Override
+	public String toString() {
+		return new StringBuilder().append(this.name).toString();
+	}
+
 }

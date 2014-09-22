@@ -115,9 +115,9 @@
 				}, {
 					"id" : 18,
 					"name" : "Chambre parents",
-					"path" : "M370,607 h-335 v-412 h446 v280 l80,79 l-122,121 z",
+					"path" : "M370,607 h-335 v-412 h446 v280 l80,80 l-121,121 z",
 					"x" : 35,
-					"y" : 225
+					"y" : 195
 				}, {
 					"id" : 19,
 					"name" : "Chambre Lowan",

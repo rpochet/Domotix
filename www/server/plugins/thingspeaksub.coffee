@@ -20,9 +20,10 @@ class ThingspeakSubscriber
         self = this
         
         @sub = zmq.socket "sub"
-        @sub.subscribe ""
+        @sub.identity = "thingspeak"
+        @sub.subscribe "SWAP_PACKET"
         @sub.on "message", (data) ->
-            logger.info "Received message:" 
+            logger.info "Received message" 
             data = JSON.parse(data)
             swapPacket = data.swapPacket
             packetDevice = data.packetDevice
@@ -55,6 +56,7 @@ class ThingspeakSubscriber
                             client.updateChannel parseInt(thingspeakChannel.channelId), data, (err, body) ->
                                 return logger.error err if err?
         
+
         url = "tcp://#{@config.broker.host}:#{@config.broker.port}"
         logger.info "Connection to broker on #{url}"
         @sub.bind url

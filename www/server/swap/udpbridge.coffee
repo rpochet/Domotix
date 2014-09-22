@@ -22,11 +22,12 @@ class UdpBridge extends events.EventEmitter
             packet = new swap.CCPacket ("(FFFF)" + data)
             if packet.data
                 packet = new swap.SwapPacket packet
-                self.emit "swapPacket", packet
+                self.emit "swapPacket",
+                    packet
         
-        server.bind @config.port, @config.host
-        
-        logger.info "Listening on UDP port #{config.port}"
+        server.bind @config.inport, @config.host
+
+        logger.info "Listening on UDP port #{config.inport}"
         
         logger.info "Udp Bridge waiting for message..."
     

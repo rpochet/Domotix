@@ -18,7 +18,8 @@ broker:
     port: 10000
 udpBridge:
     host: 192.168.1.4
-    port: 5555
+    inport: 5555
+	outport: 5556
 couchDB:
     host: 192.168.1.4
     port: 5984

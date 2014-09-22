@@ -122,7 +122,7 @@ block content
                       .form-group
                         label.col-sm-2.control-label {{param.name}}
                         .col-sm-10
-                          input.form-control(type="{{param.type}}", title="{{param.name}}", ng-disabled="param.dir == 'output'", ng-model="param.value", required, min="0", max="65535", integer)
+                          input.form-control(type="{{param.type}}", title="{{param.name}}", ng-disabled="param.dir == 'output'", ng-model="param.value", required, min="0", max="4294967295", integer)
                 fieldset
                   legend Regular registers
                   div(ng-repeat="register in editedDevice.regularRegisters")
@@ -132,7 +132,7 @@ block content
                         label.col-sm-2.control-label {{endpoint.name}}
                         .col-sm-10
                           {{endpoint.value}}
-                          input.form-control(type="{{endpoint.type}}", title="{{endpoint.name}}", ng-disabled="endpoint.dir == 'output'", ng-model="endpoint.value", required, min="0", max="65535", integer)
+                          input.form-control(type="{{endpoint.type}}", title="{{endpoint.name}}", ng-disabled="endpoint.dir == 'output'", ng-model="endpoint.value", required, min="0", max="4294967295", integer)
         
     pane(title="Config")
       .container(ng-controller="ConfigCtrl")
@@ -218,6 +218,11 @@ block content
       .container(ng-controller="UtilitiesCtrl")
         h1 Utilities
         hr
+        .row
+          h3 Application
+          div
+            a(href="http://192.168.1.4:4000/data/Domotix4.apk")
+              strong Domotix
         .row
           h3 Scan
           div

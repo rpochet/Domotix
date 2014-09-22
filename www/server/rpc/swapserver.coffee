@@ -3,6 +3,7 @@ SerialModem = require "../swap/serialmodem" if not Config.serial.dummy
 SerialModem = require "../swap/dummyserialmodem" if Config.serial.dummy
 Publisher = require "../swap/pubsub"
 UdpBridge = require "../swap/udpbridge"
+#UdpBridgeSubscriber = require "../swap/udpbridgesubscriber"
 swap = require "../../client/code/common/swap"
 cradle = require "cradle"
 ss = require "socketstream"
@@ -20,6 +21,7 @@ devices = {}
 swapPackets = []
 swapEvents = []
 publisher = undefined
+udpBridge = undefined
 
 initDevicesConfig = () ->
     developers = []
@@ -82,6 +84,7 @@ serial = new SerialModem Config.serial
 serial.on "started", () ->
     publisher = new Publisher Config.broker
     udpBridge = new UdpBridge Config.udpBridge
+    #udpBridgeSubscriber = new UdpBridgeSubscriber Config.udpBridge
     
     serial.on "swapPacket", (swapPacket) ->
         addSwapPacket swapPacket
@@ -268,9 +271,12 @@ swapPacketReceived = (swapPacket) ->
             devices["DEV" + swap.num2byte(packetDevice.address)]._rev = res.rev
             ss.api.publish.all "devicesUpdated"
             
-        publisher.publish JSON.stringify
-            swapPacket : swapPacket
-            packetDevice : packetDevice
+        publisher.publish [
+            "SWAP_PACKET"
+            JSON.stringify
+                swapPacket : swapPacket
+                packetDevice : packetDevice
+        ]
         
     else if swapPacketfunc is swap.Functions.QUERY
         logger.info "Query request received from #{swapPacketsource} for packetDevice #{swapPacketdest} register #{swapPacket.regId}" 
@@ -332,6 +338,10 @@ sendCommand = (address, registerId, value) ->
     sp.regId = registerId
     sp.value = value
     serial.send(sp)
+
+destroy = () ->
+    publisher.destroy
+    udpBridge.destroy
 
 exports.actions = (req, res, ss) ->
 

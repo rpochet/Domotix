@@ -10,33 +10,33 @@
     android:uncertainGestureColor="@android:color/holo_red_dark" >
 
     <ViewFlipper
-        android:id="@+id/cardLevelViewFlipper"
+        android:id="@+id/swapDeviceLevelViewFlipper"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:paddingLeft="20.0dip"
         android:paddingRight="20.0dip"
         android:paddingTop="20.0dip" >
 
-        <eu.pochet.domotix.CardLevelView
-            android:id="@+id/cardLevelView0"
+        <eu.pochet.domotix.SwapDeviceLevelView
+            android:id="@+id/swapDeviceLevelView0"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/level_1" />
 
-        <eu.pochet.domotix.CardLevelView
-            android:id="@+id/cardLevelView1"
+        <eu.pochet.domotix.SwapDeviceLevelView
+            android:id="@+id/swapDeviceLevelView1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/level_2" />
 
-        <eu.pochet.domotix.CardtLevelView
-            android:id="@+id/cardLevelView2"
+        <eu.pochet.domotix.SwapDeviceLevelView
+            android:id="@+id/swapDeviceLevelView2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/level_3" />
 
-        <eu.pochet.domotix.CardtLevelView
-            android:id="@+id/cardLevelView3"
+        <eu.pochet.domotix.SwapDeviceLevelView
+            android:id="@+id/swapDeviceLevelView3"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/level_3" />

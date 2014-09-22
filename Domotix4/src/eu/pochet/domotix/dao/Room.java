@@ -77,7 +77,11 @@ public class Room
 	@Override
 	public String toString()
 	{
-	    return new StringBuilder().append(this.name).append(this.getLevel().getName()).toString();
+	    return new StringBuilder().append(this.name)
+	    	.append(" (")
+	    	.append(this.getLevel().getName())
+	    	.append(")")
+	    .toString();
 	}
 
 }

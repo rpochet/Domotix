@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.DataSetObserver;
 import android.gesture.Gesture;
 import android.gesture.GestureLibraries;
 import android.gesture.GestureLibrary;
@@ -16,19 +17,27 @@ import android.gesture.Prediction;
 import android.graphics.RectF;
 import android.os.Bundle;
 import android.view.GestureDetector;
+import android.view.GestureDetector.SimpleOnGestureListener;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.BaseAdapter;
+import android.widget.ImageView;
+import android.widget.ListAdapter;
+import android.widget.ListView;
+import android.widget.SimpleAdapter.ViewBinder;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
-import eu.pochet.domotix.dao.Card;
+import eu.pochet.domotix.dao.DomotixDao;
 import eu.pochet.domotix.dao.Level;
-import eu.pochet.domotix.dao.LevelDao;
 import eu.pochet.domotix.dao.Light;
+import eu.pochet.domotix.dao.SwapDevice;
+import eu.pochet.domotix.service.ActionBuilder;
 import eu.pochet.domotix.service.LightStatusUpdateService;
-import eu.pochet.domotix.service.UDPListenerService;
-import eu.pochet.domotix.service.ZMQListenerService;
 
 public abstract class LevelFragment extends Fragment implements android.gesture.GestureOverlayView.OnGesturePerformedListener {
 	
@@ -48,7 +57,7 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 		myBroadcastReceiver = new BroadcastReceiver() {
 			public void onReceive(Context context, Intent intent) {
 				if (onBroadcastReceive(context, intent)) {
-					NotificationHelper.notify(context);
+					//NotificationHelper.notify(context);
 				}
 			}
 		};
@@ -64,12 +73,12 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 
 	public void onActivityCreated(Bundle bundle) {
 		super.onActivityCreated(bundle);
+		/*getActivity().registerReceiver(myBroadcastReceiver,
+				new IntentFilter(LightStatusUpdateService.ACTION));*/
+		/*getActivity().registerReceiver(myBroadcastReceiver,
+				new IntentFilter(UDPListenerService.ACTION));*/
 		getActivity().registerReceiver(myBroadcastReceiver,
-				new IntentFilter(LightStatusUpdateService.ACTION));
-		getActivity().registerReceiver(myBroadcastReceiver,
-				new IntentFilter(UDPListenerService.ACTION));
-		getActivity().registerReceiver(myBroadcastReceiver,
-				new IntentFilter(ZMQListenerService.ACTION));
+				new IntentFilter(ActionBuilder.ACTION_IN));
 	}
 
 	protected abstract boolean onBroadcastReceive(Context context, Intent intent);
@@ -84,28 +93,31 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 		View view = layoutinflater.inflate(getLevelLayoutViewId(), null);
 		view.setDrawingCacheEnabled(false);
 
-		mLibrary = GestureLibraries.fromRawResource(getActivity(), R.raw.gestures);
-		mLibrary.load();
+		if(getViewLevelFlipperViewId() != -1) {
+			
+			mLibrary = GestureLibraries.fromRawResource(getActivity(), R.raw.gestures);
+			mLibrary.load();
 
-		this.gestureDetector = new GestureDetector(getActivity(), getGestureDetector());
-		((GestureOverlayView) view).addOnGesturePerformedListener(this);
-		view.setOnTouchListener(new android.view.View.OnTouchListener() {
-			public boolean onTouch(View view, MotionEvent motionEvent) {
-				return LevelFragment.this.gestureDetector.onTouchEvent(motionEvent);
+			this.gestureDetector = new GestureDetector(getActivity(), getGestureDetector());
+			((GestureOverlayView) view).addOnGesturePerformedListener(this);
+			view.setOnTouchListener(new android.view.View.OnTouchListener() {
+				public boolean onTouch(View view, MotionEvent motionEvent) {
+					return LevelFragment.this.gestureDetector.onTouchEvent(motionEvent);
+				}
+			});
+			
+			viewFlipper = (ViewFlipper) view.findViewById(getViewLevelFlipperViewId());
+			this.levels = DomotixDao.getLevels(getActivity());
+			if (bundle != null) {
+				mCurrentLevelId = bundle.getInt("level", 2);
+			} else {
+				mCurrentLevelId = 2;
 			}
-		});
-
-		viewFlipper = (ViewFlipper) view.findViewById(getViewLevelFlipperViewId());
-		this.levels = LevelDao.getLevels(getActivity());
-		if (bundle != null) {
-			mCurrentLevelId = bundle.getInt("level", 2);
-		} else {
-			mCurrentLevelId = 2;
-		}
-		viewFlipper.setDisplayedChild(-1 + mCurrentLevelId);
-
-		for (int i = 0; i < viewFlipper.getChildCount(); i++) {
-			((LevelView) viewFlipper.getChildAt(i)).setLevel(levels.get(i));
+			viewFlipper.setDisplayedChild(-1 + mCurrentLevelId);
+	
+			for (int i = 0; i < viewFlipper.getChildCount(); i++) {
+				((LevelView) viewFlipper.getChildAt(i)).setLevel(levels.get(i));
+			}
 		}
 
 		return view;
@@ -129,15 +141,9 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 				mCurrentLevelId = 1 + viewFlipper.getDisplayedChild();
 				updateLevel();
 			} else if ("startall".startsWith(name)) {
-				Bundle bundle = new Bundle();
-				bundle.putString("Domotix.MessageService.ACTION", "switch_on_all");
-				bundle.putInt("Domotix.MessageService.LEVEL", mCurrentLevelId);
-				MessageHelper.sendMessage(getActivity(), bundle);
+				new ActionBuilder().setType(ActionBuilder.TYPE_LIGHT_SWITCH_ON_ALL).setLevelId(mCurrentLevelId).sendMessage(getActivity());
 			} else if ("stopall".startsWith(name)) {
-				Bundle bundle1 = new Bundle();
-				bundle1.putString("Domotix.MessageService.ACTION", "switch_off_all");
-				bundle1.putInt("Domotix.MessageService.LEVEL", mCurrentLevelId);
-				MessageHelper.sendMessage(getActivity(), bundle1);
+				new ActionBuilder().setType(ActionBuilder.TYPE_LIGHT_SWITCH_OFF_ALL).setLevelId(mCurrentLevelId).sendMessage(getActivity());
 			}
 		}
 	}
@@ -153,27 +159,25 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 		protected android.view.GestureDetector.SimpleOnGestureListener getGestureDetector() {
 			return new android.view.GestureDetector.SimpleOnGestureListener() {
 
-				private static final int OFFSET = 100;
-
-				private Card getCardForEvent(MotionEvent motionevent) {
+				private SwapDevice getSwapDeviceForEvent(MotionEvent motionevent) {
 					RectF rectf = new RectF();
 					Level level = getCurrentLevel();
-					CardLevelView cardlevelview = (CardLevelView) getCurrentLevelView();
+					SwapDeviceLevelView cardlevelview = (SwapDeviceLevelView) getCurrentLevelView();
 					float f = motionevent.getX() / cardlevelview.getRatioX();
 					float f1 = motionevent.getY() / cardlevelview.getRatioY();
-					for (Card card : level.getCards()) {
-						float f2 = cardlevelview.getCardX(card);
-						float f3 = cardlevelview.getCardY(card);
-						rectf.set(f2 - OFFSET, f3 - OFFSET, f2 + OFFSET, f3 + OFFSET);
+					for (SwapDevice swapDevice : level.getSwapDevices()) {
+						float f2 = cardlevelview.getSwapDeviceX(swapDevice);
+						float f3 = cardlevelview.getSwapDeviceY(swapDevice);
+						rectf.set(f2 - Constants.CARD_TOUCH_OFFSET, f3 - Constants.CARD_TOUCH_OFFSET, f2 + Constants.CARD_TOUCH_OFFSET, f3 + Constants.CARD_TOUCH_OFFSET);
 						if (rectf.contains(f, f1)) {
-							return card;
+							return swapDevice;
 						}
 					}
 					return null;
 				}
 
 				public boolean onDoubleTap(MotionEvent motionevent) {
-					getCardForEvent(motionevent);
+					getSwapDeviceForEvent(motionevent);
 					return true;
 				}
 			};
@@ -186,7 +190,7 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 		
 		@Override
 		protected int getViewLevelFlipperViewId() {
-			return R.id.cardLevelViewFlipper;
+			return R.id.swapDeviceLevelViewFlipper;
 		}
 
 		protected boolean onBroadcastReceive(Context context, Intent intent) {
@@ -199,27 +203,16 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 
 	public static class LightLevelFragment extends LevelFragment {
 
-		private void updateLightStatus(int lightId, int lightStatus) {
-			for (Light light : levels.get(-1 + mCurrentLevelId).getLights()) {
-				if(light.getId() == lightId) {
-					light.setStatus(lightStatus);
-				}
-			}
-		}
-
 		protected android.view.GestureDetector.SimpleOnGestureListener getGestureDetector() {
 			return new android.view.GestureDetector.SimpleOnGestureListener() {
 
-				private static final int OFFSET_LONG = 100;
-				private static final int OFFSET_SHORT = 70;
-
 				private Light getLightForEvent(MotionEvent motionevent) {
 					Level level = getCurrentLevel();
-					List<Light> lights = getLightForEvent(motionevent, level.getLights(), OFFSET_LONG);
+					List<Light> lights = getLightForEvent(motionevent, level.getLights(), Constants.LIGHT_TOUCH_OFFSET);
 					if (lights.size() == 1) {
 						return lights.get(0);
 					}
-					lights = getLightForEvent(motionevent, level.getLights(), OFFSET_SHORT);
+					lights = getLightForEvent(motionevent, level.getLights(), Constants.LIGHT_TOUCH_OFFSET2);
 					if (lights.size() == 1) {
 						return lights.get(0);
 					} else {
@@ -227,18 +220,25 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 					}
 				}
 
-				private List<Light> getLightForEvent(MotionEvent motionevent, List<Light> lights, int i) {
+				/**
+				 * Center is at getLightX(light) * getRatioX()
+				 * 
+				 * @param motionEvent
+				 * @param lights
+				 * @param i
+				 * @return
+				 */
+				private List<Light> getLightForEvent(MotionEvent motionEvent, List<Light> lights, int i) {
 					RectF rectf = new RectF();
 					LightLevelView lightlevelview = (LightLevelView) getCurrentLevelView();
-					float f = motionevent.getX() / lightlevelview.getRatioX();
-					float f1 = motionevent.getY() / lightlevelview.getRatioY();
-
+					float absoluteX = motionEvent.getX() / lightlevelview.getRatioX();
+					float absoluteY = motionEvent.getY() / lightlevelview.getRatioY();
 					List<Light> res = new ArrayList<Light>();
 					for (Light light : lights) {
 						float f2 = lightlevelview.getLightX(light);
 						float f3 = lightlevelview.getLightY(light);
-						rectf.set(f2 - (float) i, f3 - (float) i, f2 + (float) i, f3 + (float) i);
-						if (rectf.contains(f, f1)) {
+						rectf.set(f2 - i, f3 - i, f2 + i, f3 + i);
+						if (rectf.contains(absoluteX, absoluteY)) {
 							res.add(light);
 						}
 					}
@@ -271,10 +271,14 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 				public boolean onSingleTapConfirmed(MotionEvent motionevent) {
 					Light light = getLightForEvent(motionevent);
 					if (light != null) {
-						Bundle bundle = new Bundle();
-						bundle.putString("Domotix.MessageService.ACTION", "toggle_light");
-						bundle.putInt("Domotix.MessageService.LIGHT", light.getId());
-						MessageHelper.sendMessage(getActivity(), bundle);
+						if(!DomotixActivity.DEBUG) {
+							new ActionBuilder()
+								.setAction(ActionBuilder.ACTION_OUT)
+								.setType(ActionBuilder.TYPE_LIGHT_SWITCH_TOGGLE)
+								.setLightId(light.getId())
+								.sendMessage(getActivity());
+						}
+						NotificationHelper.notify(getActivity());
 						Toast.makeText(
 								getActivity(),
 								new StringBuilder("Toggle light ").append(light.getName()).toString(), 0)
@@ -295,22 +299,135 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 			return R.id.lightLevelViewFlipper;
 		}
 
+		@Override
 		protected boolean onBroadcastReceive(Context context, Intent intent) {
 			String action = intent.getAction();
-			if (LightStatusUpdateService.ACTION.equals(action) || UDPListenerService.ACTION.equals(action) || ZMQListenerService.ACTION.equals(action)) {
-				updateLightStatus(intent.getIntExtra(Constants.MESSAGE_LIGHT_ID, -1), intent.getIntExtra(Constants.MESSAGE_LIGHT_STATUS, -1));
+			if (ActionBuilder.ACTION_IN.equals(action)) {
+				//updateLightStatus(intent.getIntExtra(Constants.MESSAGE_LIGHT_ID, -1), intent.getIntExtra(Constants.MESSAGE_LIGHT_STATUS, -1));
+				// Refresh view from LevelDao...
+				//getView().postInvalidate();
+				getCurrentLevelView().postInvalidate();
 				return Boolean.TRUE;
 			}
 			return Boolean.FALSE;
 		}
 
+		@Override
 		protected void updateLevel() {
 			Intent intent = new Intent(getActivity(), LightStatusUpdateService.class);
 			getActivity().startService(intent);
 		}
 
-		public LightLevelFragment() {
+	}
+	
+	public static class LightLevelListFragment extends LevelFragment {
+
+		@Override
+		protected boolean onBroadcastReceive(Context context, Intent intent) {
+			String action = intent.getAction();
+			if (ActionBuilder.ACTION_IN.equals(action)) {
+				((ListView) getView()).invalidateViews();
+				return Boolean.TRUE;
+			}
+			return Boolean.FALSE;
 		}
+		
+		@Override
+		public View onCreateView(LayoutInflater layoutinflater,
+				ViewGroup viewgroup, Bundle bundle) {
+			final List<Light> lights  = DomotixDao.getLights(getActivity());
+			View view = super.onCreateView(layoutinflater, viewgroup, bundle);
+			ListView listView = (ListView) view;
+			listView.setAdapter(new BaseAdapter() {
+				
+				public View getView(int position, View convertView, ViewGroup parent) {
+					View rowView = convertView;
+				    // reuse views
+				    if (rowView == null) {
+				        LayoutInflater inflater = getActivity().getLayoutInflater();
+				        rowView = inflater.inflate(R.layout.light_level_list_item, null);
+				        // configure view holder
+				        ViewHolder viewHolder = new ViewHolder();
+				        viewHolder.text = (TextView) rowView.findViewById(R.id.label);
+				        viewHolder.image = (ImageView) rowView.findViewById(R.id.icon);
+				        rowView.setTag(viewHolder);
+				    }
+				    
+				    Light light = lights.get(position);
+				    
+				    // fill data
+				    ViewHolder holder = (ViewHolder) rowView.getTag();
+				    holder.text.setText(light.getName());
+				    if (light.getStatus() > 0) {
+				        holder.image.setImageResource(R.drawable.lightbulb_on);
+				    } else {
+				        holder.image.setImageResource(R.drawable.lightbulb_off);
+				    }
+
+				    return rowView;
+				}
+				
+				public long getItemId(int position) {
+					return lights.get(position).getId();
+				}
+				
+				public Object getItem(int position) {
+					return lights.get(position);
+				}
+				
+				public int getCount() {
+					return lights.size();
+				}
+			});
+			listView.setOnItemClickListener(new OnItemClickListener() {
+
+				public void onItemClick(AdapterView<?> parent, View view,
+						int position, long id) {
+					Light light = (Light) ((ListView) parent).getAdapter().getItem(position);
+					if(!DomotixActivity.DEBUG) {
+						new ActionBuilder()
+							.setAction(ActionBuilder.ACTION_OUT)
+							.setType(ActionBuilder.TYPE_LIGHT_SWITCH_TOGGLE)
+							.setLightId(light.getId())
+							.sendMessage(getActivity());
+					}
+					NotificationHelper.notify(getActivity());
+					Toast.makeText(
+							getActivity(),
+							new StringBuilder("Toggle light ").append(light.getName()).toString(), 0)
+						.show();
+				}
+				
+			});
+			return view;
+		}
+
+		@Override
+		protected SimpleOnGestureListener getGestureDetector() {
+			return null;
+		}
+
+		@Override
+		protected int getLevelLayoutViewId() {
+			return R.layout.light_level_list;
+		}
+
+		@Override
+		protected int getViewLevelFlipperViewId() {
+			return -1;
+		}
+
+		@Override
+		protected void updateLevel() {
+			// TODO Auto-generated method stub
+			
+		}
+		
+		static class ViewHolder {
+			TextView text;
+			ImageView image;
+		}
+		
 	}
 
 }

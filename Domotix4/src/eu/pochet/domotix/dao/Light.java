@@ -27,7 +27,7 @@ public class Light implements Serializable
 	
 	private int outputNb;
 	
-	private String cardAddress;
+	private int swapDeviceAddress;
 	
 	public int getId() {
 		return id;
@@ -101,12 +101,12 @@ public class Light implements Serializable
 		this.outputNb = outputNb;
 	}
 	
-	public String getCardAddress() {
-		return cardAddress;
+	public int getSwapDeviceAddress() {
+		return swapDeviceAddress;
 	}
 	
-	public void setCardAddress(String cardAddress) {
-		this.cardAddress = cardAddress;
+	public void setSwapDeviceAddress(int swapDeviceAddress) {
+		this.swapDeviceAddress = swapDeviceAddress;
 	}
 	
 	/*public int getLevelX() {

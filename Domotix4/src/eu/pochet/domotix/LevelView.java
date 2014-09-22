@@ -5,7 +5,7 @@ import android.graphics.Canvas;
 import android.util.AttributeSet;
 import android.widget.ImageView;
 import eu.pochet.domotix.dao.Level;
-import eu.pochet.domotix.dao.LevelDao;
+import eu.pochet.domotix.dao.DomotixDao;
 
 public abstract class LevelView extends ImageView {
 	
@@ -25,7 +25,7 @@ public abstract class LevelView extends ImageView {
 		super(context, attributeset);
 		int i = attributeset.getAttributeIntValue(null, "levelId", -1);
 		if (i != -1) {
-			level = LevelDao.getLevel(context, i);
+			level = DomotixDao.getLevel(context, i);
 		}
 		init();
 	}

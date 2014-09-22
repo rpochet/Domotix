@@ -11,9 +11,11 @@ import android.content.Intent;
 import android.net.DhcpInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.MulticastLock;
+import android.os.AsyncTask;
 import android.os.IBinder;
 import android.util.Log;
 import eu.pochet.domotix.Constants;
+import eu.pochet.domotix.service.ZMQListenerService.StartListenForBroadcastTask;
 
 public class UDPListenerService extends Service {
 
@@ -27,31 +29,76 @@ public class UDPListenerService extends Service {
 
 	private int domotixBusOutputPort = Constants.DOMOTIX_BUS_OUTPUT_PORT_DEFAULT;
 
-	private void listenAndWaitAndThrowIntent(InetAddress broadcastIP, Integer port) throws Exception {
-		Log.i(ACTION, "Waiting for UDP broadcast");
+	@Override
+	public void onCreate() {
+		Log.d(ACTION, "Service onCreate");
+	};
 
-		WifiManager wifi = (WifiManager) this.getSystemService(Context.WIFI_SERVICE);
-		MulticastLock lock = wifi.createMulticastLock("dk.aboaya.pingpong");
-		lock.acquire();
+	@Override
+	public IBinder onBind(Intent intent) {
+		return null;
+	}
 
-		if (socket == null || socket.isClosed()) {
-			socket = new DatagramSocket(54128);
-			// serverSocket.setSoTimeout(25000); //15 sec wait for the client to
-			// connect
-			socket.setBroadcast(true);
+	@Override
+	public void onStart(Intent intent, int startId) {
+		Log.d(ACTION, "Service onStartCommand");
+		this.domotixBusOutputPort = intent.getIntExtra(
+				Constants.DOMOTIX_BUS_OUTPUT_PORT,
+				Constants.DOMOTIX_BUS_OUTPUT_PORT_DEFAULT);
+		
+		new StartListenForBroadcastTask().execute();
+	}
+	
+	class StartListenForBroadcastTask extends AsyncTask<Void, Void, Void> {
+		@Override
+		protected Void doInBackground(Void... params) {
+			try {
+				// InetAddress broadcastIP =
+				// InetAddress.getByName("192.168.1.9"); // 192.168.1.255,
+				// 0.0.0.0, 255.255.255.255
+				InetAddress broadcastIP = getBroadcastAddress();
+				while (!Thread.currentThread().isInterrupted()) {
+					Log.i(ACTION, "Waiting for UDP broadcast");
+
+					WifiManager wifi = (WifiManager) UDPListenerService.this.getSystemService(Context.WIFI_SERVICE);
+					MulticastLock lock = wifi.createMulticastLock("dk.aboaya.pingpong");
+					lock.acquire();
+
+					if (socket == null || socket.isClosed()) {
+						socket = new DatagramSocket(UDPListenerService.this.domotixBusOutputPort);
+						// serverSocket.setSoTimeout(25000); //15 sec wait for the client to
+						// connect
+						socket.setBroadcast(true);
+					}
+
+					byte[] data = new byte[1024];
+					DatagramPacket packet = new DatagramPacket(data, data.length);
+					socket.receive(packet);
+					lock.release();
+
+					String s = new String(packet.getData());
+					Log.d(ACTION, "UDP packet received: " + s);
+
+					String senderIP = packet.getAddress().getHostAddress();
+					broadcastIntent(senderIP, packet.getData(), packet.getLength());
+					socket.close();
+				}
+				// if (!shouldListenForUDPBroadcast) throw new
+				// ThreadDeath();
+			} catch (Exception e) {
+				Log.e(ACTION, "No longer listening for UDP broadcasts cause of error ", e);
+			}
+			return null;
 		}
+	}
 
-		byte[] data = new byte[64];
-		DatagramPacket packet = new DatagramPacket(data, data.length);
-		socket.receive(packet);
-		lock.release();
+	@Override
+	public void onDestroy() {
+		Log.d(ACTION, "Service onDestroy");
 
-		String s = new String(packet.getData());
-		Log.d(ACTION, "UDP packet received: " + s);
-
-		String senderIP = packet.getAddress().getHostAddress();
-		broadcastIntent(senderIP, packet.getData(), packet.getLength());
-		socket.close();
+		if (socket != null) {
+			socket.close();
+		}
 	}
 
 	private void broadcastIntent(String senderIP, byte[] message, int messageLength) {
@@ -73,62 +120,6 @@ public class UDPListenerService extends Service {
 			quads[k] = (byte) ((broadcast >> k * 8) & 0xFF);
 		}
 		return InetAddress.getByAddress(quads);
-	}
-
-	private void startListenForUDPBroadcast() {
-		UDPBroadcastThread = new Thread(new Runnable() {
-			public void run() {
-				try {
-					// InetAddress broadcastIP =
-					// InetAddress.getByName("192.168.1.9"); // 192.168.1.255,
-					// 0.0.0.0, 255.255.255.255
-					InetAddress broadcastIP = getBroadcastAddress();
-					while (shouldRestartSocketListen) {
-						listenAndWaitAndThrowIntent(broadcastIP, UDPListenerService.this.domotixBusOutputPort);
-					}
-					// if (!shouldListenForUDPBroadcast) throw new
-					// ThreadDeath();
-				} catch (Exception e) {
-					Log.e(ACTION, "No longer listening for UDP broadcasts cause of error ", e);
-				}
-			}
-		});
-		UDPBroadcastThread.start();
-	}
-
-	void stopListen() {
-		shouldRestartSocketListen = false;
-		if (socket != null) {
-			socket.close();
-		}
-	}
-
-	@Override
-	public void onCreate() {
-		Log.d(ACTION, "Service onCreate");
-	};
-
-	@Override
-	public void onDestroy() {
-		Log.d(ACTION, "Service onDestroy");
-
-		stopListen();
-	}
-
-	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
-		Log.d(ACTION, "Service onStartCommand");
-
-		this.domotixBusOutputPort = intent.getIntExtra(Constants.DOMOTIX_BUS_OUTPUT_PORT, Constants.DOMOTIX_BUS_OUTPUT_PORT_DEFAULT);
-
-		shouldRestartSocketListen = true;
-		startListenForUDPBroadcast();
-		return START_STICKY;
-	}
-
-	@Override
-	public IBinder onBind(Intent intent) {
-		return null;
 	}
 
 }

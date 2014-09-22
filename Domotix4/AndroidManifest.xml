@@ -18,8 +18,9 @@
         <activity android:label="@string/app_name_settings" android:name="DomotixActivity$SettingsActivity">
             <meta-data android:name="android.support.PARENT_ACTIVITY" android:value="eu.pochet.domotix.DomotixActivity" />
         </activity>
-        <service android:name=".service.MessageService" />
+        <service android:name=".service.ActionService" />
         <service android:name=".service.LightStatusUpdateService" />
-        <service android:name=".service.ZmqListenerService"></service>
+        <service android:name=".service.ZMQListenerService"></service>
+        <service android:name=".service.UpdateDaoService"></service>
     </application>
 </manifest>

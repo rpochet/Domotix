@@ -3,23 +3,25 @@
 
     <PreferenceCategory android:title="Domotix" >
         <EditTextPreference
-            android:defaultValue="http://192.168.1.4:3000/data/"
+            android:defaultValue="http://192.168.1.4:4000/data/"
             android:key="domotix.data.host"
             android:title="Domotix Data Url" />
         <EditTextPreference
-            android:defaultValue="192.168.1.4"
+            android:defaultValue="@string/domotix_bus_input_host"
             android:key="domotix.bus.input.host"
             android:title="Domotix Bus Input Host" />
         <EditTextPreference
-            android:defaultValue="5555"
+            android:defaultValue="@integer/domotix_bus_input_port"
+            android:inputType="number"
             android:key="domotix.bus.input.port"
             android:title="Domotix Bus Input Port" />
         <EditTextPreference
-            android:defaultValue="192.168.1.4"
+            android:defaultValue="@string/domotix_bus_output_host"
             android:key="domotix.bus.output.host"
             android:title="Domotix Bus Output Host" />
         <EditTextPreference
-            android:defaultValue="10000"
+            android:defaultValue="@integer/domotix_bus_output_port"
+            android:inputType="number"
             android:key="domotix.bus.output.port"
             android:title="Domotix Bus Output Port" />
     </PreferenceCategory>
@@ -30,12 +32,12 @@
             android:summary="notification"
             android:title="Notification" />
         <RingtonePreference
-            android:key="sonnerie"
+            android:key="notification.sound"
             android:summary="Choisissez la sonnerie pour les notifications"
             android:title="Sonnerie de notification" >
         </RingtonePreference>
         <CheckBoxPreference
-            android:key="vibrate"
+            android:key="notification.vibrate"
             android:summary="Vibre lors d&apos;une notification"
             android:title="Vibreur" >
         </CheckBoxPreference>

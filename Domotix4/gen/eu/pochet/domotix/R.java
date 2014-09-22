@@ -27,49 +27,57 @@ public final class R {
     }
     public static final class drawable {
         public static final int border_view_rounded_single=0x7f020000;
-        public static final int card=0x7f020001;
-        public static final int card_temp=0x7f020002;
-        public static final int dimmer=0x7f020003;
-        public static final int ic_action_camera=0x7f020004;
-        public static final int ic_action_overflow=0x7f020005;
-        public static final int ic_action_refresh=0x7f020006;
-        public static final int ic_action_settings=0x7f020007;
-        public static final int ic_action_video=0x7f020008;
-        public static final int ic_launcher=0x7f020009;
-        public static final int level_1=0x7f02000a;
-        public static final int level_2=0x7f02000b;
-        public static final int level_3=0x7f02000c;
-        public static final int lightbulb=0x7f02000d;
-        public static final int lightbulb_off=0x7f02000e;
-        public static final int lightbulb_on=0x7f02000f;
-        public static final int logo=0x7f020010;
+        public static final int dimmer=0x7f020001;
+        public static final int ic_action_camera=0x7f020002;
+        public static final int ic_action_overflow=0x7f020003;
+        public static final int ic_action_refresh=0x7f020004;
+        public static final int ic_action_settings=0x7f020005;
+        public static final int ic_action_video=0x7f020006;
+        public static final int ic_launcher=0x7f020007;
+        public static final int level_1=0x7f020008;
+        public static final int level_2=0x7f020009;
+        public static final int level_3=0x7f02000a;
+        public static final int lightbulb=0x7f02000b;
+        public static final int lightbulb_off=0x7f02000c;
+        public static final int lightbulb_on=0x7f02000d;
+        public static final int logo=0x7f02000e;
+        public static final int swapdevice=0x7f02000f;
+        public static final int swapdevice_temp=0x7f020010;
     }
     public static final class id {
-        public static final int cardLevelView0=0x7f0c0003;
-        public static final int cardLevelView1=0x7f0c0004;
-        public static final int cardLevelView2=0x7f0c0005;
-        public static final int cardLevelView3=0x7f0c0006;
-        public static final int cardLevelViewFlipper=0x7f0c0002;
-        public static final int delayItems=0x7f0c000a;
-        public static final int delayMinuts=0x7f0c000b;
-        public static final int delaySection=0x7f0c0009;
-        public static final int dimmer=0x7f0c0008;
-        public static final int gestures=0x7f0c0001;
-        public static final int houseLevelView0=0x7f0c000d;
-        public static final int houseLevelView1=0x7f0c000e;
-        public static final int houseLevelView2=0x7f0c000f;
-        public static final int houseLevelView3=0x7f0c0010;
-        public static final int houseLevelViewFlipper=0x7f0c000c;
-        public static final int itemOptions=0x7f0c0018;
-        public static final int lightLevelView0=0x7f0c0012;
-        public static final int lightLevelView1=0x7f0c0013;
-        public static final int lightLevelView2=0x7f0c0014;
-        public static final int lightLevelView3=0x7f0c0015;
-        public static final int lightLevelViewFlipper=0x7f0c0011;
-        public static final int pager=0x7f0c0000;
-        public static final int state=0x7f0c0007;
-        public static final int updateConfig=0x7f0c0017;
-        public static final int updateLight=0x7f0c0016;
+        public static final int delayItems=0x7f0d000a;
+        public static final int delayMinuts=0x7f0d000b;
+        public static final int delaySection=0x7f0d0009;
+        public static final int dimmer=0x7f0d0008;
+        public static final int gestures=0x7f0d0001;
+        public static final int houseLevelView0=0x7f0d000d;
+        public static final int houseLevelView1=0x7f0d000e;
+        public static final int houseLevelView2=0x7f0d000f;
+        public static final int houseLevelView3=0x7f0d0010;
+        public static final int houseLevelViewFlipper=0x7f0d000c;
+        public static final int icon=0x7f0d0016;
+        public static final int itemOptions=0x7f0d001c;
+        public static final int label=0x7f0d0017;
+        public static final int lightLevelView0=0x7f0d0012;
+        public static final int lightLevelView1=0x7f0d0013;
+        public static final int lightLevelView2=0x7f0d0014;
+        public static final int lightLevelView3=0x7f0d0015;
+        public static final int lightLevelViewFlipper=0x7f0d0011;
+        public static final int pager=0x7f0d0000;
+        public static final int state=0x7f0d0007;
+        public static final int swapDeviceLevelView0=0x7f0d0003;
+        public static final int swapDeviceLevelView1=0x7f0d0004;
+        public static final int swapDeviceLevelView2=0x7f0d0005;
+        public static final int swapDeviceLevelView3=0x7f0d0006;
+        public static final int swapDeviceLevelViewFlipper=0x7f0d0002;
+        public static final int updateConfig=0x7f0d001b;
+        public static final int updateLight=0x7f0d001a;
+        public static final int viewSwitcher1=0x7f0d0018;
+        public static final int webView1=0x7f0d0019;
+    }
+    public static final class integer {
+        public static final int domotix_bus_input_port=0x7f0a0000;
+        public static final int domotix_bus_output_port=0x7f0a0001;
     }
     public static final class layout {
         public static final int activity_main=0x7f030000;
@@ -77,9 +85,12 @@ public final class R {
         public static final int dialog_light=0x7f030002;
         public static final int house_level=0x7f030003;
         public static final int light_level=0x7f030004;
+        public static final int light_level_list=0x7f030005;
+        public static final int light_level_list_item=0x7f030006;
+        public static final int plugin_layout=0x7f030007;
     }
     public static final class menu {
-        public static final int domotix=0x7f0b0000;
+        public static final int domotix=0x7f0c0000;
     }
     public static final class raw {
         public static final int gestures=0x7f050000;
@@ -93,14 +104,16 @@ public final class R {
         public static final int delayMinuts=0x7f090012;
         public static final int delay_close=0x7f090014;
         public static final int delay_open=0x7f090013;
-        public static final int demo_external_activity=0x7f09000d;
         public static final int dialog_light_title=0x7f09000e;
         public static final int dimmer=0x7f090010;
-        public static final int dummy_section_text=0x7f09000c;
+        public static final int domotix_bus_input_host=0x7f090015;
+        public static final int domotix_bus_output_host=0x7f090016;
         public static final int level0_name=0x7f090002;
         public static final int level1_name=0x7f090003;
         public static final int level2_name=0x7f090004;
         public static final int level3_name=0x7f090005;
+        public static final int plugin_network_state_url=0x7f09000c;
+        public static final int plugin_pressure_url=0x7f09000d;
         public static final int state=0x7f09000f;
         public static final int title_section1=0x7f090008;
         public static final int title_section2=0x7f090009;
@@ -108,8 +121,9 @@ public final class R {
         public static final int title_section4=0x7f09000b;
     }
     public static final class style {
-        public static final int AppBaseTheme=0x7f0a0000;
-        public static final int AppTheme=0x7f0a0001;
+        public static final int AppBaseTheme=0x7f0b0000;
+        public static final int AppText=0x7f0b0002;
+        public static final int AppTheme=0x7f0b0001;
     }
     public static final class xml {
         public static final int preferences=0x7f040000;

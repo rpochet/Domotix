@@ -15,6 +15,9 @@ public interface Constants {
 	String DOMOTIX_BUS_OUTPUT_PORT = "domotix.bus.output.port";
 	int DOMOTIX_BUS_OUTPUT_PORT_DEFAULT = 10000;
 	
+	String DOMOTIX_DATA_HOST = "domotix.data.host";
+	String DOMOTIX_DATA_HOST_DEFAULT = "http://" + DOMOTIX_BUS_OUTPUT_HOST_DEFAULT + ":4000/data/";
+	
 	// Messages
 	String MESSAGE = "message";
 	
@@ -27,7 +30,10 @@ public interface Constants {
 	String MESSAGE_LIGHT_ID = "lightId";
 	String MESSAGE_LIGHT_STATUS = "lightStatus";
 	
-
+	String LIGHT_CONTROLLER_PRODUCT_CODE = "0000006400000001";
+			
+	int LIGHT_OUTPUT_OFFSET = 14;
+	
 	// Design
     int BACKGROUNG_MAX_X = 1220;
     
@@ -35,10 +41,11 @@ public interface Constants {
 	
 	int CARD_OFFSET_X = -16;
 	int CARD_OFFSET_Y = -16;
-	int CARD_TOUCH_OFFSET = -20;
+	int CARD_TOUCH_OFFSET = 100;
 	
-	int LIGHT_OFFSET_X = -16;
-	int LIGHT_OFFSET_Y = -16;
-	int LIGHT_TOUCH_OFFSET = -20;
-
+	int LIGHT_OFFSET_X = -16 * 2;
+	int LIGHT_OFFSET_Y = -16 * 2;
+	int LIGHT_TOUCH_OFFSET = 150;
+	int LIGHT_TOUCH_OFFSET2 = 100;
+	
 }

@@ -15,7 +15,7 @@ public class Level {
 
 	private List<Room> rooms = new ArrayList<Room>();
 
-	private List<Card> cards = new ArrayList<Card>();
+	private List<SwapDevice> swapDevices = new ArrayList<SwapDevice>();
 
 	private List<Light> lights = new ArrayList<Light>();
 
@@ -79,16 +79,16 @@ public class Level {
 		getLights().add(light);
 	}
 
-	public List<Card> getCards() {
-		return cards;
+	public List<SwapDevice> getSwapDevices() {
+		return swapDevices;
 	}
 
-	public void setCards(List<Card> cards) {
-		this.cards = cards;
+	public void setSwapDevices(List<SwapDevice> swapDevices) {
+		this.swapDevices = swapDevices;
 	}
 
-	public void addCard(Card card) {
-		getCards().add(card);
+	public void addSwapDevice(SwapDevice swapDevice) {
+		getSwapDevices().add(swapDevice);
 	}
 
 	public int getX() {

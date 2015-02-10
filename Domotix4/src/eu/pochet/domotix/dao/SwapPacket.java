@@ -23,6 +23,7 @@ public class SwapPacket implements Serializable {
 
 	public void setDest(int dest) {
 		this.dest = dest;
+		setRegAddress(dest);
 	}
 
 	public int getSource() {
@@ -46,7 +47,7 @@ public class SwapPacket implements Serializable {
 	}
 	
 	public void setRegAddress(int regAddress) {
-		this.regAddress = regAddress;
+		this.regAddress = regAddress;		
 	}
 
 	public int getRegId() {
@@ -78,6 +79,35 @@ public class SwapPacket implements Serializable {
 			}	
 		}
 		return res; 
+	}
+	
+	public byte[] toByteArray() {
+		int offset = 0;
+		byte[] res = new byte[7 + (this.regValue == null ? 0 : this.regValue.length)];
+		res[offset++] = (byte) this.dest;
+		res[offset++] = 0;
+		res[offset++] = 0;
+		res[offset++] = 0;
+		res[offset++] = (byte) this.func;
+		res[offset++] = (byte) this.regAddress;
+		res[offset++] = (byte) this.regId;
+		if(this.regValue != null) {
+			for (int i = 0; i < regValue.length; i++) {
+				res[offset + i] = regValue[i];
+			}
+		}
+		return res;
+	}
+	
+	@Override
+	public String toString() {
+		return new StringBuilder()
+			.append("dest: ").append(this.dest)
+			.append(", func: ").append(this.func)
+			.append(", regAddress: ").append(this.regAddress)
+			.append(", regId: ").append(this.regId)
+			.append(", regValue: ").append(this.regValue)
+		.toString();
 	}
 	
 }

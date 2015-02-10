@@ -25,15 +25,17 @@ module.exports = (swapApp) ->
     $scope.$on 'devicesUpdated', (e) ->
       ss.rpc 'swapserver.getDevices', (devices) ->
         $scope.devices = devices
-        
+    
     $scope.sendMessage = () ->
       if $scope.message.functionCode == swap.Functions.COMMAND
-        ss.rpc 'swapserver.sendCommand', $scope.message.address, $scope.message.register.id, swap.getValue $scope.message.register.value, $scope.message.register.length
+        ss.rpc 'swapserver.sendSwapCommand', $scope.message.address, $scope.message.register.id, swap.getValue $scope.message.register.value || $scope.message.register.valueStr, $scope.message.register.length
+      else if $scope.message.functionCode == swap.Functions.QUERY
+        ss.rpc 'swapserver.sendSwapQuery', $scope.message.address, $scope.message.register.id
       else
-        ss.rpc 'swapserver.sendQuery', $scope.message.address, $scope.message.register.id
-        
+        ss.rpc 'swapserver.sendSwapPacket', $scope.message.functionCode, $scope.message.address, $scope.message.register.id, swap.getValue $scope.message.register.value || $scope.message.register.valueStr, $scope.message.register.length
+      
     $scope.checkNewDevices = () ->
-      ss.rpc 'swapserver.sendQuery', swap.Address.BROADCAST, swap.Registers.productCode.id
+      ss.rpc 'swapserver.sendSwapQuery', swap.Address.BROADCAST, swap.Registers.productCode.id
     
     $scope.rawMessage = ""
     $scope.$watch 'rawMessage', (newValue, oldValue) ->
@@ -54,13 +56,13 @@ module.exports = (swapApp) ->
         $scope.decodedMessage.func = key if value == swapPacket.func
   ]
   
-  swapApp.controller 'DeviceListCtrl', ['$scope', 'rpc', 'pubsub', ($scope, rpc, pubsub) ->
+  swapApp.controller 'DeviceListCtrl', ['$scope', 'rpc', ($scope, rpc) ->
     
     $scope.config = undefined
     $scope.devices = []
     
     $scope.selectedDevice = undefined
-    $scope.editedDevice = undefined;
+    $scope.editedDevice = undefined
     
     $scope.update = () ->
       $scope.selectedDevice = angular.copy $scope.editedDevice
@@ -76,11 +78,16 @@ module.exports = (swapApp) ->
       $scope.selectedDevice = device
       $scope.reset()
     
+    $scope.registerPartValue = (registerPart, registerValue) ->
+      return registerValue.slice(parseInt(registerPart.position), (parseInt(registerPart.position) + parseInt(registerPart.size)))
+    
     ss.server.on 'ready', () ->
       ss.rpc 'swapserver.getDevices', (devices) ->
         $scope.devices = devices
       ss.rpc 'swapserver.getConfig', (config) ->
         $scope.config = config
+      ss.rpc 'swapserver.getLevels', (levels) ->
+        $scope.levels = levels
     
     # When a devicesUpdated event is received, update devices
     $scope.$on 'devicesUpdated', (e) ->
@@ -114,7 +121,61 @@ module.exports = (swapApp) ->
     $scope.$on 'swapEvent', (e, se) ->
       $scope.swapEvents.splice(0, 0, se)
       $scope.swapEvents.pop() if $scope.swapEvents.length > 40
+  ]
+  
+  swapApp.controller 'DomotixCtrl', ['$scope', 'rpc', ($scope, rpc) ->
+
+    $scope.levels = undefined
     
+    $scope.handleSvgClick = ($event, level) ->
+      x = $event.offsetX;
+      y = $event.offsetY;
+      console.log 'Click on ' + x + ', ' + y;
+      for room in level.rooms
+        do (room) ->
+          for light in room.lights
+            do (light) ->
+              pos = $scope.lightPosition room, light
+              if (x - pos[0]) * (x - pos[0]) + (y - pos[1]) * (y - pos[1]) < 2500
+                # Click on light in room
+                ss.rpc 'swapserver.sendSwapPacket', swap.Light.Functions.Light, light.swapDeviceAddress, swap.Light.Registers.Outputs.id, [light.outputNb, swap.Light.Values.Toggle]
+            
+    $scope.lightPosition = (room, light) ->
+      #dx and dy should be used for custom position in handeld device in order to avoid cross light tapping
+      #return [room.x + light.location.x + (light.location.dx || 0), room.y + light.location.y + (light.location.dy || 0)];
+      return [room.x + light.location.x, room.y + light.location.y];
+    
+    $scope.lightDef = (room, light) ->
+      if light.status == 0
+        return '#r1';
+      else 
+        return '#r2';
+    
+    $scope.lightFill = (room, light) ->
+      if light.status == 0
+        return 'url(#g1)';
+      else 
+        return 'url(#g2)';
+    
+    ss.event.on 'lightStatusUpdated2', (lightStatus) ->
+      ss.rpc 'swapserver.getLevels', (levels) ->
+        $scope.levels = levels
+    
+    ss.event.on 'lightStatusUpdated', (lightStatus) ->
+      for level in $scope.levels
+        do (level) ->
+          for room in level.rooms
+            do (room) ->
+              for light in room.lights
+                do (light) ->
+                  for lightnew in lightStatus.lights
+                    do (lightnew) ->
+                      if lightnew.swapDeviceAddress == light.swapDeviceAddress && lightnew.outputNb == light.outputNb 
+                        light.status = lightnew.status
+    
+    ss.server.on 'ready', () ->
+      ss.rpc 'swapserver.getLevels', (levels) ->
+        $scope.levels = levels
   ]
   
   swapApp.controller 'ConfigCtrl', ['$scope', 'rpc', ($scope, rpc) ->
@@ -137,3 +198,4 @@ module.exports = (swapApp) ->
         $scope.config = config
         $scope.reset()
   ]
+  

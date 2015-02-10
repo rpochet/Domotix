@@ -3,7 +3,7 @@ package eu.pochet.domotix.service;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import android.app.IntentService;
@@ -12,10 +12,24 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 import eu.pochet.android.Util;
 import eu.pochet.domotix.Constants;
-import eu.pochet.domotix.dao.Level;
 import eu.pochet.domotix.dao.DomotixDao;
+import eu.pochet.domotix.dao.Level;
 import eu.pochet.domotix.dao.Light;
+import eu.pochet.domotix.dao.SwapDevice;
+import eu.pochet.domotix.dao.SwapPacket;
+import eu.pochet.domotix.dao.SwapRegister;
+import eu.pochet.domotix.dao.SwapRegisterEndpoint;
 
+/**
+ * Handle INCOMING/OUTGOING intent that contains Domotix message:
+ * - intent.getAction() == ActionBuilder.ACTION_IN: 
+ *     Handle message received from DOMOTIX PAN network. Update model and broadcast a more specific message with action = ActionBuilder.ACTION_IN, if required 
+ * - intent.getAction() == ActionBuilder.ACTION_OUT: 
+ *     Send a message to DOMOTIX PAN network
+ * 
+ * @author romuald
+ *
+ */
 public class ActionService extends IntentService {
 
 	private static final String TAG = ActionService.class.getName();
@@ -31,84 +45,80 @@ public class ActionService extends IntentService {
 	@Override
 	protected void onHandleIntent(Intent intent) {
 		String action = intent.getAction();
-		if(ActionBuilder.ACTION_OUT.equals(action)){
+		if(ActionBuilder.TYPE_TO_SWAP.equals(action)){
 			handleOutputIntent(intent);
-		} else if (ActionBuilder.ACTION_IN.equals(action)) {
+		} else if (ActionBuilder.TYPE_FROM_SWAP.equals(action)) {
 			handleInputIntent(intent);
 		} else {
 			// TODO
 		}
 	}
 	
-	private void handleInputIntent(Intent intent) {
-		ActionBuilder action = new ActionBuilder(intent);
-		switch(action.getType()) {
-			case ActionBuilder.TYPE_SWAP_PACKET:
-				int regAddress = action.getSwapPacket().getRegAddress();
-				int regId = action.getSwapPacket().getRegId();
-				if(DomotixDao.getSwapDevice(getBaseContext(), regAddress).getProductCode().equals(Constants.LIGHT_CONTROLLER_PRODUCT_CODE) 
-						&& regId >= Constants.LIGHT_OUTPUT_OFFSET) {
-					int outputNb = regId - Constants.LIGHT_OUTPUT_OFFSET;
-					Light light = DomotixDao.getLight(getApplicationContext(), regAddress, outputNb);
-					int lightStatus = action.getSwapPacket().getRegValueAsInt();
-					if(lightStatus == ActionBuilder.LIGHT_STATUS_TOGGLE) {
-						light.setStatus(light.getStatus() == ActionBuilder.LIGHT_STATUS_OFF ? ActionBuilder.LIGHT_STATUS_ON : ActionBuilder.LIGHT_STATUS_OFF);
-					} else {
-						light.setStatus(lightStatus);
-					}
-					sendBroadcast(new ActionBuilder()
-						.setAction(ActionBuilder.ACTION_IN)
-						.setType(ActionBuilder.TYPE_LIGHT_SWITCH)
-						.setLightId(light.getId())
-						.toIntent());
-				} else {
-					
-				}
-			break;
-		}
-	}
-	
+	/**
+	 * Send a message to DOMOTIX PAN network
+	 * 
+	 * @param intent
+	 */
 	private void handleOutputIntent(Intent intent) {
-		this.domotixBusInputHost = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(Constants.DOMOTIX_BUS_INPUT_HOST, Constants.DOMOTIX_BUS_INPUT_HOST_DEFAULT);
-		this.domotixBusInputPort = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getInt(Constants.DOMOTIX_BUS_INPUT_PORT, Constants.DOMOTIX_BUS_INPUT_PORT_DEFAULT);
+		this.domotixBusInputHost = PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
+				.getString(Constants.DOMOTIX_BUS_INPUT_HOST, Constants.DOMOTIX_BUS_INPUT_HOST_DEFAULT);
+		/*this.domotixBusInputPort = PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
+				.getInt(Constants.DOMOTIX_BUS_INPUT_PORT, Constants.DOMOTIX_BUS_INPUT_PORT_DEFAULT);*/
+		this.domotixBusInputPort = Integer.parseInt(PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
+				.getString(Constants.DOMOTIX_BUS_INPUT_PORT, Integer.toString(Constants.DOMOTIX_BUS_INPUT_PORT_DEFAULT)));
 		
-		List<Integer> message = new ArrayList<Integer>();
+		SwapPacket swapPacket = new SwapPacket();
+		boolean toSend = true;
+		
 		Level level = null;
 		Light light = null;
 		ActionBuilder action = new ActionBuilder(intent);
 		switch(action.getType()) {
 			case ActionBuilder.TYPE_LIGHT_SWITCH_OFF:
 				light = DomotixDao.getLight(getApplicationContext(), action.getLightId());
-				message.add(light.getSwapDeviceAddress());
-				message.add(0);
-				message.add(0);
-				message.add(0);
-				message.add(ActionBuilder.FCT_SWAP_COMMAND);
-				message.add(light.getSwapDeviceAddress());
-				message.add(light.getOutputNb());
-				message.add(ActionBuilder.LIGHT_STATUS_OFF);
+				
+				swapPacket.setDest(light.getSwapDeviceAddress());
+				swapPacket.setFunc(Constants.FCT_SWAP_CUSTOM_1);
+				swapPacket.setDest(light.getSwapDeviceAddress());
+				swapPacket.setRegId(Constants.REGISTER_LIGHT_OUTPUT);
+				swapPacket.setRegValue(new byte[]{
+					(byte) light.getOutputNb(),
+					ActionBuilder.LIGHT_STATUS_OFF
+				});
+				
 				break;
 			case ActionBuilder.TYPE_LIGHT_SWITCH_ON:
 				light = DomotixDao.getLight(getApplicationContext(), action.getLightId());
-				message.add(light.getSwapDeviceAddress());
-				message.add(0);
-				message.add(0);
-				message.add(0);
-				message.add(ActionBuilder.FCT_SWAP_COMMAND);
-				message.add(light.getSwapDeviceAddress());
-				message.add(light.getOutputNb());
-				message.add(ActionBuilder.LIGHT_STATUS_ON);
+				
+				swapPacket.setDest(light.getSwapDeviceAddress());
+				swapPacket.setFunc(Constants.FCT_SWAP_CUSTOM_1);
+				swapPacket.setDest(light.getSwapDeviceAddress());
+				swapPacket.setRegId(Constants.REGISTER_LIGHT_OUTPUT);
+				swapPacket.setRegValue(new byte[]{
+					(byte) light.getOutputNb(),
+					(byte) ActionBuilder.LIGHT_STATUS_ON
+				});
+				
 				break;
 			case ActionBuilder.TYPE_LIGHT_SWITCH_TOGGLE:
 				light = DomotixDao.getLight(getApplicationContext(), action.getLightId());
-				message.add(light.getSwapDeviceAddress());
-				message.add(0);
-				message.add(0);
-				message.add(0);
-				message.add(ActionBuilder.FCT_SWAP_COMMAND);
-				message.add(light.getSwapDeviceAddress());
-				message.add(Constants.LIGHT_OUTPUT_OFFSET + light.getOutputNb());
-				message.add(ActionBuilder.LIGHT_STATUS_TOGGLE);
+				
+				swapPacket.setDest(light.getSwapDeviceAddress());
+				swapPacket.setFunc(Constants.FCT_SWAP_CUSTOM_1);
+				swapPacket.setDest(light.getSwapDeviceAddress());
+				swapPacket.setRegId(Constants.REGISTER_LIGHT_OUTPUT);
+				swapPacket.setRegValue(new byte[]{
+					(byte) light.getOutputNb(),
+					(byte) ActionBuilder.LIGHT_STATUS_TOGGLE
+				});
+				
+				break;
+			case ActionBuilder.TYPE_LIGHT_STATUS:
+				
+				swapPacket.setDest(Constants.ADDR_BROADCAST);
+				swapPacket.setFunc(Constants.FCT_SWAP_QUERY);
+				swapPacket.setRegId(Constants.REG_LIGHT_OUTPUT);
+				
 				break;
 			case ActionBuilder.TYPE_LIGHT_SWITCH_OFF_ALL:
 				{
@@ -121,29 +131,76 @@ public class ActionService extends IntentService {
 				}
 				break;
 			default:
+				toSend = false;
 				break;
 		}
 		
-		if(message.size() > 0) {
-			int i = 0;
-			byte[] tmp = new byte[message.size()];
-			for (int d : message) {
-				tmp[i++] = (byte) d;
-			}
-			sendMessage(Util.ByteArrayToHexString(tmp));
+		if(toSend) {
+			sendMessage(swapPacket);
 		}
 	}
 
-	private void sendMessage(String message) {
+	private void sendMessage(SwapPacket swapPacket) {
+		String message = Util.byteArrayToHexString(swapPacket.toByteArray());
 		try {
 			InetAddress serverAddr = InetAddress.getByName(this.domotixBusInputHost);
 			DatagramPacket packetMessage = new DatagramPacket(message.getBytes(), message.length(), serverAddr, this.domotixBusInputPort);
 
 			DatagramSocket socket = new DatagramSocket();
 			socket.send(packetMessage);
-			Log.i(TAG, "Message " + message + " sent to Domotix bus");
+			Log.i(TAG, "Message " + swapPacket + "(" + message + ") sent to Domotix bus");
 		} catch (Exception e) {
 			Log.e(TAG, "Failed to send message to Domotix bus", e);
+		}
+	}
+	
+	/**
+	 * Handle message received from DOMOTIX PAN network
+	 * 
+	 * @param intent
+	 */
+	private void handleInputIntent(Intent intent) {
+		ActionBuilder action = new ActionBuilder(intent);
+		switch(action.getType()) {
+			case ActionBuilder.TYPE_SWAP_PACKET:
+				int regAddress = action.getSwapPacket().getRegAddress();
+				int regId = action.getSwapPacket().getRegId();
+				byte[] regValue = action.getSwapPacket().getRegValue();
+				SwapDevice swapDevice = DomotixDao.getSwapDevice(getBaseContext(), regAddress);
+				if(swapDevice.getProduct().startsWith(Constants.LIGHT_CONTROLLER_PRODUCT_CODE) && regId == Constants.REGISTER_LIGHT_OUTPUT) {
+					int i = 0;
+					List<Light> lights = DomotixDao.getLights(getApplicationContext());
+					for (Light light : lights) {
+						int lightStatus = (byte) regValue[i++];
+						if(lightStatus < 0) {
+							lightStatus += 0xff;
+						}
+						light.setStatus(lightStatus);
+					}
+					sendBroadcast(new ActionBuilder()
+						.setAction(ActionBuilder.TYPE_FROM_SWAP)
+						.setType(ActionBuilder.TYPE_LIGHT_UPDATE)
+						.toIntent());
+				} else {
+					SwapRegister swapRegister = swapDevice.getSwapRegisterById(action.getSwapPacket().getRegId());
+					if(swapRegister != null) {
+						swapRegister.setValue(action.getSwapPacket().getRegValue());
+						if(swapRegister.getName().contains(Constants.SWAP_REGISTER_TEMPERATURE)) {
+							for(SwapRegisterEndpoint swapRegisterEndpoint : swapRegister.getSwapRegisterEndpoints()) {
+								if(swapRegisterEndpoint.getName().equals(Constants.SWAP_REGISTER_TEMPERATURE)) {
+									float temperature = swapRegisterEndpoint.getValueAsInt() / 100f;
+									sendBroadcast(new ActionBuilder()
+										.setAction(ActionBuilder.TYPE_FROM_SWAP)
+										.setType(ActionBuilder.TYPE_TEMPERATURE)
+										.setTemperature(temperature)
+										.toIntent()
+									);
+								}
+							}
+						}
+					}
+				}
+			break;
 		}
 	}
 

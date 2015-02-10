@@ -30,7 +30,7 @@ class ThingspeakSubscriber
             
             res = ""
             if swapPacket.value isnt undefined
-                channel = packetDevice.productCode + "/" + packetDevice.address + "/" + swapPacket.regId
+                channel = packetDevice.product.productCode + "/" + packetDevice.address + "/" + swapPacket.regId
                 temp = if swapPacket.value.length is undefined then [swapPacket.value] else swapPacket.value
                 
                 foundRegisters = (register for register in packetDevice.configRegisters when register.id == swapPacket.regId)

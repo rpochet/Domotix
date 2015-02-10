@@ -2,63 +2,111 @@
  * DomotixLightSwitch.ino
  *
  * Device measuring temperature from an I2C ??? sensor.
- * Pins: I2C port and PIN_PWRPRESS (Power pin)
  *
  * Product name: DomotixLightSwitch (Domotix light switch with temperature sensor)
  * Author: Pochet Romuald
  * Creation date: 12 Nov 2013
  */
 
-#include "regtable.h"
-#include "panstamp.h"
+#include "HardwareSerial.h"
+#include "EEPROM.h"
 #include "Wire.h"
-#include <mpr121.h>
+#include "MPR121.h"
+#include "regtable.h"
+#include "swap.h"
 #include "Adafruit_MCP9808.h"
 
 #define DEBUG
+#define USE_INTERRUPT
+/**
+ * Uncomment if you are reading Vcc from A0. All battery-boards do this
+ */
+#define VOLT_SUPPLY_A0   1
 
 /**
- * LED pin
+ * Macros
  */
-const int ledPin = 4;
+#ifdef USE_INTERRUPT
+#define enableINT1irq()          attachInterrupt(touchboardIRQNumber, mpr121Interrupt, FALLING)
+#define disableINT1irq()         detachInterrupt(touchboardIRQNumber)
+#endif
+
 
 /**
  * SENSOR
  */
-//#define SENSOR  SENSOR_TMP102
-//#define SENSOR  SENSOR_MCP9808
-
-const int sensorAddress = 0x48;
-static byte dtSensorDelay[2];
-word sensorDelay; // s
+byte dtSensorDelay[2];
+unsigned long sensorDelay = 10; // s
 unsigned long nextUpdate;
-#if SENSOR == SENSOR_MCP9808
-// Create the MCP9808 temperature sensor object with default address 0x18
-Adafruit_MCP9808 tempsensor = Adafruit_MCP9808();
-#endif
+const int sensorAddress = 0x48;
+Adafruit_MCP9808 tempsensor = Adafruit_MCP9808(); // Create the MCP9808 temperature sensor object with default address 0x18
 
 /**
  * TOUCH BOARD
  */
-#define TOUCH TOUCH_MPR121  
-
 const int touchboardAddress = 0x5A;
-int touchboardIRQPin = 3; // PD3, if change update pcEnableInterrupt, pcDisableInterrupt and PCINTMASK0
-int touchboardIRQNumber = 1;
-volatile boolean touchboardIRQ = false;
-
+int touchboardIRQPin = 3;                 // PD3, if change update pcEnableInterrupt, pcDisableInterrupt and PCINTMASK0
+int touchboardIRQNumber = 1;              // INT1
+#ifdef USE_INTERRUPT
+volatile boolean touchboardIRQ = false;    // Set when touch event is available
+#else
+volatile boolean touchboardIRQ = true;    // Set when touch event is available
+#endif
 const int touchboardKeyNb = 12;
+const mpr121_proxmode_t mpr121ProxMode = PROX0_11;
+MPR121_settings_t mpr121Settings;
+
+#define SWAPFUNCT_LIGHT     SWAPFUNCT_CMD1
+#define SWAPREG_OUTPUTS     14
+#define SWAPFUNCT_LED       SWAPFUNCT_CMD3
+#define SWAPREG_LEDS        0
+const byte lightOutputOff = 0;
+const byte lightOutputOn = 254;
+const byte lightOutputToggle = -1;
 
 /**
- * TOUCH: 0, addr, regId
- * LED: 1, 
+ * TOUCH: 0, addr, light
+ * LED: 1, dim, init
  */
 const int touchConfigLength = 3;
 static byte dtTouchConfig[touchboardKeyNb * touchConfigLength];
 
-static byte toggleCommandValue[] = {0xff};
-boolean touchStates[touchboardKeyNb]; // To keep track of the previous touch states
-boolean touchStatesChange[touchboardKeyNb]; // To keep track of touch states change
+
+/**
+ * swapReceived
+ *
+ * Function automatically called by the panStamp API whenever a SWAP 
+ * packet is received
+ *
+ * 'swap'    SWAP packet received
+ *
+ *   swap->function: Function
+ *   swap->regAddr: Register address
+ *   swap->regId: Register ID
+ *   swap->srcAddr: Source address
+ *   swap->value.length: Length of data field
+ *   swap->value.data: Array of data bytes
+ */
+/*void swapReceived(SWPACKET *swap)
+{
+  short i;
+  
+   if ((swap->function == SWAPFUNCT_STA) & (swap->regId == SWAPREG_OUTPUTS))
+   {
+       for(i = 0; i < touchboardKeyNb; i++) 
+       {
+           if(dtTouchConfig[i * touchConfigLength + 1] == swap->regAddr)
+           {
+               if(swap->value.data[dtTouchConfig[i * touchConfigLength + 2]] > 0)
+               {
+                   // Switch LED On
+               }
+           }
+       }
+   }
+   else if (swap->function == SWAPFUNCT_CMD3)
+     ;
+}*/
 
 /**
  * setup
@@ -67,137 +115,142 @@ boolean touchStatesChange[touchboardKeyNb]; // To keep track of touch states cha
  */
 void setup()
 {
-  int i;
+    int i = 0;
+    
 #ifdef DEBUG
-  Serial.begin(115200);
-  delay(2000); // to allow starting serial console
+    Serial.begin(115200);
+    delay(2000); // to allow starting serial console
 #endif
 
-  pinMode(ledPin, OUTPUT);
-  digitalWrite(ledPin, HIGH);
-  
-  //eepromToDefaults();
-  
-  // Init panStamp
-  panstamp.init();
-  
-  panstamp.setLowTxPower();
-  
-  getRegister(REGI_PRODUCTCODE)->getData();
-  
-  // panstamp init only read register value from EEPROM, 
-  // so initialize other dependant value here
-  initRegister();
+    //eepromToDefaults();
     
-  // Enter SYNC state
-  panstamp.enterSystemState(SYSTATE_SYNC);
-  
-  // During 3 seconds, listen the network for possible commands whilst the LED blinks
-  for(i = 0 ; i < 6 ; i++)
-  {
-    digitalWrite(ledPin, LOW);
-    delay(400);
-    digitalWrite(ledPin, HIGH);
-    delay(100);
-  }
-  
-#ifdef SENSOR
-  initSensor();
-#endif
-  
-#if TOUCH == TOUCH_MPR121
-  initMpr121();
-#endif
+    // Init panStamp
+    //panstamp.init(CFREQ_868);  // Not necessary unless you want a different frequency
+
+    // Init swap
+    swap.init();
     
-  nextUpdate = millis(); 
-  
-  // Transmit configuration
-  getRegister(REGI_TXINTERVAL)->getData();
-  // Transmit power voltage
-  getRegister(REGI_VOLTSUPPLY)->getData(); 
-  getRegister(REGI_SENSOR_DELAY)->getData();
-  getRegister(REGI_TOUCH_CONFIG)->getData();
-  
-  // Switch to Rx OFF state
-  // TODO set to OFF as it is a sleeping device
-  panstamp.enterSystemState(SYSTATE_RXON);
-  
-  digitalWrite(ledPin, LOW);
-  
+    nextUpdate = millis();
+    
+    swap.getRegister(REGI_PRODUCTCODE)->getData();
+    if(swap.devAddress == CC1101_DEFVAL_ADDR) {
+        swap.getRegister(REGI_HWVERSION)->getData();
+        swap.getRegister(REGI_FWVERSION)->getData();
+    }
+    
 #ifdef DEBUG
-  Serial.println(freeRam());
+    Serial.println(sensorDelay);
+    Serial.println(freeRam());
+#endif
+    
+    // panstamp init only read register value from EEPROM, 
+    // so initialize other dependant value here
+    initRegister();
+    
+    initSensor();
+
+    initMpr121();
+      
+    // Enter SYNC state
+    swap.enterSystemState(SYSTATE_SYNC);
+  
+    // During 3 seconds, listen the network for possible commands whilst the LED blinks
+    for(i = 0 ; i < 6 ; i++)
+    {
+        //digitalWrite(ledPin, LOW);
+        delay(400);
+        //digitalWrite(ledPin, HIGH);
+        delay(100);
+    }
+  
+    // Transmit configuration
+    swap.getRegister(REGI_TXINTERVAL)->getData();
+    swap.getRegister(REGI_VOLTSUPPLY)->getData(); 
+    swap.getRegister(REGI_SENSOR_DELAY)->getData();
+    swap.getRegister(REGI_TOUCH_CONFIG)->getData();
+    
+    // Switch to Rx OFF state
+    // TODO set to OFF as it is a sleeping device
+    swap.enterSystemState(SYSTATE_RXON);
+    
+    //swap.attachInterrupt(OTHER, swapReceived);
+    
+#ifdef DEBUG
+    Serial.println(freeRam());
 #endif
 }
 
+/**
+ *
+ */
 void eepromToDefaults()
 {
-  int i;
-  eepromToFactoryDefaults();
-  EEPROM.write(EEPROM_CONFIG_SENSOR_DELAY, 0);
-  EEPROM.write(EEPROM_CONFIG_SENSOR_DELAY + 1, 0);
-  for(i = 0 ; i < touchboardKeyNb; i++)
-  {
-    EEPROM.write(EEPROM_TOUCH_CONFIG + i * touchConfigLength, 0);
-    EEPROM.write(EEPROM_TOUCH_CONFIG + i * touchConfigLength + 1, 2);
-    EEPROM.write(EEPROM_TOUCH_CONFIG + i * touchConfigLength + 2, 14 + i);
-  }
-  //panstamp.cc1101.setDevAddress(255, true);
+    STORAGE nvMem;
+  
+    int i;
+    eepromToFactoryDefaults();
+
+    uint8_t address[] = {0, 4};
+    nvMem.write(address, DEFAULT_NVOLAT_SECTION, NVOLAT_DEVICE_ADDR, sizeof(address));
+    
+    uint8_t sensorDelay[] = {0, 0};
+    nvMem.write(sensorDelay, DEFAULT_NVOLAT_SECTION, NVOLAT_CONFIG_SENSOR_DELAY, sizeof(sensorDelay));
+    
+    uint8_t touchConfig[] = {0, 2, 0};
+    for(i = 0 ; i < touchboardKeyNb; i++)
+    {
+        touchConfig[2] = i;
+        nvMem.write(touchConfig, DEFAULT_NVOLAT_SECTION, NVOLAT_TOUCH_CONFIG + i * touchConfigLength, sizeof(touchConfig));
+    }
 }
 
-int freeRam() {
-  extern int __heap_start, *__brkval; 
-  int v; 
-  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+/**
+ *
+ */
+int freeRam() 
+{
+    extern int __heap_start, *__brkval; 
+    int v; 
+    return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
 }
 
+/**
+ *
+ */
 void initRegister() 
 {
-  sensorDelay = word(dtSensorDelay[1], dtSensorDelay[0]);
-  if(sensorDelay == 0 || sensorDelay == 4294967295) 
-  {
-    sensorDelay = 3600; // 0x0E10
-    EEPROM.write(EEPROM_CONFIG_SENSOR_DELAY + 1, 0x0E);
-    EEPROM.write(EEPROM_CONFIG_SENSOR_DELAY, 0x10);
-  }
+    sensorDelay = word(dtSensorDelay[1], dtSensorDelay[0]);
+    if(sensorDelay == 0 || sensorDelay == 4294967295) 
+    {
+        sensorDelay = 3600; // 0x0E10
+        EEPROM.write(NVOLAT_CONFIG_SENSOR_DELAY + 1, 0x0E);
+        EEPROM.write(NVOLAT_CONFIG_SENSOR_DELAY, 0x10);
+    }
   
 #ifdef DEBUG
-  Serial.print("sensorDelay: ");
-  Serial.println(sensorDelay);
+    Serial.print("sensorDelay: ");
+    Serial.println(sensorDelay);
 #endif
 }
 
-#ifdef SENSOR
+/**
+ *
+ */
 void initSensor() 
 {
 #ifdef DEBUG
-  Serial.print("Init sensor... ");
+    Serial.print("Init sensor... ");
 #endif
 
-#if SENSOR == SENSOR_MCP9808
-  if (!tempsensor.begin()) {
-    Serial.println("Couldn't find MCP9808!");
-    while (1);
-  }
-#elif SENSOR == SENSOR_TMP102
-  Wire.begin();
-#endif
+    if (!tempsensor.begin()) {
+        Serial.println("Couldn't find MCP9808!");
+        while (1);
+    }
     
 #ifdef DEBUG
-  Serial.println(" OK");
+    Serial.print(tempsensor.readTempC());
+    Serial.println(" OK");
 #endif
-}
-#endif
-
-/**
- * MPR121 Interrupt 
- * 
- */
-void mpr121Interrupt() 
-{
-  // Wake Up and SYSTATE_RXON
-  //panstamp.wakeUp();
-    
-  touchboardIRQ = true;
 }
 
 /**
@@ -205,19 +258,81 @@ void mpr121Interrupt()
  * - Setup IRQ pin, FALLING
  * - Setup MPR121
  */
-#if TOUCH == TOUCH_MPR121
 void initMpr121() 
 {
+    short electrode = 0;
+    short numDigPins = 0;
+    
 #ifdef DEBUG
-  Serial.print("Init MPR121... ");
+    Serial.println("Init MPR121... ");
 #endif
     
-  Wire.begin();
-  mpr121Setup();
-  
-  pinMode(touchboardIRQPin, INPUT);
-  //digitalWrite(touchboardIRQPin, HIGH); //enable pullup resistor but already done on touchboard
-  attachInterrupt(touchboardIRQNumber, mpr121Interrupt, LOW); // MPR121 IRQ goes low
+    for (uint8_t i = 0; i < touchboardKeyNb; i++) 
+    {
+        if(dtTouchConfig[i * touchConfigLength] == 0) 
+        {
+#ifdef DEBUG
+    Serial.print(i);
+    Serial.println(" is electrode");
+#endif
+            // Electrode
+            electrode++;
+        }
+        else
+        {
+#ifdef DEBUG
+    Serial.print(i);
+    Serial.println(" is LED");
+#endif
+            // LED
+            numDigPins++;
+            MPR121.pinMode(i, OUTPUT_HS);
+        }
+    }
+
+    MPR121.setNumElectrodes(electrode);
+    //MPR121.setNumDigPins(numDigPins);
+    MPR121.setProxMode(mpr121ProxMode);
+    
+    if (!MPR121.begin(touchboardAddress)) {
+        Serial.println("MPR121 not found, check wiring?");
+        while (1);
+    }
+    
+#ifdef DEBUG
+    Serial.print(electrode);
+    Serial.print(" ");
+    Serial.print(numDigPins);
+    Serial.print(" ");
+    Serial.print(MPR121.getRegister(ECR), HEX);
+#endif
+    
+#ifdef USE_INTERRUPT
+#ifdef DEBUG
+    Serial.println("Use interrupt");
+#endif
+        
+    pinMode(touchboardIRQPin, INPUT);
+    //digitalWrite(touchboardIRQPin, HIGH); //enable pullup resistor but already done on touchboard
+    enableINT1irq();
+#endif
+
+#ifdef DEBUG
+    Serial.println(" OK");
+#endif
+}
+
+/**
+ * MPR121 Interrupt 
+ * 
+ */
+#ifdef USE_INTERRUPT
+void mpr121Interrupt(void) 
+{
+    // Wake Up and SYSTATE_RXON
+    //panstamp.wakeUp();
+    
+    touchboardIRQ = true;
 }
 #endif
 
@@ -228,160 +343,76 @@ void initMpr121()
  */
 void loop() 
 {
-// Sensor SENSOR data
-  if (millis() >= nextUpdate) {
-    nextUpdate = millis() + sensorDelay * 1000L;
-#ifdef SENSOR
-    getRegister(REGI_SENSOR)->getData();
-#endif
-  }
-
-// Handle touch board event
-  if (touchboardIRQ)
-  {
-#ifdef DEBUG
-    Serial.println("Mpr121 touched");
-#endif
-    //read the touch state from the MPR121
-    Wire.requestFrom(touchboardAddress, 2); 
-    byte LSB = Wire.read();
-    byte MSB = Wire.read();
-    word touched = word(MSB, LSB); // 16bits that make up the touch states
+    static byte commandValue[2];
+    
+    // Sensor SENSOR data
+    if (millis() >= nextUpdate)
+    {
+        nextUpdate = millis() + sensorDelay * 1000L;
+        swap.getRegister(REGI_SENSOR)->getData();
+    }
   
-    for (int i = 0; i < touchboardKeyNb; i++)
+    if (touchboardIRQ)
     {
-      // Check what electrodes were touched
-      if(touched & (1 << i))
-      {
-        // Electrode is touched
-        if(touchStates[i] == 0)
+        // Get the currently touched pads
+        MPR121.updateTouchData();
+        for (uint8_t i = 0; i < touchboardKeyNb; i++) 
         {
-          touchStatesChange[i] = 1;
-  #ifdef DEBUG
-          Serial.print("pin ");Serial.print(i);Serial.println(" was just touched");
-  #endif
+            if(MPR121.isNewRelease(i)) 
+            {
+                // Transmit touch data
+                SWPACKET packet = SWPACKET();
+                packet.destAddr = dtTouchConfig[i * touchConfigLength + 1];
+                packet.srcAddr = swap.devAddress;
+                packet.hop = 0;
+                packet.security = swap.security & 0x0F;
+                packet.nonce = ++swap.nonce;
+                packet.function = SWAPFUNCT_LIGHT;
+                packet.regAddr = dtTouchConfig[i * touchConfigLength + 1];
+                packet.regId = SWAPREG_OUTPUTS;
+                packet.value.length = 2;
+                commandValue[0] = dtTouchConfig[i * touchConfigLength + 2];
+                commandValue[1] = -1;
+                packet.value.data = commandValue;
+                packet.value.type = SWDTYPE_OTHER;
+                packet.send();
+                
+            #ifdef DEBUG
+                Serial.print(i); 
+                Serial.println(" sent");
+            #endif
+            }
         }
-        touchStates[i] = 1;      
-      }
-      else
-      {
-        // Electrode is not touched
-        if(touchStates[i] == 1)
-        {
-          touchStatesChange[i] = 1;
-  #ifdef DEBUG
-          Serial.print("pin ");Serial.print(i);Serial.println(" is no longer being touched");
-  #endif
-        }
-        touchStates[i] = 0;
-      }
+        
+        //Ready to receive new PC interrupts
+    #ifdef USE_INTERRUPT
+        touchboardIRQ = false;
+    
+        // Sleep for panstamp.txInterval seconds (register 10)
+        //swap.goToSleep();
+    #else
+        delay(100);
+    #endif
     }
-    //Ready to receive new PC interrupts
-    touchboardIRQ = false;
-    for(int i = 0; i < touchboardKeyNb; i++) 
-    {
-      if(touchStatesChange[i] == 1) 
-      {
-        // Transmit touch data
-        //getRegister(REGI_TOUCH_START_IDX + i)->getData();
-        SWPACKET packet = SWPACKET();
-        packet.destAddr = dtTouchConfig[i * touchConfigLength + 1];
-        packet.srcAddr = panstamp.swapAddress;
-        packet.hop = 0;
-        packet.security = panstamp.security & 0x0F;
-        packet.nonce = ++panstamp.nonce;
-        packet.function = SWAPFUNCT_CMD;
-        packet.regAddr = dtTouchConfig[i * touchConfigLength + 1];
-        packet.regId = dtTouchConfig[i * touchConfigLength + 2];
-        packet.value.length = 1;
-        packet.value.data = toggleCommandValue;
-        packet.value.type = SWDTYPE_OTHER;
-        packet.send();
-      }
+}
+
+/*void debug()
+{
+    // debugging info, what
+    Serial.print("\t\t\t\t\t\t\t\t\t\t\t\t\t Ox"); 
+    Serial.println(cap.touched(), HEX);
+    Serial.print("Filt: ");
+    for (uint8_t i=0; i<12; i++) {
+        Serial.print(cap.filteredData(i)); Serial.print("\t");
     }
-  }
-
-  // Sleep for panstamp.txInterval seconds (register 10)
-  //panstamp.goToSleep();
+    Serial.println();
+    Serial.print("Base: ");
+    for (uint8_t i=0; i<12; i++) {
+        Serial.print(cap.baselineData(i)); Serial.print("\t");
+    }
+    Serial.println();
+    
+    // put a delay so it isn't overwhelming
+    delay(100);
 }
-
-void mpr121Setup(void)
-{
-  mpr121SetRegister(touchboardAddress, ELE_CFG, 0x00); 
-
-  // Section A - Controls filtering when data is > baseline.
-  mpr121SetRegister(touchboardAddress, MHD_R, 0x01);
-  mpr121SetRegister(touchboardAddress, NHD_R, 0x01);
-  mpr121SetRegister(touchboardAddress, NCL_R, 0x00);
-  mpr121SetRegister(touchboardAddress, FDL_R, 0x00);
-
-  // Section B - Controls filtering when data is < baseline.
-  mpr121SetRegister(touchboardAddress, MHD_F, 0x01);
-  mpr121SetRegister(touchboardAddress, NHD_F, 0x01);
-  mpr121SetRegister(touchboardAddress, NCL_F, 0xFF);
-  mpr121SetRegister(touchboardAddress, FDL_F, 0x02);
-
-  // Section C - Sets touch and release thresholds for each electrode
-  mpr121SetRegister(touchboardAddress, ELE0_T, TOU_THRESH);
-  mpr121SetRegister(touchboardAddress, ELE0_R, REL_THRESH);
-
-  mpr121SetRegister(touchboardAddress, ELE1_T, TOU_THRESH);
-  mpr121SetRegister(touchboardAddress, ELE1_R, REL_THRESH);
-
-  mpr121SetRegister(touchboardAddress, ELE2_T, TOU_THRESH);
-  mpr121SetRegister(touchboardAddress, ELE2_R, REL_THRESH);
-
-  mpr121SetRegister(touchboardAddress, ELE3_T, TOU_THRESH);
-  mpr121SetRegister(touchboardAddress, ELE3_R, REL_THRESH);
-
-  mpr121SetRegister(touchboardAddress, ELE4_T, TOU_THRESH);
-  mpr121SetRegister(touchboardAddress, ELE4_R, REL_THRESH);
-
-  mpr121SetRegister(touchboardAddress, ELE5_T, TOU_THRESH);
-  mpr121SetRegister(touchboardAddress, ELE5_R, REL_THRESH);
-
-  mpr121SetRegister(touchboardAddress, ELE6_T, TOU_THRESH);
-  mpr121SetRegister(touchboardAddress, ELE6_R, REL_THRESH);
-
-  mpr121SetRegister(touchboardAddress, ELE7_T, TOU_THRESH);
-  mpr121SetRegister(touchboardAddress, ELE7_R, REL_THRESH);
-
-  mpr121SetRegister(touchboardAddress, ELE8_T, TOU_THRESH);
-  mpr121SetRegister(touchboardAddress, ELE8_R, REL_THRESH);
-
-  mpr121SetRegister(touchboardAddress, ELE9_T, TOU_THRESH);
-  mpr121SetRegister(touchboardAddress, ELE9_R, REL_THRESH);
-
-  mpr121SetRegister(touchboardAddress, ELE10_T, TOU_THRESH);
-  mpr121SetRegister(touchboardAddress, ELE10_R, REL_THRESH);
-
-  mpr121SetRegister(touchboardAddress, ELE11_T, TOU_THRESH);
-  mpr121SetRegister(touchboardAddress, ELE11_R, REL_THRESH);
-
-  // Section D
-  // Set the Filter Configuration
-  // Set ESI2
-  mpr121SetRegister(touchboardAddress, FIL_CFG, 0x04);
-
-  // Section E
-  // Electrode Configuration
-  // Set ELE_CFG to 0x00 to return to standby mode
-  mpr121SetRegister(touchboardAddress, ELE_CFG, 0x0C);  // Enables all 12 Electrodes
-
-  // Section F
-  // Enable Auto Config and auto Reconfig
-  /*mpr121SetRegister(touchboardAddress, ATO_CFG0, 0x0B);
-   mpr121SetRegister(touchboardAddress, ATO_CFGU, 0xC9);  // USL = (Vdd-0.7)/vdd*256 = 0xC9 @3.3V   mpr121SetRegister(touchboardAddress, ATO_CFGL, 0x82);  // LSL = 0.65*USL = 0x82 @3.3V
-   mpr121SetRegister(touchboardAddress, ATO_CFGT, 0xB5);*/  // Target = 0.9*USL = 0xB5 @3.3V
-
-  mpr121SetRegister(touchboardAddress, ELE_CFG, 0x0C);
-}
-
-void mpr121SetRegister(int address, unsigned char r, unsigned char v)
-{
-  Wire.beginTransmission(address);
-  Wire.write(r);
-  Wire.write(v);
-  Wire.endTransmission();
-}
-
+*/

@@ -8,7 +8,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.DataSetObserver;
 import android.gesture.Gesture;
 import android.gesture.GestureLibraries;
 import android.gesture.GestureLibrary;
@@ -26,15 +25,14 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
-import android.widget.ListAdapter;
 import android.widget.ListView;
-import android.widget.SimpleAdapter.ViewBinder;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
 import eu.pochet.domotix.dao.DomotixDao;
 import eu.pochet.domotix.dao.Level;
 import eu.pochet.domotix.dao.Light;
+import eu.pochet.domotix.dao.Room;
 import eu.pochet.domotix.dao.SwapDevice;
 import eu.pochet.domotix.service.ActionBuilder;
 import eu.pochet.domotix.service.LightStatusUpdateService;
@@ -73,12 +71,8 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 
 	public void onActivityCreated(Bundle bundle) {
 		super.onActivityCreated(bundle);
-		/*getActivity().registerReceiver(myBroadcastReceiver,
-				new IntentFilter(LightStatusUpdateService.ACTION));*/
-		/*getActivity().registerReceiver(myBroadcastReceiver,
-				new IntentFilter(UDPListenerService.ACTION));*/
 		getActivity().registerReceiver(myBroadcastReceiver,
-				new IntentFilter(ActionBuilder.ACTION_IN));
+				new IntentFilter(ActionBuilder.TYPE_FROM_SWAP));
 	}
 
 	protected abstract boolean onBroadcastReceive(Context context, Intent intent);
@@ -165,12 +159,14 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 					SwapDeviceLevelView cardlevelview = (SwapDeviceLevelView) getCurrentLevelView();
 					float f = motionevent.getX() / cardlevelview.getRatioX();
 					float f1 = motionevent.getY() / cardlevelview.getRatioY();
-					for (SwapDevice swapDevice : level.getSwapDevices()) {
-						float f2 = cardlevelview.getSwapDeviceX(swapDevice);
-						float f3 = cardlevelview.getSwapDeviceY(swapDevice);
-						rectf.set(f2 - Constants.CARD_TOUCH_OFFSET, f3 - Constants.CARD_TOUCH_OFFSET, f2 + Constants.CARD_TOUCH_OFFSET, f3 + Constants.CARD_TOUCH_OFFSET);
-						if (rectf.contains(f, f1)) {
-							return swapDevice;
+					for (Room room : level.getRooms()) {
+						for (SwapDevice swapDevice : room.getSwapDevices()) {
+							float f2 = swapDevice.getLocation().getAbsoluteX();
+							float f3 = swapDevice.getLocation().getAbsoluteY();
+							rectf.set(f2 - Constants.CARD_TOUCH_OFFSET, f3 - Constants.CARD_TOUCH_OFFSET, f2 + Constants.CARD_TOUCH_OFFSET, f3 + Constants.CARD_TOUCH_OFFSET);
+							if (rectf.contains(f, f1)) {
+								return swapDevice;
+							}
 						}
 					}
 					return null;
@@ -208,11 +204,11 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 
 				private Light getLightForEvent(MotionEvent motionevent) {
 					Level level = getCurrentLevel();
-					List<Light> lights = getLightForEvent(motionevent, level.getLights(), Constants.LIGHT_TOUCH_OFFSET);
+					List<Light> lights = getLightForEvent(motionevent, level, Constants.LIGHT_TOUCH_OFFSET);
 					if (lights.size() == 1) {
 						return lights.get(0);
 					}
-					lights = getLightForEvent(motionevent, level.getLights(), Constants.LIGHT_TOUCH_OFFSET2);
+					lights = getLightForEvent(motionevent, level, Constants.LIGHT_TOUCH_OFFSET2);
 					if (lights.size() == 1) {
 						return lights.get(0);
 					} else {
@@ -224,22 +220,24 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 				 * Center is at getLightX(light) * getRatioX()
 				 * 
 				 * @param motionEvent
-				 * @param lights
+				 * @param level
 				 * @param i
 				 * @return
 				 */
-				private List<Light> getLightForEvent(MotionEvent motionEvent, List<Light> lights, int i) {
+				private List<Light> getLightForEvent(MotionEvent motionEvent, Level level, int i) {
 					RectF rectf = new RectF();
 					LightLevelView lightlevelview = (LightLevelView) getCurrentLevelView();
 					float absoluteX = motionEvent.getX() / lightlevelview.getRatioX();
 					float absoluteY = motionEvent.getY() / lightlevelview.getRatioY();
 					List<Light> res = new ArrayList<Light>();
-					for (Light light : lights) {
-						float f2 = lightlevelview.getLightX(light);
-						float f3 = lightlevelview.getLightY(light);
-						rectf.set(f2 - i, f3 - i, f2 + i, f3 + i);
-						if (rectf.contains(absoluteX, absoluteY)) {
-							res.add(light);
+					for (Room room : level.getRooms()) {
+						for (Light light : room.getLights()) {
+							float f2 = light.getLocation().getAbsoluteX();
+							float f3 = light.getLocation().getAbsoluteY();
+							rectf.set(f2 - i, f3 - i, f2 + i, f3 + i);
+							if (rectf.contains(absoluteX, absoluteY)) {
+								res.add(light);
+							}
 						}
 					}
 					return res;
@@ -258,6 +256,13 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 					return true;
 				}
 
+				/* TODO use it to detect view swipe ???
+				@Override
+				public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+					// TODO Auto-generated method stub
+					return super.onFling(e1, e2, velocityX, velocityY);
+				}*/
+				
 				public void onLongPress(MotionEvent motionevent) {
 					Light light = getLightForEvent(motionevent);
 					if (light != null) {
@@ -273,7 +278,7 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 					if (light != null) {
 						if(!DomotixActivity.DEBUG) {
 							new ActionBuilder()
-								.setAction(ActionBuilder.ACTION_OUT)
+								.setAction(ActionBuilder.TYPE_TO_SWAP)
 								.setType(ActionBuilder.TYPE_LIGHT_SWITCH_TOGGLE)
 								.setLightId(light.getId())
 								.sendMessage(getActivity());
@@ -302,10 +307,7 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 		@Override
 		protected boolean onBroadcastReceive(Context context, Intent intent) {
 			String action = intent.getAction();
-			if (ActionBuilder.ACTION_IN.equals(action)) {
-				//updateLightStatus(intent.getIntExtra(Constants.MESSAGE_LIGHT_ID, -1), intent.getIntExtra(Constants.MESSAGE_LIGHT_STATUS, -1));
-				// Refresh view from LevelDao...
-				//getView().postInvalidate();
+			if (ActionBuilder.TYPE_FROM_SWAP.equals(action)) {
 				getCurrentLevelView().postInvalidate();
 				return Boolean.TRUE;
 			}
@@ -325,7 +327,7 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 		@Override
 		protected boolean onBroadcastReceive(Context context, Intent intent) {
 			String action = intent.getAction();
-			if (ActionBuilder.ACTION_IN.equals(action)) {
+			if (ActionBuilder.TYPE_FROM_SWAP.equals(action)) {
 				((ListView) getView()).invalidateViews();
 				return Boolean.TRUE;
 			}
@@ -349,7 +351,7 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 				        // configure view holder
 				        ViewHolder viewHolder = new ViewHolder();
 				        viewHolder.text = (TextView) rowView.findViewById(R.id.label);
-				        viewHolder.image = (ImageView) rowView.findViewById(R.id.icon);
+				        //viewHolder.image = (ImageView) rowView.findViewById(R.id.icon);
 				        rowView.setTag(viewHolder);
 				    }
 				    
@@ -359,9 +361,19 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 				    ViewHolder holder = (ViewHolder) rowView.getTag();
 				    holder.text.setText(light.getName());
 				    if (light.getStatus() > 0) {
-				        holder.image.setImageResource(R.drawable.lightbulb_on);
+				        //holder.image.setImageResource(R.drawable.lightbulb_on);
+				    	holder.text.setCompoundDrawablesWithIntrinsicBounds(
+				    			R.drawable.light_on, 
+				    			0, 
+				    			0, 
+				    			0);
 				    } else {
-				        holder.image.setImageResource(R.drawable.lightbulb_off);
+				        //holder.image.setImageResource(R.drawable.lightbulb_off);
+				    	holder.text.setCompoundDrawablesWithIntrinsicBounds(
+				    			R.drawable.light_off, 
+				    			0, 
+				    			0, 
+				    			0);
 				    }
 
 				    return rowView;
@@ -386,7 +398,7 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 					Light light = (Light) ((ListView) parent).getAdapter().getItem(position);
 					if(!DomotixActivity.DEBUG) {
 						new ActionBuilder()
-							.setAction(ActionBuilder.ACTION_OUT)
+							.setAction(ActionBuilder.TYPE_TO_SWAP)
 							.setType(ActionBuilder.TYPE_LIGHT_SWITCH_TOGGLE)
 							.setLightId(light.getId())
 							.sendMessage(getActivity());
@@ -425,7 +437,7 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 		
 		static class ViewHolder {
 			TextView text;
-			ImageView image;
+			//ImageView image;
 		}
 		
 	}

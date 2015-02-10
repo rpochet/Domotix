@@ -1,35 +1,55 @@
 package eu.pochet.domotix.service;
 
+import java.util.ArrayList;
+
 import android.content.Context;
 import android.content.Intent;
 import eu.pochet.domotix.dao.SwapPacket;
 
+/**
+ * Helper class to convert Intent to/from Dommotix message.
+ * 
+ * @author romuald
+ *
+ */
 public class ActionBuilder {
 
-	public static final String ACTION_IN = "ACTION_IN";
-	public static final String ACTION_OUT = "ACTION_OUT";
+	/**
+	 * Action type
+	 */
+	private static final String ACTION_TYPE = "type";
 	
-	public static final int TYPE_LIGHT_SWITCH_ON = 0;
-	public static final int TYPE_LIGHT_SWITCH_OFF = 1;
-	public static final int TYPE_LIGHT_SWITCH_TOGGLE = 2;
-	public static final int TYPE_LIGHT_SWITCH_ON_ALL = 3;
-	public static final int TYPE_LIGHT_SWITCH_OFF_ALL = 4;
-	public static final int TYPE_LIGHT_SWITCH = 5;
-	public static final int TYPE_SWAP_PACKET = 6;
-
+	/**
+	 * Action type from SWAP network
+	 */
+	public static final String TYPE_FROM_SWAP = "TYPE_FROM_SWAP";
+	
+	/**
+	 * Action type to SWAP network
+	 */
+	public static final String TYPE_TO_SWAP = "TYPE_TO_SWAP";
+	
+	public static final int TYPE_SWAP_PACKET = 0;
+	public static final int TYPE_SWAP_DEVICE = 1;
+	public static final int TYPE_LIGHT_SWITCH_ON = 2;
+	public static final int TYPE_LIGHT_SWITCH_OFF = 3;
+	public static final int TYPE_LIGHT_SWITCH_TOGGLE = 4;
+	public static final int TYPE_LIGHT_SWITCH_ON_ALL = 5;
+	public static final int TYPE_LIGHT_SWITCH_OFF_ALL = 6;
+	public static final int TYPE_LIGHT_UPDATE = 7;
+	public static final int TYPE_TEMPERATURE = 8;
+	public static final int TYPE_LIGHT_STATUS = 9;
+	
 	public static final int LIGHT_STATUS_OFF = 0;
 	public static final int LIGHT_STATUS_ON = 254;
 	public static final int LIGHT_STATUS_TOGGLE = -1;
-	
-	public static final int FCT_SWAP_STATUS = 0;
-	public static final int FCT_SWAP_QUERY = 1;
-	public static final int FCT_SWAP_COMMAND = 2;
 
-	private static final String ACTION_TYPE = "type";
 	private static final String ACTION_LEVEL_ID = "levelId";
 	private static final String ACTION_LIGHT_ID = "lightId";
 	private static final String ACTION_LIGHT_STATUS = "lightStatus";
+	private static final String ACTION_LIGHTS_STATUS = "lightsStatus";
 	private static final String ACTION_SWAP_PACKET = "swapPacket";
+	private static final String ACTION_TEMPERATURE = "temperature";
 	
 	private String action;
 	
@@ -41,7 +61,11 @@ public class ActionBuilder {
 	
 	private int lightId;
 	
-	private int lightStatus;
+	private float lightStatus;
+	
+	private ArrayList<Integer> lightsStatus;
+	
+	private float temperature;
 
 	public ActionBuilder() {
     	
@@ -76,6 +100,16 @@ public class ActionBuilder {
 		this.lightStatus = lightStatus;
 		return this;
 	}
+
+	public ActionBuilder setLightsStatus(ArrayList<Integer> lightsStatus) {
+		this.lightsStatus = lightsStatus;
+		return this;
+	}
+	
+	public ActionBuilder setTemperature(float temperature) {
+		this.temperature = temperature;
+		return this;
+	}
 	
 	public Intent toIntent() {
 		Intent intent = new Intent(this.action);
@@ -86,6 +120,9 @@ public class ActionBuilder {
 		intent.putExtra(ACTION_LEVEL_ID, this.levelId);
 		intent.putExtra(ACTION_LIGHT_ID, this.lightId);
 		intent.putExtra(ACTION_LIGHT_STATUS, this.lightStatus);
+		intent.putIntegerArrayListExtra(ACTION_LIGHTS_STATUS, this.lightsStatus);
+		
+		intent.putExtra(ACTION_TEMPERATURE, this.temperature);
 
 		return intent;
 	}
@@ -100,7 +137,10 @@ public class ActionBuilder {
     	intent.putExtra(ACTION_LEVEL_ID, this.levelId);
         intent.putExtra(ACTION_LIGHT_ID, this.lightId);
         intent.putExtra(ACTION_LIGHT_STATUS, this.lightStatus);
+        intent.putExtra(ACTION_LIGHTS_STATUS, this.lightsStatus);
 
+		intent.putExtra(ACTION_TEMPERATURE, this.temperature);
+		
 		context.startService(intent);
     }
     
@@ -112,7 +152,9 @@ public class ActionBuilder {
     	
     	this.levelId = intent.getIntExtra(ACTION_LEVEL_ID, -1);
     	this.lightId = intent.getIntExtra(ACTION_LIGHT_ID, -1);
-    	this.lightStatus = intent.getIntExtra(ACTION_LIGHT_STATUS, -1);
+    	this.lightStatus = intent.getFloatExtra(ACTION_LIGHT_STATUS, -1);
+
+    	this.temperature = intent.getFloatExtra(ACTION_TEMPERATURE, -1);
     }
     
     public String getAction() {
@@ -131,7 +173,7 @@ public class ActionBuilder {
 		return lightId;
 	}
     
-    public int getLightStatus() {
+    public float getLightStatus() {
 		return lightStatus;
 	}
 
@@ -147,4 +189,9 @@ public class ActionBuilder {
 		return res;*/
 		return this.swapPacket;
 	}
+	
+	public float getTemperature() {
+		return temperature;
+	}
+	
 }

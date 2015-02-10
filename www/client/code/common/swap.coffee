@@ -49,7 +49,17 @@ bytePad = (byte, number) ->
 getValue = (value, length) ->
     #TODO: transform this to implement to parsing of a value in byte array
     #TODO: handle string values here, and others
-    (value >> 8 * i) & 255 for i in [length-1..0]
+    if (typeof value is 'string' || value instanceof String)
+        results = []
+        for i in [0..value.length / 2 - 1]
+            do(i) ->
+                b = value.substr i * 2, 2
+                results.push parseInt b, 16
+                return
+        #parseInt value.substr i * 2, 2 for i in [0..length/2]
+        return results
+    else
+        (value >> 8 * i) & 255 for i in [length-1..0]
 
 Address =
     BROADCAST: 255
@@ -58,6 +68,9 @@ Functions =
     STATUS: 0
     QUERY: 1
     COMMAND: 2
+    CUSTOM_1: 3
+    CUSTOM_2: 4
+    CUSTOM_3: 5
 
 Registers =
     productCode: {id: 0, length: 8}
@@ -70,7 +83,12 @@ Registers =
     nonce: {id: 7, length: 1}
     network: {id: 8, length: 2}
     address: {id: 9, length: 1}
-    txInterval: {id: 10, length: 2}
+    txInterval: {id: 10, length: -1}
+    custom_0: {id: 11, length: -1}
+    custom_1: {id: 12, length: -1}
+    custom_2: {id: 13, length: -1}
+    custom_3: {id: 14, length: -1}
+    custom_4: {id: 15, length: -1}
 
 SwapStates =
     RESTART:
@@ -96,6 +114,22 @@ SwapStates =
     get: (val) ->
         [@RESTART, @RXON, @RXOFF, @SYNC, @LOWBAT][val]
 
+Light = 
+    productCode: "0000006400000001"
+    Functions:
+        Light: Functions.CUSTOM_1
+        Rest: Functions.CUSTOM_2
+    Registers:
+        Outputs: Registers.custom_3
+    Values:
+        On: 254
+        Off: 0
+        Toggle: 255
+        
+MQ =
+    Type:
+        SWAP_PACKET: 0
+        SWAP_DEVICE: 1        
 module.exports =
     CCPacket: CCPacket
     SwapPacket: SwapPacket
@@ -103,6 +137,8 @@ module.exports =
     Functions: Functions
     Registers: Registers
     SwapStates: SwapStates
+    Light: Light
+    MQ: MQ
     bytePad : bytePad
     num2byte : num2byte
     getValue: getValue

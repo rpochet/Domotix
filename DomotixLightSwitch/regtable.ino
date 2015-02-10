@@ -7,9 +7,7 @@
  * Author: Pochet Romuald
  * Creation date: 04 Nov 2013
  */
-#include <EEPROM.h>
-#include "product.h"
-#include "panstamp.h"
+#include "product.h"NVOL
 #include "regtable.h"
 
 /**
@@ -30,15 +28,17 @@ DEFINE_COMMON_REGISTERS()
  * dtSensor: temperature, 2 bytes
  * dtoutputX: level, 1 byte
  */
+// Voltage supply
+static unsigned long voltageSupply = 3300;
 static byte dtVoltSupply[2];
 REGISTER regVoltSupply(dtVoltSupply, sizeof(dtVoltSupply), &updtVoltSupply, NULL);
 
-REGISTER regSensorDelay(dtSensorDelay, sizeof(dtSensorDelay), NULL, &updtSensorDelay, SWDTYPE_INTEGER, EEPROM_CONFIG_SENSOR_DELAY);
+REGISTER regSensorDelay(dtSensorDelay, sizeof(dtSensorDelay), NULL, &updtSensorDelay, SWDTYPE_INTEGER, NVOLAT_CONFIG_SENSOR_DELAY);
 
 static byte dtSensor[2];
 REGISTER regSensor(dtSensor, sizeof(dtSensor), &updtSensor, NULL);
 
-REGISTER regTouchConfig(dtTouchConfig, sizeof(dtTouchConfig), NULL, NULL, SWDTYPE_OTHER, EEPROM_TOUCH_CONFIG);
+REGISTER regTouchConfig(dtTouchConfig, sizeof(dtTouchConfig), NULL, NULL, SWDTYPE_OTHER, NVOLAT_TOUCH_CONFIG);
 
 /**
  * Initialize table of registers
@@ -64,17 +64,18 @@ DEFINE_COMMON_CALLBACKS()
  * 'rId'  Register ID
  */
 const void updtVoltSupply(byte rId)
-{
-  unsigned short result;
-  
-  // Read 1.1V reference against AVcc
-  ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
-  delay(2); // Wait for Vref to settle
-  ADCSRA |= _BV(ADSC); // Convert
-  while (bit_is_set(ADCSRA,ADSC));
-  result = ADCL;
-  result |= ADCH << 8;
-  result = 1126400L / result; // Back-calculate AVcc in mV
+{  
+  unsigned long result;
+
+  #ifdef VOLT_SUPPLY_A0 
+  // Read voltage supply from A0
+  unsigned short ref = voltageSupply;
+  result = analogRead(A0);
+  result *= ref;
+  result /= 4095;
+  #else
+  result = panstamp.getVcc();
+  #endif
 
   /**
    * register[eId]->member can be replaced by regVoltSupply in this case since
@@ -86,6 +87,7 @@ const void updtVoltSupply(byte rId)
   regTable[rId]->value[1] = result & 0xFF;
 }
 
+
 /**
  * updtSensorDelay
  *
@@ -94,8 +96,8 @@ const void updtVoltSupply(byte rId)
 */
 const void updtSensorDelay(byte rId, byte *value)
 {
-  regSensorDelay.setValueFromBeBuffer(value);
-  initRegister();
+    regSensorDelay.setValueFromBeBuffer(value);
+    initRegister();
 }
 
 /**
@@ -105,29 +107,7 @@ const void updtSensorDelay(byte rId, byte *value)
  */
 const void updtSensor(byte rId)
 {
-  int temp;
-#if SENSOR == SENSOR_MCP9808
-  temp = (tempsensor.readTempC() * 100);
-#else
-  Wire.requestFrom(sensorAddress, 2); 
-
-  byte MSB = Wire.read();
-  byte LSB = Wire.read();
-
-  Serial.print(MSB);
-  Serial.print('-');
-  Serial.println(LSB);
-  
-  //it's a 12bit int, using two's compliment for negative
-  temp = ((MSB << 8) | LSB) >> 4; 
-  //But if we want, we can convert this directly to a celsius temp reading
-  //temp *= 0.0625; //This is the same as a divide by 16
-  //temp >>= 4; //Which is really just a shift of 4 so it's much faster and doesn't require floating point
-  //Shifts may not work with signed ints (negative temperatures). Let's do a divide instead
-  //temp /= 16;
-  temp *= 6.25; // 0.01 °C
-#endif  
-  
-  dtSensor[0] = (temp >> 8) & 0xFF;
-  dtSensor[1] = temp & 0xFF;
+    int temp = (tempsensor.readTempC() * 100);
+    dtSensor[0] = (temp >> 8) & 0xFF;
+    dtSensor[1] = temp & 0xFF;
 }

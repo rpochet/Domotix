@@ -2,6 +2,7 @@ package eu.pochet.domotix.dao;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,6 +10,8 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import org.apache.http.HttpResponse;
@@ -17,19 +20,20 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 
-import eu.pochet.domotix.Constants;
-import eu.pochet.domotix.service.DownloadableFile;
-
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.http.AndroidHttpClient;
 import android.preference.PreferenceManager;
 import android.util.JsonReader;
 import android.util.Log;
 
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonSyntaxException;
+
+import eu.pochet.domotix.Constants;
+import eu.pochet.domotix.service.DownloadableFile;
+
 /**
- * List of Level: http://www.pochet-lecomte.eu/www/levels.json List of lights:
- * http://www.pochet-lecomte.eu/www/lights.json List of cards:
- * http://www.pochet-lecomte.eu/www/cards.json
  * 
  * @author romuald
  * 
@@ -38,11 +42,19 @@ public class DomotixDao {
 	
 	private static final String TAG = DomotixDao.class.getName();
 	
-	private static final String LEVELS_FILE_NAME = "levels.json";
-	private static final String LIGHTS_FILE_NAME = "lights.json";
-	private static final String CARDS_FILE_NAME = "cards.json";
+	// http://192.168.1.4:5984/panstamp/_design/devices/_view/levels
+	// http://192.168.1.4:5984/panstamp/_design/devices/_view/lights
+	// http://192.168.1.4:5984/panstamp/_design/devices/_view/devices
+	
+	private static final String LEVELS_FILE_NAME = "levels";
+	private static final String LIGHTS_FILE_NAME = "lights";
+	private static final String SWAP_DEVICES_FILE_NAME = "devices";
 
 	private static List<Level> levels = null;
+
+	private static List<Light> lights = null;
+	
+	private static List<SwapDevice> swapDevices = null;
 	
 	public static void update(Context ctx) {
 		String server = PreferenceManager.getDefaultSharedPreferences(ctx).getString(Constants.DOMOTIX_DATA_HOST, Constants.DOMOTIX_DATA_HOST_DEFAULT);
@@ -50,7 +62,7 @@ public class DomotixDao {
 		try {
 			downloadableFiles[0] = new DownloadableFile(new URI(server + LEVELS_FILE_NAME), LEVELS_FILE_NAME);
 			downloadableFiles[1] = new DownloadableFile(new URI(server + LIGHTS_FILE_NAME), LIGHTS_FILE_NAME);
-			downloadableFiles[2] = new DownloadableFile(new URI(server + CARDS_FILE_NAME), CARDS_FILE_NAME);
+			downloadableFiles[2] = new DownloadableFile(new URI(server + SWAP_DEVICES_FILE_NAME), SWAP_DEVICES_FILE_NAME);
 		} catch (URISyntaxException e1) {
 			return;
 		}
@@ -106,41 +118,123 @@ public class DomotixDao {
 				}
 			}
         }
+        reset();
 	}
 
 	public static List<Level> getLevels(Context ctx) {
 		if ((levels == null) || (levels.size() == 0)) {
 			levels = new ArrayList<Level>();
 			try {
-				JsonReader reader = new JsonReader(new InputStreamReader(
-						ctx.openFileInput(LEVELS_FILE_NAME)));
-				reader.setLenient(true);
-				reader.beginObject();
-				while (reader.hasNext()) {
-					String name = reader.nextName();
-					if (name.equals("levels")) {
-						reader.beginArray();
-						while (reader.hasNext()) {
-							levels.add(readLevel(ctx, reader));
+				readLevels(ctx);
+				
+				readLights(ctx);
+				Collections.sort(lights, new Comparator<Light>() {
+					public int compare(Light l1, Light l2) {
+						return Integer.valueOf(l1.getId()).compareTo(Integer.valueOf(l2.getId()));
+					}
+				});
+				
+				readSwapDevices(ctx);
+				Collections.sort(swapDevices, new Comparator<SwapDevice>() {
+					public int compare(SwapDevice d1, SwapDevice d2) {
+						return Integer.valueOf(d1.getAddress()).compareTo(Integer.valueOf(d2.getAddress()));
+					}
+				});
+				
+				for (Level level : levels) {
+					for (Room room : level.getRooms()) {
+						for (Light light : lights) {
+							if(light.getLocation().getRoom_id() == room.getId()) {
+								light.getLocation().setRoom(room);
+								room.addLight(light);
+							}
 						}
-						reader.endArray();
-					} else {
-						reader.skipValue();
+						for (SwapDevice swapDevice : swapDevices) {
+							if(swapDevice.getLocation().getRoom_id() == room.getId()) {
+								swapDevice.getLocation().setRoom(room);
+								room.addSwapDevice(swapDevice);
+							}
+						}
 					}
 				}
-				reader.endObject();
-			} catch (Exception e) {
+			} catch (JsonSyntaxException e) {
+				e.printStackTrace();
+			} catch (JsonIOException e) {
+				e.printStackTrace();
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
 		return levels;
 	}
-
-	public static List<Light> getLights(Context ctx) {
-		List<Light> lights = new ArrayList<Light>();
-		for(Level level : getLevels(ctx)) {
-			lights.addAll(level.getLights());	
+	
+	private static void readLevels(Context ctx) throws IOException {
+		levels = new ArrayList<Level>();
+		JsonReader jsonReader = new JsonReader(new InputStreamReader(ctx.openFileInput(LEVELS_FILE_NAME)));
+		jsonReader.setLenient(true);
+		jsonReader.beginObject();
+		String name = null;
+		while(jsonReader.hasNext()) {
+			name = jsonReader.nextName(); 
+			if (name.equals("rows")) {
+				jsonReader.beginArray();
+				while(jsonReader.hasNext()) {
+					jsonReader.beginObject();
+					while(jsonReader.hasNext()) {
+						String name2 = jsonReader.nextName();
+						if (name2.equals("value")) {
+							levels.add(readLevel(ctx, jsonReader));
+						} else {
+							jsonReader.skipValue();
+						}
+					}
+					jsonReader.endObject();
+				}
+				jsonReader.endArray();
+			} else {
+				jsonReader.skipValue();
+			}
 		}
+	}
+
+	/**
+	 * 
+	 * @param ctx
+	 * @param reader
+	 * @return
+	 * @throws IOException
+	 */
+	private static Level readLevel(Context ctx, JsonReader reader) throws IOException {
+		Level level = new Level();
+		reader.beginObject();
+		String name = null;
+		while (reader.hasNext()) {
+			name = reader.nextName();
+			if (name.equals("id")) {
+				level.setId(reader.nextInt());
+			} else if (name.equals("level")) {
+				level.setLevel(reader.nextInt());
+			} else if (name.equals("name")) {
+				level.setName(reader.nextString());
+			} else if (name.equals("path")) {
+				level.setPath(reader.nextString());
+			} else if (name.equals("x")) {
+				level.setX(reader.nextInt());
+			} else if (name.equals("y")) {
+				level.setY(reader.nextInt());
+			} else if (name.equals("rooms")) {
+				readRooms(ctx, reader, level);
+			} else {
+				reader.skipValue();
+			}
+		}
+		reader.endObject();
+		return level;
+	}
+	
+	public static List<Light> getLights(Context ctx) {
 		return lights;
 	}
 	
@@ -148,15 +242,29 @@ public class DomotixDao {
 		levels = null;
 	}
 	
+	private static Room getRoomById(int roomId) {
+		for (Level level : levels) {
+			for (Room room : level.getRooms()) {
+				if(room.getId() == roomId) {
+					return room;					
+				}
+			}
+		}
+		return null;
+	}
+	
 	public static SwapPacket readSwapPacket(byte[] jsonData) throws IOException {
+		return readSwapPacket(jsonData, 0);
+	}
+	
+	public static SwapPacket readSwapPacket(byte[] jsonData, int offset) throws IOException {
 		SwapPacket swapPacket = null;
-		JsonReader reader = new JsonReader(
-				new BufferedReader(new InputStreamReader(
-						new ByteArrayInputStream(jsonData))));
+		JsonReader reader = new JsonReader(new BufferedReader(new InputStreamReader(new ByteArrayInputStream(jsonData, offset, jsonData.length))));
 		reader.setLenient(true);
 		reader.beginObject();
+		String name = null;
 		while(reader.hasNext()) {
-			String name = reader.nextName();
+			name = reader.nextName();
 			if (name.equals("swapPacket")) {
 				swapPacket = readSwapPacket(reader);
 			} /*else if (name.equals("packetDevice")) {
@@ -169,35 +277,67 @@ public class DomotixDao {
 	
 		return swapPacket;
 	}
-
-	public static SwapDevice readSwapDevice(JsonReader reader) throws IOException {
-		SwapDevice swapDevice = new SwapDevice();
+	
+	public static List<Integer> readOutputs(byte[] jsonData) throws IOException {
+		List<Integer> outputs = new ArrayList<Integer>();
+		JsonReader reader = new JsonReader(new BufferedReader(new InputStreamReader(new ByteArrayInputStream(jsonData))));
+		reader.setLenient(true);
 		reader.beginObject();
+		String name = null;
 		while(reader.hasNext()) {
-			String name = reader.nextName();
-			if (name.equals("product")) {
-				swapDevice.setName(reader.nextString());
-			} else if (name.equals("productCode")) {
-				swapDevice.setProductCode(reader.nextString());
-			} else if (name.equals("address")) {
-				swapDevice.setAddress(reader.nextInt());
-			} else if (name.equals("regularRegisters")) {
+			name = reader.nextName();
+			if (name.equals("rows")) {
 				reader.beginArray();
-				swapDevice.setAddress(reader.nextInt());
+				while(reader.hasNext()) {
+					reader.beginObject();
+					while(reader.hasNext()) {
+						String name2 = reader.nextName();
+						if (name2.equals("value")) {
+							reader.beginObject();
+							while(reader.hasNext()) {
+								String name3 = reader.nextName();
+								if (name3.equals("endpoints")) {
+									reader.beginArray();
+									while(reader.hasNext()) {
+										reader.beginObject();
+										while(reader.hasNext()) {
+											String name4 = reader.nextName();
+											if (name4.equals("value")) {
+												outputs.add(reader.nextInt());
+											} else {
+												reader.skipValue();
+											}
+										}
+										reader.endObject();
+									}
+									reader.endArray();
+								} else {
+									reader.skipValue();
+								}
+							}
+							reader.endObject();
+						} else {
+							reader.skipValue();
+						}
+					}
+					reader.endObject();
+				}
 				reader.endArray();
 			} else {
 				reader.skipValue();
 			}
 		}
 		reader.endObject();
-		return swapDevice;
+	
+		return outputs;
 	}
 
 	public static SwapPacket readSwapPacket(JsonReader reader) throws IOException {
 		SwapPacket swapPacket = new SwapPacket();
 		reader.beginObject();
+		String name = null;
 		while(reader.hasNext()) {
-			String name = reader.nextName();
+			name = reader.nextName();
 			if (name.equals("dest")) {
 				swapPacket.setDest(reader.nextInt());
 			} else if (name.equals("source")) {
@@ -252,28 +392,12 @@ public class DomotixDao {
 	 */
 	public static Light getLight(Context ctx, int lightId) {
 		for (Level level : getLevels(ctx)) {
-			for (Light light : level.getLights()) {
-				if (light.getId() == lightId) {
-					return light;
-				}
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * 
-	 * @param ctx
-	 * @param cardAdress
-	 * @param outputNb
-	 * @return
-	 */
-	public static Light getLight(Context ctx, int swapDeviceAdress, int outputNb) {
-		for (Level level : getLevels(ctx)) {
-			for (Light light : level.getLights()) {
-				if (light.getSwapDeviceAddress() == swapDeviceAdress && light.getOutputNb() == outputNb) {
-					return light;
-				}
+			for(Room room : level.getRooms()) {
+				for (Light light : room.getLights()) {
+					if (light.getId() == lightId) {
+						return light;
+					}
+				}	
 			}
 		}
 		return null;
@@ -286,86 +410,14 @@ public class DomotixDao {
 	 * @return
 	 */
 	public static SwapDevice getSwapDevice(Context ctx, int address) {
-		for (Level level : getLevels(ctx)) {
-			for (SwapDevice swapDevice : level.getSwapDevices()) {
-				if (swapDevice.getAddress() == address) {
-					return swapDevice;
-				}
+		for (SwapDevice swapDevice : swapDevices) {
+			if (swapDevice.getAddress() == address) {
+				return swapDevice;
 			}
 		}
 		return null;
 	}
-
-	/**
-	 * 
-	 * @param ctx
-	 * @param reader
-	 * @return
-	 * @throws IOException
-	 */
-	private static Level readLevel(Context ctx, JsonReader reader)
-			throws IOException {
-		Level level = new Level();
-		reader.beginObject();
-		while (reader.hasNext()) {
-			String name = reader.nextName();
-			if (name.equals("id")) {
-				level.setId(reader.nextInt());
-			} else if (name.equals("level")) {
-				level.setLevel(reader.nextInt());
-			} else if (name.equals("name")) {
-				level.setName(reader.nextString());
-			} else if (name.equals("path")) {
-				level.setPath(reader.nextString());
-			} else if (name.equals("x")) {
-				level.setX(reader.nextInt());
-			} else if (name.equals("y")) {
-				level.setY(reader.nextInt());
-			} else if (name.equals("rooms")) {
-				readRooms(ctx, reader, level);
-			} else {
-				reader.skipValue();
-			}
-		}
-		reader.endObject();
-		readLights(ctx, level);
-		readSwapDevices(ctx, level);
-		return level;
-	}
-
-	/**
-	 * 
-	 * @param ctx
-	 * @param level
-	 * @return
-	 * @throws IOException
-	 */
-	private static void readLights(Context ctx, Level level) throws IOException {
-		Light light = null;
-		List<Light> lights = new ArrayList<Light>();
-		JsonReader reader = new JsonReader(new InputStreamReader(
-				ctx.openFileInput(LIGHTS_FILE_NAME)));
-		reader.setLenient(true);
-		reader.beginObject();
-		while (reader.hasNext()) {
-			String name = reader.nextName();
-			if (name.equals("lights")) {
-				reader.beginArray();
-				while (reader.hasNext()) {
-					light = readLight(ctx, reader, level);
-					if (light != null) {
-						lights.add(light);
-					}
-				}
-				reader.endArray();
-			} else {
-				reader.skipValue();
-			}
-		}
-		reader.endObject();
-		level.setLights(lights);
-	}
-
+	
 	/**
 	 * 
 	 * @param ctx
@@ -374,153 +426,7 @@ public class DomotixDao {
 	 * @return
 	 * @throws IOException
 	 */
-	private static Light readLight(Context ctx, JsonReader reader, Level level)
-			throws IOException {
-		int dx = 0;
-		int dy = 0;
-		boolean expectedLevel = false;
-		Light light = new Light();
-		reader.beginObject();
-		while (reader.hasNext()) {
-			String name = reader.nextName();
-			if (name.equals("id")) {
-				light.setId(reader.nextInt());
-			} else if (name.equals("name")) {
-				light.setName(reader.nextString());
-			} else if (name.equals("type")) {
-				light.setType(reader.nextString());
-			} else if (name.equals("cardAddress")) {
-				light.setSwapDeviceAddress(reader.nextInt());
-			} else if (name.equals("outputNb")) {
-				light.setOutputNb(reader.nextInt());
-			} else if (name.equals("x")) {
-				light.setX(reader.nextInt());
-			} else if (name.equals("dx")) {
-				dx = reader.nextInt();
-			} else if (name.equals("y")) {
-				light.setY(reader.nextInt());
-			} else if (name.equals("dy")) {
-				dy = reader.nextInt();
-			} else if (name.equals("z")) {
-				light.setZ(reader.nextInt());
-			} else if (name.equals("status")) {
-				light.setStatus(reader.nextInt());
-			} else if (name.equals("room_id")) {
-				int lightRoomId = reader.nextInt();
-				for (Room levelRoom : level.getRooms()) {
-					if (levelRoom.getId() == lightRoomId) {
-						light.setRoom(levelRoom);
-						expectedLevel = true;
-						break;
-					}
-				}
-			} else {
-				reader.skipValue();
-			}
-		}
-		light.setX(light.getX() + dx);
-		light.setY(light.getY() + dy);
-		reader.endObject();
-		return expectedLevel ? light : null;
-	}
-
-	/**
-	 * 
-	 * @param ctx
-	 * @param level
-	 * @return
-	 * @throws IOException
-	 */
-	private static void readSwapDevices(Context ctx, Level level) throws IOException {
-		SwapDevice swapDevice = null;
-		List<SwapDevice> swapDevices = new ArrayList<SwapDevice>();
-		JsonReader reader = new JsonReader(new InputStreamReader(
-				ctx.openFileInput(CARDS_FILE_NAME)));
-		reader.setLenient(true);
-		reader.beginObject();
-		while (reader.hasNext()) {
-			String name = reader.nextName();
-			if (name.equals("swapDevices")) {
-				reader.beginArray();
-				while (reader.hasNext()) {
-					swapDevice = readSwapDevice(ctx, reader, level);
-					if (swapDevice != null) {
-						swapDevices.add(swapDevice);
-					}
-				}
-				reader.endArray();
-			} else {
-				reader.skipValue();
-			}
-		}
-		reader.endObject();
-		level.setSwapDevices(swapDevices);
-	}
-
-	/**
-	 * 
-	 * @param ctx
-	 * @param reader
-	 * @param level
-	 * @return
-	 * @throws IOException
-	 */
-	private static SwapDevice readSwapDevice(Context ctx, JsonReader reader, Level level)
-			throws IOException {
-		int dx = 0;
-		int dy = 0;
-		boolean expectedSwapDevice = false;
-		SwapDevice swapDevice = new SwapDevice();
-		reader.beginObject();
-		while (reader.hasNext()) {
-			String name = reader.nextName();
-			if (name.equals("id")) {
-				swapDevice.setId(reader.nextString());
-			} else if (name.equals("product")) {
-				swapDevice.setName(reader.nextString());
-			} else if (name.equals("productCode")) {
-				swapDevice.setProductCode(reader.nextString());
-			} else if (name.equals("address")) {
-				swapDevice.setAddress(reader.nextInt());
-			} else if (name.equals("x")) {
-				swapDevice.setX(reader.nextInt());
-			} else if (name.equals("dx")) {
-				dx = reader.nextInt();
-			} else if (name.equals("y")) {
-				swapDevice.setY(reader.nextInt());
-			} else if (name.equals("dy")) {
-				dy = reader.nextInt();
-			} else if (name.equals("z")) {
-				swapDevice.setZ(reader.nextInt());
-			} else if (name.equals("room_id")) {
-				int cardRoomId = reader.nextInt();
-				for (Room levelRoom : level.getRooms()) {
-					if (levelRoom.getId() == cardRoomId) {
-						swapDevice.setRoom(levelRoom);
-						expectedSwapDevice = true;
-						break;
-					}
-				}
-			} else {
-				reader.skipValue();
-			}
-		}
-		swapDevice.setX(swapDevice.getX() + dx);
-		swapDevice.setY(swapDevice.getY() + dy);
-		reader.endObject();
-		return expectedSwapDevice ? swapDevice : null;
-	}
-
-	/**
-	 * 
-	 * @param ctx
-	 * @param reader
-	 * @param level
-	 * @return
-	 * @throws IOException
-	 */
-	private static void readRooms(Context ctx, JsonReader reader, Level level)
-			throws IOException {
+	private static void readRooms(Context ctx, JsonReader reader, Level level) throws IOException {
 		List<Room> rooms = new ArrayList<Room>();
 		reader.beginArray();
 		while (reader.hasNext()) {
@@ -538,12 +444,12 @@ public class DomotixDao {
 	 * @return
 	 * @throws IOException
 	 */
-	private static Room readRoom(Context ctx, JsonReader reader, Level level)
-			throws IOException {
+	private static Room readRoom(Context ctx, JsonReader reader, Level level) throws IOException {
 		Room room = new Room();
 		reader.beginObject();
+		String name = null;
 		while (reader.hasNext()) {
-			String name = reader.nextName();
+			name = reader.nextName();
 			if (name.equals("id")) {
 				room.setId(reader.nextInt());
 			} else if (name.equals("name")) {
@@ -561,6 +467,257 @@ public class DomotixDao {
 		room.setLevel(level);
 		reader.endObject();
 		return room;
+	}
+
+	/**
+	 * 
+	 * @param ctx
+	 * @param level
+	 * @return
+	 * @throws IOException
+	 */
+	private static void readLights(Context ctx) throws IOException {
+		Light light = null;
+		lights = new ArrayList<Light>();
+		JsonReader reader = new JsonReader(new InputStreamReader(ctx.openFileInput(LIGHTS_FILE_NAME)));
+		reader.setLenient(true);
+		reader.beginObject();
+		String name = null;
+		while (reader.hasNext()) {
+			name = reader.nextName();
+			if (name.equals("rows")) {
+				reader.beginArray();
+				while(reader.hasNext()) {
+					reader.beginObject();
+					while(reader.hasNext()) {
+						String name2 = reader.nextName();
+						if (name2.equals("value")) {
+							light = readLight(ctx, reader);
+							if (light != null) {
+								lights.add(light);
+							}
+						} else {
+							reader.skipValue();
+						}
+					}
+					reader.endObject();
+				}
+				reader.endArray();
+			} else {
+				reader.skipValue();
+			}
+		}
+		reader.endObject();
+	}
+
+	/**
+	 * 
+	 * @param ctx
+	 * @param reader
+	 * @param level
+	 * @return
+	 * @throws IOException
+	 */
+	private static Light readLight(Context ctx, JsonReader reader) throws IOException {
+		Light light = new Light();
+		reader.beginObject();
+		String name = null;
+		while (reader.hasNext()) {
+			name = reader.nextName();
+			if (name.equals("id")) {
+				light.setId(reader.nextInt());
+			} else if (name.equals("name")) {
+				light.setName(reader.nextString());
+			} else if (name.equals("type")) {
+				light.setType(reader.nextString());
+			} else if (name.equals("swapDeviceAddress")) {
+				light.setSwapDeviceAddress(reader.nextInt());
+			} else if (name.equals("outputNb")) {
+				light.setOutputNb(reader.nextInt());
+			} else if (name.equals("location")) {
+				light.setLocation(readLocation(ctx, reader));
+			} else {
+				reader.skipValue();
+			}
+		}
+		reader.endObject();
+		return light;
+	}
+
+	private static Location readLocation(Context ctx, JsonReader reader) throws IOException {
+		Location location = new Location();
+		reader.beginObject();
+		String name = null;
+		while (reader.hasNext()) {
+			name = reader.nextName();
+			if (name.equals("x")) {
+				location.setX(reader.nextInt());
+			} else if (name.equals("dx")) {
+				location.setDx(reader.nextInt());
+			} else if (name.equals("y")) {
+				location.setY(reader.nextInt());
+			} else if (name.equals("dy")) {
+				location.setDy(reader.nextInt());
+			} else if (name.equals("z")) {
+				location.setZ(reader.nextInt());
+			} else if (name.equals("room_id")) {
+				location.setRoom_id(reader.nextInt());
+			}  else {
+				reader.skipValue();
+			}
+		}
+		reader.endObject();
+		return location;
+	}
+	
+	/**
+	 * 
+	 * @param ctx
+	 * @return
+	 * @throws IOException
+	 */
+	private static void readSwapDevices(Context ctx) throws IOException {
+		SwapDevice swapDevice = null;
+		swapDevices = new ArrayList<SwapDevice>();
+		JsonReader reader = new JsonReader(new InputStreamReader(ctx.openFileInput(SWAP_DEVICES_FILE_NAME)));
+		reader.setLenient(true);
+		reader.beginObject();
+		while (reader.hasNext()) {
+			String name = reader.nextName();
+			if (name.equals("rows")) {
+				reader.beginArray();
+				while(reader.hasNext()) {
+					reader.beginObject();
+					while(reader.hasNext()) {
+						String name2 = reader.nextName();
+						if (name2.equals("value")) {
+							swapDevice = readSwapDevice(ctx, reader);
+							if (swapDevice != null) {
+								swapDevices.add(swapDevice);
+							}
+						} else {
+							reader.skipValue();
+						}
+					}
+					reader.endObject();
+				}
+				reader.endArray();
+			} else {
+				reader.skipValue();
+			}
+		}
+		reader.endObject();
+	}
+
+	/**
+	 * 
+	 * @param ctx
+	 * @param reader
+	 * @return
+	 * @throws IOException
+	 */
+	private static SwapDevice readSwapDevice(Context ctx, JsonReader reader) throws IOException {
+		SwapDevice swapDevice = new SwapDevice();
+		reader.beginObject();
+		String name = null;
+		while(reader.hasNext()) {
+			name = reader.nextName();
+			if (name.equals("product")) {
+				swapDevice.setProduct(reader.nextString());
+			} else if (name.equals("address")) {
+				swapDevice.setAddress(reader.nextInt());
+			} else if (name.equals("location")) {
+				swapDevice.setLocation(readLocation(ctx, reader));
+			} else if (name.equals("regularRegisters")) {
+				reader.beginArray();
+				while (reader.hasNext()) {
+					swapDevice.addSwapResister(readSwapRegister(ctx, reader));
+				}
+				reader.endArray();
+			} else {
+				reader.skipValue();
+			}
+		}
+		reader.endObject();
+		return swapDevice;
+	}
+	
+	/**
+	 * 
+	 * @param ctx
+	 * @param reader
+	 * @return
+	 * @throws IOException
+	 */
+	private static SwapRegister readSwapRegister(Context ctx, JsonReader reader) throws IOException {
+		SwapRegister swapRegister = new SwapRegister();
+		reader.beginObject();
+		while (reader.hasNext()) {
+			String name = reader.nextName();
+			if (name.equals("name")) {
+				swapRegister.setName(reader.nextString());
+			} else if (name.equals("id")) {
+				swapRegister.setId(reader.nextInt());
+			} else if (name.equals("value")) {
+				reader.beginArray();
+				List<Byte> values = new ArrayList<Byte>();
+				while (reader.hasNext()) {
+					values.add((byte) reader.nextInt());
+				}
+				byte[] tmp = new byte[values.size()];
+				int i = 0;
+				for (byte b : values) {
+					tmp[i++] = b;
+				}
+				swapRegister.setValue(tmp);
+				reader.endArray();
+			} else if (name.equals("endpoints")) {
+				reader.beginArray();
+				while (reader.hasNext()) {
+					swapRegister.addSwapResisterEndpoint(readSwapRegisterEndpoint(ctx, reader));
+				}
+				reader.endArray();
+			} else {
+				reader.skipValue();
+			}
+		}
+		if(swapRegister.getValue() == null) {
+			int len = 0;
+			for (SwapRegisterEndpoint swapRegisterEndpoint : swapRegister.getSwapRegisterEndpoints()) {
+				len += Integer.parseInt(swapRegisterEndpoint.getSize());
+			}
+			swapRegister.setValue(new byte[len]);
+		}
+		reader.endObject();
+		return swapRegister;
+	}
+	
+	/**
+	 * 
+	 * @param ctx
+	 * @param reader
+	 * @return
+	 * @throws IOException
+	 */
+	private static SwapRegisterEndpoint readSwapRegisterEndpoint(Context ctx, JsonReader reader) throws IOException {
+		SwapRegisterEndpoint swapRegisterEndpoint = new SwapRegisterEndpoint();
+		reader.beginObject();
+		while (reader.hasNext()) {
+			String name = reader.nextName();
+			if (name.equals("name")) {
+				swapRegisterEndpoint.setName(reader.nextString());
+			} else if (name.equals("position")) {
+				swapRegisterEndpoint.setPosition(reader.nextString());
+			} else if (name.equals("size")) {
+				swapRegisterEndpoint.setSize(reader.nextString());
+			} else if (name.equals("type")) {
+				swapRegisterEndpoint.setType(reader.nextString());
+			} else {
+				reader.skipValue();
+			}
+		}
+		reader.endObject();
+		return swapRegisterEndpoint;
 	}
 
 }

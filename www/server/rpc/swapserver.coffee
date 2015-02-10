@@ -10,6 +10,7 @@ ss = require "socketstream"
 util = require "util"
 sleep = require "sleep"
 eventEmitter = require("events").EventEmitter
+moment = require "moment"
 logger = require("log4js").getLogger(__filename.split("/").pop(-1).split(".")[0])
 
 dbPanstamp = new(cradle.Connection)(Config.couchDB.host, Config.couchDB.port).database("panstamp")
@@ -18,46 +19,87 @@ dbPanstampPackets = new(cradle.Connection)(Config.couchDB.host, Config.couchDB.p
 developers = []
 devicesConfig = {}
 devices = {}
+newDevice = 
+    product:
+        productCode: ""
+        hardware: ""
+        firmware: ""
+levels = {}
+lights = {}
 swapPackets = []
 swapEvents = []
 publisher = undefined
 udpBridge = undefined
+lastLightStatus = undefined
+
+initLevels = () ->
+    levels = {}
+    dbPanstamp.get "levels", (err, doc) ->
+        return logger.error err if err?
+        levels = doc.levels
+        logger.info "Got #{levels.length} levels"
+        for level in levels
+            do (level) ->
+                room.lights = [] for room in level.rooms
+        initLights()
+
+initLights = () ->
+    lights = {}
+    dbPanstamp.get "lights", (err, doc) ->
+        return logger.error err if err?
+        lights = doc.lights
+        logger.info "Got #{lights.length} lights"
+        for light in lights
+            do (light) ->
+                for level in levels
+                    do (level) ->
+                        for room in level.rooms
+                            do (room) ->
+                                room.lights.push light if room.id == light.location.room_id
+
+        initDevicesConfig()
 
 initDevicesConfig = () ->
     developers = []
     devicesConfig = {}
+    logger.info "Init devices configuration..."
     dbPanstamp.get "devices", (err, doc) ->
         return logger.error err if err?
         developers = doc.developers
-        logger.info "Got #{developers.length} developers"
+        logger.debug "Got #{developers.length} developers"
         for developer in developers
             do (developer) ->
-                logger.info "Got #{developer.devices.length} devices for developer #{developer.name}"
+                logger.debug "Got #{developer.devices.length} devices for developer #{developer.name}"
                 for device in developer.devices
                     do (device) ->
-                        dbPanstamp.get developer.id + device.id, (err, doc) ->
+                        logger.debug "Init device configuration #{developer.id}/#{device.id} - #{device.version.hardware}/#{device.version.firmware} for developer #{developer.name}"
+                        dbPanstamp.get developer.id + device.id + device.version.hardware + device.version.firmware, (err, doc) ->
                             return logger.error err if err?
                             device = doc
                             devicesConfig[device._id] = device
-                            logger.info "Got device #{device.product} for developer #{developer.name}"
-initDevicesConfig()
+                            logger.info "Got device configuration #{device._id} for developer #{developer.name}"
+        initDevices()
 
 initDevices = () ->
     devices = {}
     dbPanstamp.view "devices/devices", { }, (err, doc) ->
         for docDevices in doc
             devices["DEV" + swap.num2byte(docDevices.value.address)] = docDevices.value
+            for level in levels
+                for room in level.rooms
+                    devices["DEV" + swap.num2byte(docDevices.value.address)].location.room = room if room.id == docDevices.value.location.room_id
         ss.api.publish.all "devicesUpdated"
-initDevices()
+
+initLevels()
 
 initSwapPackets = () ->
     swapPackets = []
     swapEvents = []
-    options = 
+    options =
         include_docs: true
         limit: 40
         descending: true
-    
+
     dbPanstampPackets.all options, (err, res) ->
         logger.error err if err?
         return if err?
@@ -68,39 +110,60 @@ initSwapPackets = () ->
         ss.api.publish.all "swapPacket"
 initSwapPackets()
 
-addSwapEvent = (swapEvent) ->
+addSwapEvent = (swapEvent, swapDevice) ->
+    swapEvent.time = moment.format
+    dbPanstampPackets.save swapEvent.time, swapEvent, (err, doc) ->
+        logger.error err if err?
+    logger.warn "#{swapEvent.topic} - #{swapEvent.text}" if swapEvent.type is "warn"
+    logger.info "#{swapEvent.topic} - #{swapEvent.text}" if swapEvent.type is "info"
+    logger.error "#{swapEvent.topic} - #{swapEvent.text}" if swapEvent.type is "error"
     ss.api.publish.all "swapEvent", swapEvent
     swapEvents.splice 0, 0, swapEvent
     swapEvents.pop() if swapEvents.length > 80
 
-addSwapPacket = (swapPacket) ->
+addSwapPacket = (swapPacket, packetDevice) ->
     dbPanstampPackets.save swapPacket.time.time, swapPacket, (err, doc) ->
         logger.error err if err?
-    ss.api.publish.all "swapPacket", swapPacket
     swapPackets.splice 0, 0, swapPacket
     swapPackets.pop() if swapPackets.length > 80
-
+    
+    if packetDevice isnt undefined && packetDevice.product.indexOf swap.Light.productCode == 0
+    
+        if swapPacket.regId == swap.Light.Registers.Outputs.id && swapPacket.func == swap.Functions.STATUS
+            lastLightStatus = 
+                time: swapPacket.time
+                value: swapPacket.value
+            
+            for light in lights
+                do(light) ->
+                    if light.swapDeviceAddress == packetDevice.address
+                        light.status = lastLightStatus.value[light.outputNb]
+            
+            #dbPanstamp.save "lights", lights._rev, lights, (err, res) ->
+            #    return logger.error err if err?
+                
+            lastLightStatus.lights = lights
+            ss.api.publish.all "lightStatusUpdated", lastLightStatus
+            return
+    
+    ss.api.publish.all "swapPacket", swapPacket
+    
 serial = new SerialModem Config.serial
 serial.on "started", () ->
     publisher = new Publisher Config.broker
     udpBridge = new UdpBridge Config.udpBridge
-    #udpBridgeSubscriber = new UdpBridgeSubscriber Config.udpBridge
     
     serial.on "swapPacket", (swapPacket) ->
-        addSwapPacket swapPacket
         swapPacketReceived swapPacket
-    
+
     udpBridge.on "swapPacket", (swapPacket) ->
-        logger.info "Packet received from UDP Bridge"
         addSwapPacket swapPacket
-        
-        if swapPacket.func is swap.Functions.QUERY
-            serial.send swapPacket
-        else if swapPacket.func is swap.Functions.COMMAND
-            serial.send swapPacket
-        else # swap.Functions.STATUS
+
+        if swapPacket.func is swap.Functions.STATUS
             logger.warn "Status Packet received from UDP Bridge, not allowed"
-        
+        else
+            serial.send swapPacket
+
 # Only for dummy serial modem
 serial.start() if Config.serial.dummy
 
@@ -108,218 +171,257 @@ serial.start() if Config.serial.dummy
 swapPacketReceived = (swapPacket) ->
     # Add device if not already seen
     packetDevice = undefined
-    
+
     if ("DEV" + swap.num2byte(swapPacket.source)) not of devices
         text =  "Packet received from unknown source: #{swapPacket.source}"
-        logger.warn text
-        addSwapEvent {name: "unknownSwapPacketDevice", text:text, type:"warning", time: new Date()}
+        addSwapEvent
+            type: "warn"
+            topic: "unknownSwapPacketDevice"
+            text: text
+
+        if swapPacket.func is swap.Functions.STATUS
+            value = swapPacket.value
+            if swapPacket.regId is swap.Registers.productCode.id
+                newDevice.product.productCode = (swap.num2byte(v) for v in value).join("")
+            else if swapPacket.regId is swap.Registers.hardwareVersion.id
+                newDevice.product.hardware = (swap.num2byte(v) for v in value).join("")
+            else if swapPacket.regId is swap.Registers.firmwareVersion.id
+                newDevice.product.firmware = (swap.num2byte(v) for v in value).join("")
+
+        if newDevice.product.productCode != "" && newDevice.product.hardware != "" && newDevice.product.firmware != ""
+            productCode = newDevice.product.productCode + newDevice.product.hardware + newDevice.product.firmware
+            if not devicesConfig[productCode]?
+                addSwapEvent
+                    type: "warn"
+                    topic: "unknownDevice"
+                    text: "Unknown device or manufacturer Id detected: #{productCode}"
+            else
+                packetDevice = devicesConfig[productCode]
+                packetDevice.address = swapPacket.source
+                packetDevice.networkId = Config.network.networkId
+                packetDevice.frequencyChannel = Config.network.frequencyChannel
+                packetDevice.product = productCode
+                packetDevice.securityNonce = swapPacket.nonce
+                packetDevice.lastStatusTime = swapPacket.time
+                packetDevice.location =
+                    room_id: -1
+                    x: 0
+                    dx: 0
+                    y: 0
+                    dy: 0
+                    z: 0
+                    dz: 0
+                delete packetDevice._id
+                delete packetDevice._rev
+
+                # Add to the list before save in DB because packets may be received during saving
+                devices["DEV" + swap.num2byte(packetDevice.address)] = packetDevice
+                ss.api.publish.all "devicesUpdated"
+
+                addSwapEvent
+                    type: "warn"
+                    name: "newDevice"
+                    text: "New device detected: #{packetDevice.productCode}, #{packetDevice.address}"
+
+                dbPanstamp.save "DEV" + swap.num2byte(packetDevice.address), packetDevice, (err, doc) ->
+                    return logger.error err if err?
+                    packetDevice._id = doc._id
+                    packetDevice._rev = doc._rev
+                    #devices[doc._id] = packetDevice
+                    addSwapEvent
+                        type: "info"
+                        name: "newSwapPacketDeviceDetected"
+                        text: "New packetDevice #{packetDevice.address} added: #{packetDevice.product.productCode} - #{devicesConfig[productCode].product} (#{devicesConfig[productCode].developer})"
+                        packetDevice: packetDevice
+
+                sleep.sleep 1
+        return
     else
         packetDevice = devices["DEV" + swap.num2byte(swapPacket.source)]
-    
+
     # Handles STATUS packets
     if swapPacket.func is swap.Functions.STATUS
         value = swapPacket.value
-        
-        if swapPacket.regId is swap.Registers.productCode.id
-            # First time this packetDevice talks
-            return if packetDevice
-            
-            productCode = (swap.num2byte(v) for v in swapPacket.value).join("")
-            
-            if not devicesConfig[productCode]?
-                text = "Unknown device or manufacturer Id detected: #{value}"
-                logger.warn text
-                addSwapEvent {name:"unknownDevice", text:text, type:"warning", time: new Date()}
-                return
-            
-            packetDevice = devicesConfig[productCode]
-            packetDevice.address = swapPacket.source
-            packetDevice.networkId = Config.network.networkId
-            packetDevice.frequencyChannel = Config.network.frequencyChannel
-            packetDevice.productCode = productCode
-            packetDevice.securityNonce = swapPacket.nonce
-            packetDevice.lastStatusTime = swapPacket.time
-            delete packetDevice._id
-            delete packetDevice._rev
-            
-            # Add to the list before save in DB because packets may be received during saving
-            devices["DEV" + swap.num2byte(packetDevice.address)] = packetDevice
-            
-            text = "New device detected: #{packetDevice.productCode}, #{packetDevice.address}"
-            logger.warn text
-            addSwapEvent {name:"newDevice", text:text, type:"warning", time: new Date()}
-            
-            dbPanstamp.save "DEV" + swap.num2byte(packetDevice.address), packetDevice, (err, doc) ->
-                return logger.error err if err?
-                packetDevice._id = doc._id
-                packetDevice._rev = doc._rev
-                #devices[doc._id] = packetDevice
-                text = "New packetDevice #{packetDevice.address} added: #{packetDevice.productCode} - #{devicesConfig[productCode].product} (#{devicesConfig[productCode].developer})"
-                logger.info text
-                addSwapEvent {name:"newSwapPacketDeviceDetected", text:text, packetDevice:packetDevice, time:new Date()}
-                
-            sleep.sleep 1
-            return
-        
+
         # handles missing packets ??
         if not Math.abs(packetDevice.securityNonce - swapPacket.nonce) in [1,255]
-            text = "(#{packetDevice.location}): Missing nonce: got #{swapPacket.nonce} - expected #{packetDevice.securityNonce}"
-            logger.warn text
-            addSwapEvent {name:"missingNonce", text:text, packetDevice:packetDevice, type:"warning", time: new Date()}
-        
+            addSwapEvent
+                type: "warn"
+                name: "missingNonce"
+                text: "(#{packetDevice._id}): Missing nonce: got #{swapPacket.nonce} - expected #{packetDevice.securityNonce}"
+                packetDevice: packetDevice
+
         packetDevice.securityNonce = swapPacket.nonce
         packetDevice.lastStatusTime = swapPacket.time
-        
-        if swapPacket.regId is swap.Registers.hardwareVersion.id
-            packetDevice.version.hardware = (swap.num2byte(v) for v in value).join("")
-            logger.info "(#{packetDevice.location}): Hardware version changed: #{packetDevice.version.hardware}"
-        
-        else if swapPacket.regId is swap.Registers.firmwareVersion.id
-            packetDevice.version.firmware = (swap.num2byte(v) for v in value).join("")
-            logger.info "(#{packetDevice.location}): Firmware version changed: #{packetDevice.version.firmware}"
-        
+
+        if swapPacket.regId is swap.Registers.productCode.id
+            # Nothing special to do 
         else if swapPacket.regId is swap.Registers.state.id
             packetDevice.systemState = swap.SwapStates.get value
-            text = "(#{packetDevice.location}): State changed to #{packetDevice.systemState.str}"
-            logger.info text
-            addSwapEvent {name:"systemState", text:text, packetDevice: packetDevice, time: new Date() }
+            addSwapEvent
+                type: "info"
+                topic: "systemState"
+                text: "(#{packetDevice._id}): State changed to #{packetDevice.systemState.str}"
+                packetDevice: packetDevice
+
             packetDevice.systemState = packetDevice.systemState.level
-        
+
         else if swapPacket.regId is swap.Registers.channel.id
             packetDevice.frequencyChannel = value[0]
-            text = "(#{packetDevice.location}): Channel changed to #{packetDevice.frequencyChannel}"
-            logger.warn text
-            addSwapEvent {name:"frequencyChannel", text:text, packetDevice:packetDevice, time: new Date()}
-        
+            addSwapEvent
+                type: "warn"
+                topic: "frequencyChannel"
+                text: "(#{packetDevice._id}): Channel changed to #{packetDevice.frequencyChannel}"
+                packetDevice: packetDevice
+
         else if swapPacket.regId is swap.Registers.security.id
             packetDevice.securityOption = value[0]
-            text = "(#{packetDevice.location}): Security changed to #{packetDevice.securityOption}"
-            logger.info text
-            addSwapEvent {name:"securityOption", text:text, packetDevice:packetDevice, time: new Date()}
-        
+            addSwapEvent
+                type: "info"
+                topic: "securityOption"
+                text: "(#{packetDevice._id}): Security changed to #{packetDevice.securityOption}"
+                packetDevice: packetDevice
+
         else if swapPacket.regId is swap.Registers.password.id
             packetDevice.securityPassword = (swap.num2byte(v) for v in value).join("")
-            text = "(#{packetDevice.location}): Password changed"
-            logger.info text
-            addSwapEvent {name:"securityPassword", text:text, packetDevice:packetDevice, time: new Date()}
-        
+            addSwapEvent
+                type: "info"
+                topic: "securityPassword"
+                text: "(#{packetDevice._id}): Password changed"
+                packetDevice: packetDevice
+
         else if swapPacket.regId is swap.Registers.nonce.id
             packetDevice.securityNonce = value[0]
-            text = "(#{packetDevice.location}): Nonce received to #{packetDevice.securityNonce}"
-            logger.debug text
-            addSwapEvent {name:"securityNonce", text:text, packetDevice:packetDevice, time: new Date()}
-        
+            addSwapEvent
+                type: "info"
+                topic: "securityNonce"
+                text: "(#{packetDevice._id}): Nonce received to #{packetDevice.securityNonce}"
+                packetDevice:packetDevice
+
         else if swapPacket.regId is swap.Registers.network.id
             value = 256 * value[0] + value[1]
             packetDevice.networkId = value
-            text = "(#{packetDevice.location}): Network changed to #{value}"
-            logger.warn text
-            addSwapEvent {name:"network", text:text, packetDevice:packetDevice, time: new Date()}
-        
+            addSwapEvent
+                type: "info"
+                topic: "network"
+                text: "(#{packetDevice._id}): Network changed to #{value}"
+                packetDevice: packetDevice
+
         else if swapPacket.regId is swap.Registers.address.id
             newAddress = value[0]
             oldAddress = packetDevice.address
-            if oldAddress != newAddress  # may be due a QUERY request 
+            if oldAddress != newAddress  # may be due a QUERY request
                 dbPanstamp.save "DEV" + swap.num2byte(newAddress), packetDevice, (err, doc) ->
                     return logger.error err if err?
                     devices["DEV" + swap.num2byte(newAddress)] = packetDevice
-                    text = "(#{packetDevice.location}): Address changed from #{oldAddress} to #{newAddress}"
-                    logger.info text
-                    addSwapEvent {name:"address", text: text, packetDevice: packetDevice, oldAddress:oldAddress, time: new Date()}
-                    
+                    addSwapEvent
+                        type: "info"
+                        topic: "address"
+                        text: "(#{packetDevice._id}): Address changed from #{oldAddress} to #{newAddress}"
+                        packetDevice: packetDevice
+                        oldAddress: oldAddress
+
                     cid = "DEV" + swap.num2byte(oldAddress)
                     dbPanstamp.remove cid, devices[cid]._rev, (err, res) ->
                         return logger.error err if err?
                         delete devices[cid]
                         return true
-        
+
         else if swapPacket.regId is swap.Registers.txInterval.id
             value = 256 * value[0] + value[1]
-            text = "(#{packetDevice.location}): Transmit interval changed to #{value}"
-            logger.info text
-            packetDevice.txInterval = value;
-            addSwapEvent {name: "txInterval", text: text, packetDevice: packetDevice, time: new Date()}
-        
-        # Retrieve value from endpoints definition 
+            packetDevice.txInterval = value
+            addSwapEvent
+                type: "info"
+                topic: "txInterval"
+                text: "(#{packetDevice._id}): Transmit interval changed to #{value}"
+                packetDevice: packetDevice
+
+        # Retrieve value from endpoints definition
         else
             foundRegisters = (register for register in packetDevice.configRegisters when register.id == swapPacket.regId)
             if foundRegisters.length == 1
                 foundRegister = foundRegisters[0]
                 updateParamsValue foundRegister, swapPacket
-                text = "(#{packetDevice.location}): Register #{foundRegister.name} changed to #{value}"
-                logger.info text
-                addSwapEvent {name: "REG-" + swapPacket.regId, text: text, packetDevice: packetDevice, time: new Date()}
+                addSwapEvent
+                    type: "info"
+                    topic: "register"
+                    text: "(#{packetDevice._id}): Register #{foundRegister.name} changed to #{value}"
+                    packetDevice: packetDevice
             else
                 foundRegisters = (register for register in packetDevice.regularRegisters when register.id == swapPacket.regId)
                 if foundRegisters.length == 1
                     foundRegister = foundRegisters[0]
                     updateEndpointsValue foundRegister, swapPacket
-                    text = "(#{packetDevice.location}): Register #{foundRegister.name} changed to #{value}"
-                    logger.info text
-                    addSwapEvent {name: "REG-" + swapPacket.regId, text: text, packetDevice: packetDevice, time: new Date()}
+                    addSwapEvent
+                        type: "info"
+                        topic: "register"
+                        text: "(#{packetDevice._id}): Register #{foundRegister.name} changed to #{value}"
+                        packetDevice: packetDevice
                 else
-                    text = "(#{packetDevice.location}): Unknown register #{swapPacket.regId}"
-                    logger.info text
-                    addSwapEvent {name: "REG-" + swapPacket.regId, text: text, packetDevice: packetDevice, time: new Date()}
+                    addSwapEvent
+                        type: "warn"
+                        topic: "register"
+                        text: "(#{packetDevice._id}): Unknown register #{swapPacket.regId}"
+                        packetDevice: packetDevice
                     return
-        
-        text = "Updating device #{packetDevice.address}: Current revision is #{packetDevice._rev}"
-        logger.info text
-        addSwapEvent {name: "REG-" + swapPacket.regId, text: text, packetDevice: packetDevice, time: new Date()}
+
         dbPanstamp.save "DEV" + swap.num2byte(packetDevice.address), packetDevice._rev, packetDevice, (err, res) ->
             return logger.error err if err?
             devices["DEV" + swap.num2byte(packetDevice.address)]._rev = res.rev
             ss.api.publish.all "devicesUpdated"
-            
-        publisher.publish [
-            "SWAP_PACKET"
-            JSON.stringify
-                swapPacket : swapPacket
-                packetDevice : packetDevice
-        ]
-        
-    else if swapPacketfunc is swap.Functions.QUERY
-        logger.info "Query request received from #{swapPacketsource} for packetDevice #{swapPacketdest} register #{swapPacket.regId}" 
-    else if swapPacketfunc is swap.Functions.COMMAND
-        logger.info "Command request received from #{swapPacketsource} for packetDevice #{swapPacket.dest} register #{swapPacket.regId} with value #{swapPacket.value}"
-    else
-        logger.error "Received packet does not contain a valid function: #{swapPacket.func}"
 
+    else if swapPacket.func is swap.Functions.QUERY
+        logger.info "Query request received from #{swapPacketsource} for packetDevice #{swapPacketdest} register #{swapPacket.regId}"
+    else if swapPacket.func is swap.Functions.COMMAND
+        logger.info "Command request received from #{swapPacketsource} for packetDevice #{swapPacket.dest} register #{swapPacket.regId} with value #{swapPacket.value}"
+    
+    publisher.publish swap.MQ.Type.SWAP_PACKET, 
+        swapPacket: swapPacket
+    addSwapPacket swapPacket, packetDevice
+    
 updateEndpointsValue = (register, swapPacket) ->
-    for endpoint in register.endpoints
-        do (endpoint) ->
-            if swapPacket.value isnt undefined
-                temp = if swapPacket.value.length is undefined then [swapPacket.value] else swapPacket.value
-                endpoint.value = temp.slice(parseInt(endpoint.position), (parseInt(endpoint.position) + parseInt(endpoint.size)))
-                if endpoint.type is "number"
-                    value = 0
-                    value += v * Math.pow(256, endpoint.value.length - 1 - i) for v, i in endpoint.value
-                    endpoint.value = value
+    register.time = swapPacket.time
+    register.value = if swapPacket.value.length is undefined then [swapPacket.value] else swapPacket.value
+
+    #for endpoint in register.endpoints
+    #    do (endpoint) ->
+    #        if swapPacket.value isnt undefined
+    #            temp = if swapPacket.value.length is undefined then [swapPacket.value] else swapPacket.value
+    #            endpoint.value = temp.slice(parseInt(endpoint.position), (parseInt(endpoint.position) + parseInt(endpoint.size)))
+    #            register.time = swapPacket.time
+    #            if endpoint.type is "number"
+    #                value = 0
+    #                value += v * Math.pow(256, endpoint.value.length - 1 - i) for v, i in endpoint.value
+    #                endpoint.value = value
 
 updateParamsValue = (register, swapPacket) ->
-    for param in register.params
-        do (param) ->
-            if swapPacket.value isnt undefined
-                temp = if swapPacket.value.length is undefined then [swapPacket.value] else swapPacket.value
-                param.value = temp.slice(parseInt(param.position), (parseInt(param.position) + parseInt(param.size)))
-                if param.type is "number"
-                    value = 0
-                    value += v * Math.pow(256, param.value.length - 1 - i) for v, i in param.value
-                    param.value = value
+    register.time = swapPacket.time
+    register.value = if swapPacket.value.length is undefined then [swapPacket.value] else swapPacket.value
+
+    #for param in register.params
+    #    do (param) ->
+    #        if swapPacket.value isnt undefined
+    #            temp = if swapPacket.value.length is undefined then [swapPacket.value] else swapPacket.value
+    #            param.value = temp.slice(parseInt(param.position), (parseInt(param.position) + parseInt(param.size)))
+    #            register.time = swapPacket.time
+    #            if param.type is "number"
+    #                value = 0
+    #                value += v * Math.pow(256, param.value.length - 1 - i) for v, i in param.value
+    #                param.value = value
 
 # Return TRUE if device must be saved in DB
 # Return FALSE in case no update is required or update is handled by STATUS packet
 onUpdateDevice = (oldDevice, newDevice) ->
     if oldDevice.address = 255 and newDevice.address != 255
-        sendCommand oldDevice.address, swap.Registers.address, newDevice.address
+        sendSwapCommand oldDevice.address, swap.Registers.address, newDevice.address
         return false
     else if oldDevice.location != newDevice.location
         return true
     else
         return false
-    
+
 # Gets the value of a specific register
-sendQuery = (address, registerId) ->
+sendSwapQuery = (address, registerId) ->
     sp = new swap.SwapPacket()
     sp.source = Config.network.address
     sp.dest = address
@@ -329,7 +431,7 @@ sendQuery = (address, registerId) ->
     serial.send(sp)
 
 # Sets the value of a specific register
-sendCommand = (address, registerId, value) ->
+sendSwapCommand = (address, registerId, value) ->
     sp = new swap.SwapPacket()
     sp.source = Config.network.address
     sp.dest = address
@@ -339,6 +441,17 @@ sendCommand = (address, registerId, value) ->
     sp.value = value
     serial.send(sp)
 
+# Send a generic swap packet
+sendSwapPacket = (functionCode, address, registerId, value) ->
+    sp = new swap.SwapPacket()
+    sp.source = Config.network.address
+    sp.dest = address
+    sp.func = functionCode
+    sp.regAddress = address
+    sp.regId = registerId
+    sp.value = value
+    serial.send(sp)
+    
 destroy = () ->
     publisher.destroy
     udpBridge.destroy
@@ -350,29 +463,37 @@ exports.actions = (req, res, ss) ->
 
     getConfig: ->
         res Config
-    
+
     updateConfig: (Config) ->
         @Config = Config
         res Config
-    
+
     getDevices: ->
         res devices
-    
-    getSwapPackets: () ->
+
+    getLevels: ->
+        res levels
+
+    getLights: ->
+        res lights
+
+    getSwapPackets: ->
         res swapPackets
-    
-    getSwapEvents: () ->
+
+    getSwapEvents: ->
         res swapEvents
+
+    getLightStatus: ->
+        res lastLightStatus
     
     refreshDevices: ->
-        initDevicesConfig()
-        initDevices()
+        initLevels()
         res true
-    
+
     refreshSwapPackets: ->
         initSwapPackets()
         res true
-    
+
     updateDevice: (oldDevice, newDevice) ->
         # TODO: handle device update...
         if onUpdateDevice oldDevice, newDevice
@@ -383,7 +504,7 @@ exports.actions = (req, res, ss) ->
               devices[cid] = newDevice
               return true
         res true
-    
+
     deleteDevice: (address) ->
         cid = "DEV" + swap.num2byte address
         dbPanstamp.remove cid, devices[cid]._rev, (err, res) ->
@@ -391,28 +512,44 @@ exports.actions = (req, res, ss) ->
             delete devices[cid]
             return true
         res true
-    
+
     # Gets the value of a specific register
-    sendQuery: (address, registerId) ->
-        sendQuery address, registerId
+    sendSwapQuery: (address, registerId) ->
+        sendSwapQuery address, registerId
 
     # Sets the value of a specific register
-    sendCommand: (address, registerId, value) ->
-        sendCommand address, registerId, value
-    
+    sendSwapCommand: (address, registerId, value) ->
+        sendSwapCommand address, registerId, value
+
+    # Send a generic swap packet
+    sendSwapPacket: (functionCode, address, registerId, value) ->
+        sendSwapPacket functionCode, address, registerId, value
+
+    sendSwapEvent: (topic, data) ->
+        addSwapEvent
+            "topic": topic,
+            "text": data
+
     checkNewDevices: () ->
-        sendQuery address, swap.Registers.productCode.id
-    
+        sendSwapQuery address, swap.Registers.productCode.id
+
     onSerial: (str) ->
         data = "(0000)" + str
         swapPacket = new swap.CCPacket data
         swapPacket = new swap.SwapPacket swapPacket
-        
+
         logger.info "OnSerial:"
         logger.info swapPacket
-        
+
         swapPacketReceived swapPacket
-        
+
         ss.publish.all "swapPacket", swapPacket
         swapPackets.splice(0, 0, swapPacket)
         swapPackets.pop() if swapPackets.length > 40
+        
+    cleanCouchDB: ->
+        dbPanstamp.view "devices/clean", (err, res) ->
+            logger.error err if err?
+            res.forEach (key, row, id) ->
+                dbPanstamp.remove key, row if key.indexOf("2ec0b3141c") == 0
+                

@@ -8,7 +8,8 @@ services we taken / derived from there.
 # apply ss.rpc with array ['demoRpc.foobar', arg2, arg3], {callback}]
 
 # The rpc response is a promise to resolve with .then((res)->)
-angular.module('swap.services', []).factory('rpc', ['$q', '$rootScope', ($q, $rootScope) ->
+angular.module('swap.services', [
+]).factory('rpc', ['$q', '$rootScope', ($q, $rootScope) ->
     console.log 'Rpc service created'
     exec: (command) ->
         args = Array::slice.apply(arguments)
@@ -22,7 +23,7 @@ angular.module('swap.services', []).factory('rpc', ['$q', '$rootScope', ($q, $ro
     # use cache across controllers for client-side caching
     cache: {}
 
-]).factory 'pubsub', ['$rootScope', ($rootScope) ->
+]).factory('pubsub', ['$rootScope', ($rootScope) ->
   console.log 'Websocket pubsub service created'
   
   ###
@@ -53,5 +54,5 @@ angular.module('swap.services', []).factory('rpc', ['$q', '$rootScope', ($q, $ro
     
     # call angular's $on version
     old$on.apply this, arguments
-]
+])
 # end $on redefinition

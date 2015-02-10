@@ -19,8 +19,9 @@
             <meta-data android:name="android.support.PARENT_ACTIVITY" android:value="eu.pochet.domotix.DomotixActivity" />
         </activity>
         <service android:name=".service.ActionService" />
-        <service android:name=".service.LightStatusUpdateService" />
-        <service android:name=".service.ZMQListenerService"></service>
+        <!-- <service android:name=".service.LightStatusUpdateService" /> -->
+        <service android:name=".service.UDPListenerService"></service>
         <service android:name=".service.UpdateDaoService"></service>
+        <!-- <service android:name=".service.WebsocketClientUpdateService"></service> -->
     </application>
 </manifest>

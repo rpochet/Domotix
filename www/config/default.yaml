@@ -4,22 +4,19 @@ serial:
     dummy: false
     port: /dev/ttyAMA0
     baudrate: 38400
-devices:
-    local: devices
-    remote: http://www.panstamp.com/downloads/devices.tar
-    update: false
 network:
     frequencyChannel: 0
     networkId: 46406
     address: 1
     security: 0
 broker:
-    host: 192.168.1.4
-    port: 10000
+    type: udp  # local / zmq / faye / rabbitmq / udp
+    host: 192.168.1.255 # 192.168.1.4 / 192.168.1.4 / 192.168.1.4 / 192.168.1.4 / 192.168.1.255
+    port: 5556 # 4000 / 4000 / 5672 / 5556
+    path: domotix
 udpBridge:
     host: 192.168.1.4
     inport: 5555
-	outport: 5556
 couchDB:
     host: 192.168.1.4
     port: 5984

@@ -14,8 +14,11 @@
 #include "register.h"
 #include "commonregs.h"
 
-#define EEPROM_CONFIG_SENSOR_DELAY   EEPROM_FIRST_CUSTOM
-#define EEPROM_TOUCH_CONFIG          EEPROM_CONFIG_SENSOR_DELAY + 2
+/**
+ * EEPROM addresses
+ */
+#define NVOLAT_CONFIG_SENSOR_DELAY   NVOLAT_FIRST_CUSTOM
+#define NVOLAT_TOUCH_CONFIG          NVOLAT_CONFIG_SENSOR_DELAY + 2
 
 /**
  * Register indexes

@@ -1,12 +1,36 @@
 extends layout
 block content
   tabs
-    pane(title="Swap Gateway")
+              
+    pane(title="Domotix")
+      .container(ng-controller="DomotixCtrl", data-spy="scroll", data-target=".domotix", style="position: relative;")
+        .domotix
+          tabs
+            pane(ng-repeat="level in levels", title="{{level.name}}")
+              svg(viewBox="0 0 1200 1200", version = "1.1", width="1200px", height="1200px", ng-click="handleSvgClick($event, level)")
+              
+                defs
+                  circle(id="r1", cx="0", cy="0", r="50", stroke-width="0")
+                  radialGradient(id="g1", cx="50%", cy="50%", r="50%")
+                    stop(stop-color="grey", offset="0%")
+                    stop(stop-color="white", offset="100%")
+                  circle(id="r2", cx="0", cy="0", r="50", stroke-width="0")
+                  radialGradient(id="g2", cx="50%", cy="50%", r="50%")
+                    stop(stop-color="black", offset="0%")
+                    stop(stop-color="teal", offset="50%")
+                    stop(stop-color="white", offset="100%")
+                
+                path(id="level{{level.id}}", d="{{level.path}}", fill="white", stroke="#428bca", stroke-width="6")
+                g(ng-repeat="room in level.rooms")
+                  path(id="room{{room.id}}", d="{{room.path}}", fill="white", stroke="#428bca", stroke-width="3")
+                  use(ng-repeat="light in room.lights", id="light-{{light.swapDeviceAddress}}-{{light.outputNb}}", x="{{lightPosition(room, light)[0]}}", y="{{lightPosition(room, light)[1]}}", xlink:href="{{lightDef(room, light)}}", fill="{{lightFill(room, light)}}")
+                  
+    pane(title="Devices")
       .container(ng-controller="DeviceListCtrl")
-        h1 Swap Gateway
+        h1 Domotix Gateway
         hr
         .row
-          h3 Stamps
+          h3 Swap Devices
           #devices
             table.table.table-hover
               thead
@@ -26,8 +50,6 @@ block content
                   th
                     | Tx Interval
                   th
-                    | Version
-                  th
                     | System State
                   th
                     | Security Option
@@ -38,21 +60,19 @@ block content
               tbody
                 tr(ng-repeat="device in devices | objectToArray | orderBy: location", ng-click="selectDevice(device)", ng-class="{ 'warning' : device.address == 255, 'info' : noSee(device), 'danger' : device.networkId != config.network.networkId || device.frequencyChannel != config.network.frequencyChannel }")
                   td
-                    {{device.location}}
+                    {{device.location.room.name}}
                   td
                     {{device.address}}
                   td
                     {{device.lastStatusTime | date:"dd/MM/yyyy @ HH:mm:ss"}}
                   td
-                    {{device.productCode}}
+                    {{device.product}}
                   td
                     {{device.frequencyChannel}}
                   td
                     {{device.networkId}}
                   td
                     {{device.txInterval}}
-                  td
-                    {{device.version}}
                   td
                     {{device.systemState | systemState}}
                   td
@@ -69,16 +89,11 @@ block content
                   .form-group
                     label.col-sm-2.control-label Product Code
                     .col-sm-10
-                      p.form-control-static {{editedDevice.productCode}}
+                      p.form-control-static {{editedDevice.product}}
                   .form-group
                     label.col-sm-2.control-label State
                     .col-sm-10
                       p.form-control-static {{editedDevice.systemState | systemState}}
-                  .form-group
-                    label.col-sm-2.control-label Version
-                    .col-sm-10
-                      p.form-control-static {{editedDevice.version.hardware}}
-                      p.form-control-static {{editedDevice.version.firmware}}
                   .form-group
                     label.col-sm-2.control-label Last Status
                     .col-sm-10
@@ -90,7 +105,7 @@ block content
                   .form-group
                     label.col-sm-2.control-label Location
                     .col-sm-10
-                      input.form-control(type="text", placeholder="Room ...", ng-model="editedDevice.location", required)
+                      input.form-control(type="text", placeholder="Room Id...", ng-model="editedDevice.location.room_id", required)
                   .form-group
                     label.col-sm-2.control-label Address
                     .col-sm-10
@@ -117,22 +132,23 @@ block content
                 fieldset
                   legend Config registers
                   div(ng-repeat="register in editedDevice.configRegisters")
-                    h4 {{register.name}} ({{register.id}})
+                    h4 {{register.name}} ({{register.id}}) / {{register.value}}
                     div(ng-repeat="param in register.params")
                       .form-group
                         label.col-sm-2.control-label {{param.name}}
                         .col-sm-10
+                          {{registerPartValue(param, register.value)}}
                           input.form-control(type="{{param.type}}", title="{{param.name}}", ng-disabled="param.dir == 'output'", ng-model="param.value", required, min="0", max="4294967295", integer)
                 fieldset
                   legend Regular registers
                   div(ng-repeat="register in editedDevice.regularRegisters")
-                    h4 {{register.name}} ({{register.id}})
+                    h4 {{register.name}} ({{register.id}}) / {{register.value}}
                     div(ng-repeat="endpoint in register.endpoints")
                       .form-group
                         label.col-sm-2.control-label {{endpoint.name}}
                         .col-sm-10
-                          {{endpoint.value}}
-                          input.form-control(type="{{endpoint.type}}", title="{{endpoint.name}}", ng-disabled="endpoint.dir == 'output'", ng-model="endpoint.value", required, min="0", max="4294967295", integer)
+                          {{registerPartValue(endpoint, register.value)}}
+                          input.form-control(type="{{endpoint.type}}", title="{{endpoint.name}}", ng-disabled="endpoint.dir == 'output'", ng-model="endpoint.value", required)
         
     pane(title="Config")
       .container(ng-controller="ConfigCtrl")
@@ -205,7 +221,7 @@ block content
           h4 Network Events
           #events
             div(ng-repeat="swapEvent in swapEvents", ng-class="{even: $even, odd: $odd}")
-              span("class"="text-{{swapEvent.type}}") {{swapEvent.text}}
+              span("class"="text-{{swapEvent.topic}}") {{swapEvent.data}}{{swapEvent.text}}
               span.pull-right.muted <small> {{swapEvent.time| date:"dd/MM/yyyy @ HH:mm:ss"}} </small>
         .row
           h4 Last Packets
@@ -253,8 +269,9 @@ block content
                   input.form-control(type="number", ng-model="message.register.id")
                 .form-group
                   label Register Value (Command only - Length and value)
-                  input.form-control(type="number", ng-model="message.register.length", ng-disabled="message.functionCode != 2")
-                  input.form-control(type="number", ng-model="message.register.value", ng-disabled="message.functionCode != 2")
+                  input.form-control(type="number", ng-model="message.register.length", ng-disabled="message.functionCode < 2")
+                  input.form-control(type="number", ng-model="message.register.value", ng-disabled="message.functionCode < 2")
+                  input.form-control(ng-model="message.register.valueStr", ng-disabled="message.functionCode < 2")
                 br
                 input("class"="btn-primary", type="submit", value="Send")
             
@@ -277,15 +294,9 @@ block content
     pane(title="Plugins")
       .container(data-spy="scroll", data-target=".plugins", style="position: relative;")
         .plugins
-          ul.nav.nav-tabs(role="tablist")
-            li
-              a(href="#plugin_pressure")
-                | Barometre
-            li
-              a(href="#network_status")
-                | Etat reseau
-          
-          #plugin_pressure
-            iframe(src="/pressure.html", width="100%", height="740", frameborder="0")
-          #network_status
-            iframe(src="/network_status.html", width="100%", height="700", frameborder="0")
+          tabs
+            pane(title="Barometre")
+              iframe(src="/pressure.html", width="100%", height="740", frameborder="0")
+            pane(title="Etat reseau")
+              iframe(src="/network_status.html", width="100%", height="700", frameborder="0")
+    

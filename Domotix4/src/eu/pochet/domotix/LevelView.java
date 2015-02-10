@@ -13,10 +13,6 @@ public abstract class LevelView extends ImageView {
 
 	protected Level level = null;
 
-	protected int levelX = 0;
-
-	protected int levelY = 0;
-
 	private float ratioX = 0F;
 
 	private float ratioY = 0F;

@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.util.AttributeSet;
 import eu.pochet.domotix.dao.Level;
+import eu.pochet.domotix.dao.Room;
 import eu.pochet.domotix.dao.SwapDevice;
 
 public class SwapDeviceLevelView extends LevelView {
@@ -24,14 +25,6 @@ public class SwapDeviceLevelView extends LevelView {
 		super(context, level);
 	}
 
-	public float getSwapDeviceX(SwapDevice swapDevice) {
-		return swapDevice.getRoom().getX() + levelX + swapDevice.getX();
-	}
-
-	public float getSwapDeviceY(SwapDevice swapDevice) {
-		return swapDevice.getRoom().getY() + levelY + swapDevice.getY();
-	}
-
 	public void init() {
 		android.graphics.BitmapFactory.Options options = new android.graphics.BitmapFactory.Options();
 		options.inDither = true;
@@ -44,20 +37,22 @@ public class SwapDeviceLevelView extends LevelView {
 
 	protected void onDraw(Canvas canvas) {
 		super.onDraw(canvas);
-		for (SwapDevice swapDevice : level.getSwapDevices()) {
-			float swapDeviceX = getSwapDeviceX(swapDevice);
-			float swapDeviceY = getSwapDeviceY(swapDevice);
-			//if (swapDevice.getStatus() == 0) {
-				canvas.drawBitmap(mSwapDeviceBitmap, 
-						Constants.CARD_OFFSET_X + swapDeviceX * getRatioX(), 
-						Constants.CARD_OFFSET_Y + swapDeviceY * getRatioY(), 
-						null);
-			/*} else {
-				canvas.drawBitmap(mTempBitmap, 
-						Constants.CARD_OFFSET_X + swapDeviceX * getRatioX(), 
-						Constants.CARD_OFFSET_Y + swapDeviceY * getRatioY(), 
-						null);
-			}*/
+		for(Room room : level.getRooms()) {
+			for (SwapDevice swapDevice : room.getSwapDevices()) {
+				float swapDeviceX = swapDevice.getLocation().getAbsoluteX();
+				float swapDeviceY = swapDevice.getLocation().getAbsoluteY();
+				//if (swapDevice.getStatus() == 0) {
+					canvas.drawBitmap(mSwapDeviceBitmap, 
+							Constants.CARD_OFFSET_X + swapDeviceX * getRatioX(), 
+							Constants.CARD_OFFSET_Y + swapDeviceY * getRatioY(), 
+							null);
+				/*} else {
+					canvas.drawBitmap(mTempBitmap, 
+							Constants.CARD_OFFSET_X + swapDeviceX * getRatioX(), 
+							Constants.CARD_OFFSET_Y + swapDeviceY * getRatioY(), 
+							null);
+				}*/
+			}
 		}
 	}
 }

@@ -28,7 +28,6 @@ class UdpBridge extends events.EventEmitter
         server.bind @config.inport, @config.host
 
         logger.info "Listening on UDP port #{config.inport}"
-        
         logger.info "Udp Bridge waiting for message..."
     
     destroy: () ->

@@ -13,6 +13,7 @@
         <EditTextPreference
             android:defaultValue="@integer/domotix_bus_input_port"
             android:inputType="number"
+            android:numeric="integer"
             android:key="domotix.bus.input.port"
             android:title="Domotix Bus Input Port" />
         <EditTextPreference
@@ -22,6 +23,7 @@
         <EditTextPreference
             android:defaultValue="@integer/domotix_bus_output_port"
             android:inputType="number"
+            android:numeric="integer"
             android:key="domotix.bus.output.port"
             android:title="Domotix Bus Output Port" />
     </PreferenceCategory>

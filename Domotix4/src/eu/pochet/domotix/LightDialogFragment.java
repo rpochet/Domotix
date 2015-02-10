@@ -36,7 +36,7 @@ public class LightDialogFragment extends DialogFragment {
 							public void onClick(DialogInterface dialoginterface, int i) {
 								Light light = ((Light) getArguments().getSerializable("light"));
 								ActionBuilder actionBuilder = new ActionBuilder()
-									.setType(ActionBuilder.TYPE_LIGHT_SWITCH)
+									.setType(ActionBuilder.TYPE_LIGHT_UPDATE)
 									.setLightId(light.getId());
 								if (state.isChecked() != initialState) {
 									actionBuilder.setLightStatus(state.isChecked() ? 254 : 0);

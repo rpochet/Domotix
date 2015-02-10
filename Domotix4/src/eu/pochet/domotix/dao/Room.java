@@ -1,16 +1,25 @@
 package eu.pochet.domotix.dao;
 
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
-public class Room 
-{
+public class Room implements Serializable 
+{	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	
 	private int id;
 	
 	private String name;
 	
 	private String path;
 	
-	private List<Light> lights;
+	private List<SwapDevice> swapDevices = new ArrayList<SwapDevice>();
+	
+	private List<Light> lights = new ArrayList<Light>();
 	
 	private Level level;
 	
@@ -48,6 +57,22 @@ public class Room
 
 	public void setLights(List<Light> lights) {
 		this.lights = lights;
+	}
+
+	public void addLight(Light light) {
+		getLights().add(light);
+	}
+	
+	public List<SwapDevice> getSwapDevices() {
+		return swapDevices;
+	}
+	
+	public void setSwapDevices(List<SwapDevice> swapDevices) {
+		this.swapDevices = swapDevices;
+	}
+
+	public void addSwapDevice(SwapDevice swapDevice) {
+		getSwapDevices().add(swapDevice);
 	}
 	
 	public Level getLevel() {

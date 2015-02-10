@@ -7,14 +7,17 @@ serialPort = new serialport.SerialPort("/dev/ttyAMA0", {
 
 serialPort.on("open", function() {
     console.log("Port " + this.path + " opened");
-    serialPort.on("data", function(data) {
-        console.log("Received: " + data);
-    });
     
-    setTimeout(function() {
+	//serialPort.write("+++");
+
+    /*setTimeout(function() {
         console.log("Sending 0201000001020b\r");
         serialPort.write("0201000001020b\r");
-    }, 1000.0);
+    }, 5000.0);*/
+});
+
+serialPort.on("data", function(data) {
+    console.log("Received: " + data);
 });
 
 serialPort.on("close", function() {
@@ -25,7 +28,7 @@ serialPort.on("error", function(err) {
     console.log("Error " + err);
 });
 
-setTimeout(function() {
+/*setTimeout(function() {
     serialPort.close();
-}, 10000.0);
+}, 50000.0);*/
 

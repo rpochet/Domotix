@@ -1,8 +1,6 @@
 // My SocketStream 0.3 app
 
 var http = require('http'),
-    faye = require('faye'),
-    amqp = require('amqp'),
     c = require('coffee-script'),
     ss = require('socketstream'),
     log4js = require('log4js'),
@@ -20,7 +18,7 @@ var logger = log4js.getLogger(__filename.split('/').pop(-1).split('.')[0]);
 //ss.session.store.use('redis');
 //ss.publish.transport.use('redis');
 
-ss.ws.transport.use(require('ss-engine.io'));
+//ss.ws.transport.use(require('ss-engine.io'));
 
 // code & template formatters
 ss.client.formatters.add(require('ss-coffee'));
@@ -60,29 +58,6 @@ ss.http.route('/', function(req, res){
 
 // Start web server 
 var server = http.Server(ss.http.middleware); 
-if(brokerConfig.type == 'faye') {
-    var bayeux = new faye.NodeAdapter({
-        mount: '/domotix', timeout: 45
-    });
-    bayeux.on('handshake', function(clientId) {
-        logger.debug('Handshake %s', clientId);
-    });
-    bayeux.on('disconnect', function(clientId) {
-        logger.debug('Disconnect %s', clientId);
-    });
-    bayeux.on('subscribe', function(clientId, channel) {
-        logger.debug('Subscribe %s for %s', clientId, channel);
-    });
-    bayeux.on('unsubscribe', function(clientId, channel) {
-        logger.debug('Unsubscribe %s for %s', clientId, channel);
-    });
-    bayeux.on('publish', function(clientId, channel, data) {
-        logger.debug('Message publish %s for %s:', clientId, channel);
-        logger.debug(data);
-    });
-    bayeux.attach(server);
-}
-
 server.listen(serverConfig.port);
 logger.info('Server listening on port %d in %s mode', serverConfig.port, ss.env);
 
@@ -90,43 +65,11 @@ logger.info('Server listening on port %d in %s mode', serverConfig.port, ss.env)
 ss.start(server);
 
 setTimeout(function () {
-    if(brokerConfig.type == 'faye') { 
-        bayeux.getClient().publish('/network', { 
-            type: "SERVER_STARTED",
-            port: serverConfig.port,
-            time: moment().format()
-        });
-    } else if(brokerConfig.type == 'rabbitmq') {
-        var connection = amqp.createConnection();
-        connection.on('ready', function(){
-            connection.publish('network', JSON.stringify({
-                "type": "SERVER_STARTED",
-                "time": moment().format()
-            }));
-        });
-    } else {
-        ss.api.publish.all("sendSwapEvent", "network", "SERVER_STARTED"); 
-    }
+    ss.api.publish.all("sendSwapEvent", "network", "SERVER_STARTED");
 }, 3000);
 
 process.on('SIGINT', function(){
-    if(brokerConfig.type == 'faye') { 
-        bayeux.getClient().publish('/network', { 
-            "type": "SERVER_STOPPED",
-            "time": moment().format()
-        }); 
-    } else if(brokerConfig.type == 'rabbitmq') {
-        var connection = amqp.createConnection();
-        connection.on('ready', function(){
-            connection.publish('network', JSON.stringify({
-                "type": "SERVER_STOPPED",
-                "time": moment().format()
-            }));
-        });
-    } else {
-        ss.api.publish.all("sendSwapEvent", "network", "SERVER_STOPPED"); 
-    }
-
+    ss.api.publish.all("sendSwapEvent", "network", "SERVER_STOPPED");
     logger.info('Server is stopping...');
     logger.info(arguments);
     process.exit()

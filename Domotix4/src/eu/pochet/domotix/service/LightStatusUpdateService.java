@@ -11,14 +11,13 @@ import java.util.TimerTask;
 
 import org.apache.commons.io.IOUtils;
 
-import eu.pochet.domotix.Constants;
-import eu.pochet.domotix.dao.DomotixDao;
-
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import eu.pochet.domotix.Constants;
+import eu.pochet.domotix.dao.DomotixDao;
 
 public class LightStatusUpdateService extends Service {
 	
@@ -96,8 +95,8 @@ public class LightStatusUpdateService extends Service {
 
 	private void updateLightStatus(ArrayList<Integer> outputs) {
 		new ActionBuilder()
-			.setAction(ActionBuilder.TYPE_FROM_SWAP)
-			.setType(ActionBuilder.TYPE_LIGHT_STATUS)
+			.setAction(ActionBuilder.INTENT_FROM_SWAP)
+			.setType(ActionBuilder.ActionType.TYPE_LIGHT_STATUS)
 			.setLightsStatus(outputs)
 			.sendMessage(getBaseContext());
 	}

@@ -24,7 +24,6 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -72,7 +71,7 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 	public void onActivityCreated(Bundle bundle) {
 		super.onActivityCreated(bundle);
 		getActivity().registerReceiver(myBroadcastReceiver,
-				new IntentFilter(ActionBuilder.TYPE_FROM_SWAP));
+				new IntentFilter(ActionBuilder.INTENT_FROM_SWAP));
 	}
 
 	protected abstract boolean onBroadcastReceive(Context context, Intent intent);
@@ -135,9 +134,9 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 				mCurrentLevelId = 1 + viewFlipper.getDisplayedChild();
 				updateLevel();
 			} else if ("startall".startsWith(name)) {
-				new ActionBuilder().setType(ActionBuilder.TYPE_LIGHT_SWITCH_ON_ALL).setLevelId(mCurrentLevelId).sendMessage(getActivity());
+				new ActionBuilder().setType(ActionBuilder.ActionType.TYPE_LIGHT_SWITCH_ON_ALL).setLevelId(mCurrentLevelId).sendMessage(getActivity());
 			} else if ("stopall".startsWith(name)) {
-				new ActionBuilder().setType(ActionBuilder.TYPE_LIGHT_SWITCH_OFF_ALL).setLevelId(mCurrentLevelId).sendMessage(getActivity());
+				new ActionBuilder().setType(ActionBuilder.ActionType.TYPE_LIGHT_SWITCH_OFF_ALL).setLevelId(mCurrentLevelId).sendMessage(getActivity());
 			}
 		}
 	}
@@ -181,7 +180,7 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 
 		@Override
 		protected int getLevelLayoutViewId() {
-			return R.layout.house_level;
+			return R.layout.card_level;
 		}
 		
 		@Override
@@ -278,8 +277,8 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 					if (light != null) {
 						if(!DomotixActivity.DEBUG) {
 							new ActionBuilder()
-								.setAction(ActionBuilder.TYPE_TO_SWAP)
-								.setType(ActionBuilder.TYPE_LIGHT_SWITCH_TOGGLE)
+								.setAction(ActionBuilder.INTENT_TO_SWAP)
+								.setType(ActionBuilder.ActionType.TYPE_LIGHT_SWITCH_TOGGLE)
 								.setLightId(light.getId())
 								.sendMessage(getActivity());
 						}
@@ -307,7 +306,7 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 		@Override
 		protected boolean onBroadcastReceive(Context context, Intent intent) {
 			String action = intent.getAction();
-			if (ActionBuilder.TYPE_FROM_SWAP.equals(action)) {
+			if (ActionBuilder.INTENT_FROM_SWAP.equals(action)) {
 				getCurrentLevelView().postInvalidate();
 				return Boolean.TRUE;
 			}
@@ -327,7 +326,7 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 		@Override
 		protected boolean onBroadcastReceive(Context context, Intent intent) {
 			String action = intent.getAction();
-			if (ActionBuilder.TYPE_FROM_SWAP.equals(action)) {
+			if (ActionBuilder.INTENT_FROM_SWAP.equals(action)) {
 				((ListView) getView()).invalidateViews();
 				return Boolean.TRUE;
 			}
@@ -398,8 +397,8 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 					Light light = (Light) ((ListView) parent).getAdapter().getItem(position);
 					if(!DomotixActivity.DEBUG) {
 						new ActionBuilder()
-							.setAction(ActionBuilder.TYPE_TO_SWAP)
-							.setType(ActionBuilder.TYPE_LIGHT_SWITCH_TOGGLE)
+							.setAction(ActionBuilder.INTENT_TO_SWAP)
+							.setType(ActionBuilder.ActionType.TYPE_LIGHT_SWITCH_TOGGLE)
 							.setLightId(light.getId())
 							.sendMessage(getActivity());
 					}

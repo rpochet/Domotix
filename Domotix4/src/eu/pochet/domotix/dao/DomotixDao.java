@@ -20,7 +20,6 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.http.AndroidHttpClient;
 import android.preference.PreferenceManager;

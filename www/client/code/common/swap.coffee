@@ -114,22 +114,45 @@ SwapStates =
     get: (val) ->
         [@RESTART, @RXON, @RXOFF, @SYNC, @LOWBAT][val]
 
-Light = 
+LightController = 
     productCode: "0000006400000001"
     Functions:
         Light: Functions.CUSTOM_1
-        Rest: Functions.CUSTOM_2
+        Reset: Functions.CUSTOM_2
     Registers:
         Outputs: Registers.custom_3
     Values:
         On: 254
         Off: 0
         Toggle: 255
+
+LightSwitch = 
+    productCode: "0000006400000002"
         
 MQ =
     Type:
         SWAP_PACKET: 0
-        SWAP_DEVICE: 1        
+        SWAP_DEVICE: 1
+        LIGHT_STATUS: 2
+        PRESSURE: 3
+        TEMPERATURE: 4
+        RFU_2: 5
+        RFU_3: 6
+        RFU_4: 7
+        RFU_5: 8
+        RFU_6: 9
+        RFU_7: 10
+        RFU_8: 11
+        RFU_9: 12
+        RFU_10: 13
+        RFU_11: 14
+        RFU_12: 15
+        RFU_13: 16
+        RFU_14: 17
+        RFU_15: 18
+        RFU_16: 19
+        RFU_17: 20
+        
 module.exports =
     CCPacket: CCPacket
     SwapPacket: SwapPacket
@@ -137,7 +160,8 @@ module.exports =
     Functions: Functions
     Registers: Registers
     SwapStates: SwapStates
-    Light: Light
+    LightController: LightController
+    LightSwitch: LightSwitch
     MQ: MQ
     bytePad : bytePad
     num2byte : num2byte

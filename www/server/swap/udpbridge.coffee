@@ -8,6 +8,7 @@ logger = require("log4js").getLogger(__filename.split("/").pop(-1).split(".")[0]
 ###
 Handles communication from local network to serial port
 Emits:
+  - message: message from local network
   - swapPacket: new packet incoming from local network
     - event: SwapPacket
 ###
@@ -19,11 +20,7 @@ class UdpBridge extends events.EventEmitter
         self = this
         server.on "message", (data, rinfo) ->
             logger.info "Udp Bridge got: " + data + " from " + rinfo.address + ":" + rinfo.port 
-            packet = new swap.CCPacket ("(FFFF)" + data)
-            if packet.data
-                packet = new swap.SwapPacket packet
-                self.emit "swapPacket",
-                    packet
+            self.emit "message", data.toString()
         
         server.bind @config.inport, @config.host
 

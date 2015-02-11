@@ -35,52 +35,30 @@ block content
             table.table.table-hover
               thead
                 tr
-                  th
-                    | Location
-                  th
-                    | Address
-                  th
-                    | Last Status
-                  th
-                    | Product Code
-                  th
-                    | Frequency Channel
-                  th
-                    | Network Id
-                  th
-                    | Tx Interval
-                  th
-                    | System State
-                  th
-                    | Security Option
-                  th
-                    | Security Nonce
-                  th
-                    | Security Password
+                  th Location
+                  th Address
+                  th Last Status
+                  th Product Code
+                  th Frequency Channel
+                  th Network Id
+                  th Tx Interval
+                  th System State
+                  th Security Option
+                  th Security Nonce
+                  th Security Password
               tbody
                 tr(ng-repeat="device in devices | objectToArray | orderBy: location", ng-click="selectDevice(device)", ng-class="{ 'warning' : device.address == 255, 'info' : noSee(device), 'danger' : device.networkId != config.network.networkId || device.frequencyChannel != config.network.frequencyChannel }")
-                  td
-                    {{device.location.room.name}}
-                  td
-                    {{device.address}}
-                  td
-                    {{device.lastStatusTime | date:"dd/MM/yyyy @ HH:mm:ss"}}
-                  td
-                    {{device.product}}
-                  td
-                    {{device.frequencyChannel}}
-                  td
-                    {{device.networkId}}
-                  td
-                    {{device.txInterval}}
-                  td
-                    {{device.systemState | systemState}}
-                  td
-                    {{device.securityOption}}
-                  td
-                    {{device.securityNonce}}
-                  td
-                    {{device.securityPassword}}
+                  td {{device.location.room.name}}
+                  td {{device.address}}
+                  td {{device.lastStatusTime | date:"dd/MM/yyyy @ HH:mm:ss"}}
+                  td {{device.product}}
+                  td {{device.frequencyChannel}}
+                  td {{device.networkId}}
+                  td {{device.txInterval}}
+                  td {{device.systemState | systemState}}
+                  td {{device.securityOption}}
+                  td {{device.securityNonce}}
+                  td {{device.securityPassword}}
               
             #selectedDevice(ng-if="selectedDevice")
               form.form-horizontal(role="form")
@@ -98,7 +76,7 @@ block content
                     label.col-sm-2.control-label Last Status
                     .col-sm-10
                       p.form-control-static
-                        {{editedDevice.lastStatusTime | date:"dd/MM/yyyy @ HH:mm:ss"}}
+                        | {{editedDevice.lastStatusTime | date:"dd/MM/yyyy @ HH:mm:ss"}}
                         span(ng-show="noSee(editedDevice)").label.bg-danger Last Seen 
                         |  {{editedDevice.lastStatusTime | fromNow}} !
                 fieldset
@@ -109,7 +87,8 @@ block content
                   .form-group
                     label.col-sm-2.control-label Address
                     .col-sm-10
-                      input.form-control(type="number", placeholder="Not 1 ...", ng-model="editedDevice.address", required, min="1", max="255", integer) span(ng-show="editedDevice.address == 255").label.bg-danger Address to be defined
+                      input.form-control(type="number", placeholder="Not 1 ...", ng-model="editedDevice.address", required, min="1", max="255", integer) 
+                      span(ng-show="editedDevice.address == 255").label.bg-danger Address to be defined
                 fieldset(disabled)
                   .form-group
                     label.col-sm-2.control-label Frequency Channel
@@ -137,7 +116,7 @@ block content
                       .form-group
                         label.col-sm-2.control-label {{param.name}}
                         .col-sm-10
-                          {{registerPartValue(param, register.value)}}
+                          | {{registerPartValue(param, register.value)}}
                           input.form-control(type="{{param.type}}", title="{{param.name}}", ng-disabled="param.dir == 'output'", ng-model="param.value", required, min="0", max="4294967295", integer)
                 fieldset
                   legend Regular registers
@@ -147,7 +126,7 @@ block content
                       .form-group
                         label.col-sm-2.control-label {{endpoint.name}}
                         .col-sm-10
-                          {{registerPartValue(endpoint, register.value)}}
+                          | {{registerPartValue(endpoint, register.value)}}
                           input.form-control(type="{{endpoint.type}}", title="{{endpoint.name}}", ng-disabled="endpoint.dir == 'output'", ng-model="endpoint.value", required)
         
     pane(title="Config")

@@ -18,6 +18,7 @@ import android.util.Log;
 import eu.pochet.domotix.Constants;
 import eu.pochet.domotix.dao.DomotixDao;
 import eu.pochet.domotix.dao.SwapPacket;
+import eu.pochet.domotix.service.ActionBuilder.ActionType;
 
 public class UDPListenerService extends Service {
 
@@ -104,7 +105,6 @@ public class UDPListenerService extends Service {
 		int messageLength = 0;
 		int nbPipe = 0;
 		int i = 0;
-		int val = 0;
 		for (; ; i++) {
 			if(packet[i] == '|') {
 				nbPipe++;
@@ -121,9 +121,14 @@ public class UDPListenerService extends Service {
 		if(packetLength < messageLength) {
 			Log.e(ACTION, "Need more packet to create message");
 		}
-		ActionBuilder actionBuilder = new ActionBuilder().setAction(ActionBuilder.TYPE_FROM_SWAP).setType(ActionBuilder.TYPE_SWAP_PACKET);
-		switch(messageType) {
-			case ActionBuilder.TYPE_SWAP_PACKET:
+		ActionType actionType = ActionType.values()[messageType];
+		ActionBuilder actionBuilder = new ActionBuilder().setAction(ActionBuilder.INTENT_FROM_SWAP)
+				.setType(actionType);
+		switch(actionType) {
+			case TYPE_SWAP_PACKET:
+			case TYPE_LIGHT_STATUS:
+			case TYPE_PRESSURE:
+			case TYPE_TEMPERATURE:
 				SwapPacket swapPacket = DomotixDao.readSwapPacket(packet, dataOffset);
 				actionBuilder.setSwapPacket(swapPacket);
 				break;

@@ -18,24 +18,11 @@ public interface Constants {
 	int DOMOTIX_BUS_OUTPUT_PORT_DEFAULT = 5556;
 	
 	String DOMOTIX_DATA_HOST = "domotix.data.host";
-	String DOMOTIX_DATA_HOST_DEFAULT = "http://" + DOMOTIX_BUS_OUTPUT_HOST_DEFAULT + ":5984/panstamp/";
-	
-	// Messages
-	String MESSAGE = "message";
-	
-	String MESSAGE_LENGTH = "messageLength";
-
-	/*String MESSAGE_TYPE = "messageType";
-	int MESSAGE_TYPE_SWAP = 0;
-	int MESSAGE_TYPE_DEVICE = 1;
-	int MESSAGE_TYPE_STATUS = 2;*/
-	
-	String MESSAGE_LIGHT_ID = "lightId";
-	String MESSAGE_LIGHT_STATUS = "lightStatus";
+	String DOMOTIX_DATA_HOST_DEFAULT = "http://" + DOMOTIX_BUS_OUTPUT_HOST_DEFAULT + ":5984/panstamp/_design/devices/_view/";
 	
 	String LIGHT_CONTROLLER_PRODUCT_CODE = "0000006400000001";
 	
-	public static final int ADDR_BROADCAST = 0;
+	int ADDR_BROADCAST = 0;
 	
 	int FCT_SWAP_STATUS = 0;
 	int FCT_SWAP_QUERY = 1;
@@ -55,13 +42,9 @@ public interface Constants {
     
     int BACKGROUNG_MAX_Y = 1220;
 	
-	int CARD_OFFSET_X = -16;
-	int CARD_OFFSET_Y = -16;
 	int CARD_TOUCH_OFFSET = 100;
 	
 	int LIGHT_SIZE = 16 * 2 * 5;
-	int LIGHT_OFFSET_X = 0;//-16 * 2;
-	int LIGHT_OFFSET_Y = 0;//-16 * 2;
 	int LIGHT_TOUCH_OFFSET = 150;
 	int LIGHT_TOUCH_OFFSET2 = 100;
 	

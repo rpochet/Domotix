@@ -15,31 +15,53 @@ import eu.pochet.domotix.dao.SwapPacket;
 public class ActionBuilder {
 
 	/**
-	 * Action type
+	 * Action
 	 */
+	private String intentAction;
+	public static final String INTENT_FROM_SWAP = "FROM_SWAP";
+	public static final String INTENT_TO_SWAP = "TO_SWAP";
+	
+
+	/**
+	 * Type of message
+	 */
+	private ActionType type;
+	
 	private static final String ACTION_TYPE = "type";
 	
-	/**
-	 * Action type from SWAP network
-	 */
-	public static final String TYPE_FROM_SWAP = "TYPE_FROM_SWAP";
+	public enum ActionType {
+		TYPE_SWAP_PACKET,
+		TYPE_SWAP_DEVICE,
+		TYPE_LIGHT_STATUS,
+		TYPE_PRESSURE,
+		TYPE_TEMPERATURE,
+		TYPE_RFU_2,
+		TYPE_RFU_3,
+		TYPE_RFU_4,
+		TYPE_RFU_5,
+		TYPE_RFU_6,
+		TYPE_RFU_7,
+		TYPE_RFU_8,
+		TYPE_RFU_9,
+		TYPE_RFU_10,
+		TYPE_RFU_11,
+		TYPE_RFU_12,
+		TYPE_RFU_13,
+		TYPE_RFU_14,
+		TYPE_RFU_15,
+		TYPE_RFU_16,
+		TYPE_RFU_17,
+		TYPE_LIGHT_SWITCH_ON,
+		TYPE_LIGHT_SWITCH_OFF,
+		TYPE_LIGHT_SWITCH_TOGGLE,
+		TYPE_LIGHT_SWITCH_ON_ALL,
+		TYPE_LIGHT_SWITCH_OFF_ALL,
+		TYPE_LIGHT_UPDATE			
+	}
 	
 	/**
-	 * Action type to SWAP network
+	 * 
 	 */
-	public static final String TYPE_TO_SWAP = "TYPE_TO_SWAP";
-	
-	public static final int TYPE_SWAP_PACKET = 0;
-	public static final int TYPE_SWAP_DEVICE = 1;
-	public static final int TYPE_LIGHT_SWITCH_ON = 2;
-	public static final int TYPE_LIGHT_SWITCH_OFF = 3;
-	public static final int TYPE_LIGHT_SWITCH_TOGGLE = 4;
-	public static final int TYPE_LIGHT_SWITCH_ON_ALL = 5;
-	public static final int TYPE_LIGHT_SWITCH_OFF_ALL = 6;
-	public static final int TYPE_LIGHT_UPDATE = 7;
-	public static final int TYPE_TEMPERATURE = 8;
-	public static final int TYPE_LIGHT_STATUS = 9;
-	
 	public static final int LIGHT_STATUS_OFF = 0;
 	public static final int LIGHT_STATUS_ON = 254;
 	public static final int LIGHT_STATUS_TOGGLE = -1;
@@ -51,9 +73,6 @@ public class ActionBuilder {
 	private static final String ACTION_SWAP_PACKET = "swapPacket";
 	private static final String ACTION_TEMPERATURE = "temperature";
 	
-	private String action;
-	
-	private int type;
 	
 	private SwapPacket swapPacket; 
 	
@@ -72,11 +91,11 @@ public class ActionBuilder {
     }
     
     public ActionBuilder setAction(String action) {
-		this.action = action;
+		this.intentAction = action;
 		return this;
 	}
 	
-	public ActionBuilder setType(int type) {
+	public ActionBuilder setType(ActionType type) {
 		this.type = type;
 		return this;
 	}
@@ -112,25 +131,20 @@ public class ActionBuilder {
 	}
 	
 	public Intent toIntent() {
-		Intent intent = new Intent(this.action);
-		intent.putExtra(ACTION_TYPE, this.type);
-        
-		intent.putExtra(ACTION_SWAP_PACKET, this.swapPacket);
-				
-		intent.putExtra(ACTION_LEVEL_ID, this.levelId);
-		intent.putExtra(ACTION_LIGHT_ID, this.lightId);
-		intent.putExtra(ACTION_LIGHT_STATUS, this.lightStatus);
-		intent.putIntegerArrayListExtra(ACTION_LIGHTS_STATUS, this.lightsStatus);
-		
-		intent.putExtra(ACTION_TEMPERATURE, this.temperature);
-
-		return intent;
+		Intent intent = new Intent(this.intentAction);
+		addExtra(intent);
+    	return intent;
 	}
 
     public void sendMessage(Context context) {
         Intent intent = new Intent(context, ActionService.class);
-        intent.setAction(this.action);
-    	intent.putExtra(ACTION_TYPE, this.type);
+        intent.setAction(this.intentAction);
+        addExtra(intent);
+    	context.startService(intent);
+    }
+    
+    private void addExtra(Intent intent) {
+    	intent.putExtra(ACTION_TYPE, this.type.ordinal());
 
 		intent.putExtra(ACTION_SWAP_PACKET, this.swapPacket);
 		
@@ -140,13 +154,11 @@ public class ActionBuilder {
         intent.putExtra(ACTION_LIGHTS_STATUS, this.lightsStatus);
 
 		intent.putExtra(ACTION_TEMPERATURE, this.temperature);
-		
-		context.startService(intent);
     }
     
     public ActionBuilder(Intent intent) {
-    	this.action = intent.getAction();
-    	this.type = intent.getIntExtra(ACTION_TYPE, -1);
+    	this.intentAction = intent.getAction();
+    	this.type = ActionType.values()[intent.getIntExtra(ACTION_TYPE, -1)];
     	
     	this.swapPacket = (SwapPacket) intent.getSerializableExtra(ACTION_SWAP_PACKET);
     	
@@ -158,10 +170,10 @@ public class ActionBuilder {
     }
     
     public String getAction() {
-		return action;
+		return intentAction;
 	}
     
-    public int getType() {
+    public ActionType getType() {
 		return type;
 	}
     

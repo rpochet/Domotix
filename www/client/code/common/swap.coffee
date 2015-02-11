@@ -84,11 +84,11 @@ Registers =
     network: {id: 8, length: 2}
     address: {id: 9, length: 1}
     txInterval: {id: 10, length: -1}
-    custom_0: {id: 11, length: -1}
-    custom_1: {id: 12, length: -1}
-    custom_2: {id: 13, length: -1}
-    custom_3: {id: 14, length: -1}
-    custom_4: {id: 15, length: -1}
+    CUSTOM_1: {id: 11, length: -1}
+    CUSTOM_2: {id: 12, length: -1}
+    CUSTOM_3: {id: 13, length: -1}
+    CUSTOM_4: {id: 14, length: -1}
+    CUSTOM_5: {id: 15, length: -1}
 
 SwapStates =
     RESTART:
@@ -114,22 +114,49 @@ SwapStates =
     get: (val) ->
         [@RESTART, @RXON, @RXOFF, @SYNC, @LOWBAT][val]
 
-Light = 
+LightController = 
     productCode: "0000006400000001"
     Functions:
         Light: Functions.CUSTOM_1
-        Rest: Functions.CUSTOM_2
+        Reset: Functions.CUSTOM_2
     Registers:
-        Outputs: Registers.custom_3
+        PressureTemperature: Registers.CUSTOM_2
+        Outputs: Registers.CUSTOM_4
     Values:
         On: 254
         Off: 0
         Toggle: 255
+
+LightSwitch = 
+    productCode: "0000006400000002"
+    Registers:
+        Voltage: Registers.CUSTOM_1
+        Temperature: Registers.CUSTOM_3
         
 MQ =
     Type:
         SWAP_PACKET: 0
-        SWAP_DEVICE: 1        
+        SWAP_DEVICE: 1
+        LIGHT_STATUS: 2
+        PRESSURE: 3
+        TEMPERATURE: 4
+        RFU_2: 5
+        RFU_3: 6
+        RFU_4: 7
+        RFU_5: 8
+        RFU_6: 9
+        RFU_7: 10
+        RFU_8: 11
+        RFU_9: 12
+        RFU_10: 13
+        RFU_11: 14
+        RFU_12: 15
+        RFU_13: 16
+        RFU_14: 17
+        RFU_15: 18
+        RFU_16: 19
+        RFU_17: 20
+        
 module.exports =
     CCPacket: CCPacket
     SwapPacket: SwapPacket
@@ -137,7 +164,8 @@ module.exports =
     Functions: Functions
     Registers: Registers
     SwapStates: SwapStates
-    Light: Light
+    LightController: LightController
+    LightSwitch: LightSwitch
     MQ: MQ
     bytePad : bytePad
     num2byte : num2byte

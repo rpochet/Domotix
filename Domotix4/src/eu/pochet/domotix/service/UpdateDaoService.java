@@ -8,7 +8,6 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.NotificationCompat;
-import android.widget.Toast;
 import eu.pochet.domotix.Constants;
 import eu.pochet.domotix.R;
 import eu.pochet.domotix.dao.DomotixDao;

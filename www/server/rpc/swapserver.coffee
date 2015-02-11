@@ -3,7 +3,6 @@ SerialModem = require "../swap/serialmodem" if not Config.serial.dummy
 SerialModem = require "../swap/dummyserialmodem" if Config.serial.dummy
 Publisher = require "../swap/pubsub"
 UdpBridge = require "../swap/udpbridge"
-#UdpBridgeSubscriber = require "../swap/udpbridgesubscriber"
 swap = require "../../client/code/common/swap"
 cradle = require "cradle"
 ss = require "socketstream"
@@ -30,7 +29,9 @@ swapPackets = []
 swapEvents = []
 publisher = undefined
 udpBridge = undefined
-lastLightStatus = undefined
+pressure = undefined
+temperature = undefined
+lightStatus = undefined # Only one, may have multiple light controller
 
 initLevels = () ->
     levels = {}
@@ -82,7 +83,7 @@ initDevicesConfig = () ->
 
 initDevices = () ->
     devices = {}
-    dbPanstamp.view "devices/devices", { }, (err, doc) ->
+    dbPanstamp.view "domotix/devices", { }, (err, doc) ->
         for docDevices in doc
             devices["DEV" + swap.num2byte(docDevices.value.address)] = docDevices.value
             for level in levels
@@ -127,26 +128,49 @@ addSwapPacket = (swapPacket, packetDevice) ->
     swapPackets.splice 0, 0, swapPacket
     swapPackets.pop() if swapPackets.length > 80
     
-    if packetDevice isnt undefined && packetDevice.product.indexOf swap.Light.productCode == 0
-    
-        if swapPacket.regId == swap.Light.Registers.Outputs.id && swapPacket.func == swap.Functions.STATUS
-            lastLightStatus = 
-                time: swapPacket.time
-                value: swapPacket.value
-            
-            for light in lights
-                do(light) ->
-                    if light.swapDeviceAddress == packetDevice.address
-                        light.status = lastLightStatus.value[light.outputNb]
-            
-            #dbPanstamp.save "lights", lights._rev, lights, (err, res) ->
-            #    return logger.error err if err?
+    send = false
+    if packetDevice isnt undefined && swapPacket.func == swap.Functions.STATUS
+        if packetDevice.product.indexOf swap.LightController.productCode == 0
+            if swapPacket.regId == swap.LightController.Registers.Outputs.id
+                lightStatus = swapPacket
                 
-            lastLightStatus.lights = lights
-            ss.api.publish.all "lightStatusUpdated", lastLightStatus
-            return
-    
-    ss.api.publish.all "swapPacket", swapPacket
+                for light in lights
+                    do(light) ->
+                        if light.swapDeviceAddress == packetDevice.address 
+                            light.status = swapPacket.value[light.outputNb]
+                
+                # do not need to store updated lights
+                #dbPanstamp.save "lights", lights._rev, lights, (err, res) ->
+                #    return logger.error err if err?
+
+                publisher.publish swap.MQ.Type.LIGHT_STATUS, 
+                    swapPacket: swapPacket
+                
+                ss.api.publish.all "lightStatusUpdated", lightStatus
+                send = true
+            else if swapPacket.regId == swap.LightController.Registers.PressureTemperature.id
+                pressure = swapPacket
+                publisher.publish swap.MQ.Type.PRESSURE, 
+                    swapPacket: swapPacket
+                
+                temperature = swapPacket
+                publisher.publish swap.MQ.Type.TEMPERATURE, 
+                    swapPacket: swapPacket
+                
+                send = true
+        else if packetDevice.product.indexOf swap.LightSwitch.productCode == 0
+            if swapPacket.regId == swap.LightSwitch.Registers.Temperature.id
+                temperature = swapPacket
+                publisher.publish swap.MQ.Type.TEMPERATURE, 
+                    swapPacket: swapPacket
+                
+                send = true
+                
+        if !send
+            publisher.publish swap.MQ.Type.SWAP_PACKET, 
+                swapPacket: swapPacket
+        
+            ss.api.publish.all "swapPacket", swapPacket
     
 serial = new SerialModem Config.serial
 serial.on "started", () ->
@@ -156,13 +180,28 @@ serial.on "started", () ->
     serial.on "swapPacket", (swapPacket) ->
         swapPacketReceived swapPacket
 
-    udpBridge.on "swapPacket", (swapPacket) ->
-        addSwapPacket swapPacket
-
-        if swapPacket.func is swap.Functions.STATUS
-            logger.warn "Status Packet received from UDP Bridge, not allowed"
+    udpBridge.on "message", (message) ->
+        [type, length, data] = message.split "|"
+        if parseInt(type) is swap.MQ.Type.SWAP_PACKET
+            packet = new swap.CCPacket ("(FFFF)" + data)
+            if packet.data
+                swapPacket = new swap.SwapPacket packet                
+                if swapPacket.func is swap.Functions.STATUS
+                    logger.warn "Status Packet received from UDP Bridge, not allowed"
+                else
+                    addSwapPacket swapPacket
+                    serial.send swapPacket
+        else if parseInt(type) is swap.MQ.Type.PRESSURE
+            # Request pressure
+            publisher.publish swap.MQ.Type.PRESSURE, pressure
+        else if parseInt(type) is swap.MQ.Type.TEMPERATURE
+            # Request temperature
+            publisher.publish swap.MQ.Type.TEMPERATURE, temperature
+        else if parseInt(type) is swap.MQ.Type.LIGHT_STATUS
+            # Request light status
+            publisher.publish swap.MQ.Type.LIGHT_STATUS, lightStatus
         else
-            serial.send swapPacket
+            logger.error "Unknown message type received #{type}"
 
 # Only for dummy serial modem
 serial.start() if Config.serial.dummy
@@ -375,39 +414,15 @@ swapPacketReceived = (swapPacket) ->
     else if swapPacket.func is swap.Functions.COMMAND
         logger.info "Command request received from #{swapPacketsource} for packetDevice #{swapPacket.dest} register #{swapPacket.regId} with value #{swapPacket.value}"
     
-    publisher.publish swap.MQ.Type.SWAP_PACKET, 
-        swapPacket: swapPacket
     addSwapPacket swapPacket, packetDevice
     
 updateEndpointsValue = (register, swapPacket) ->
     register.time = swapPacket.time
     register.value = if swapPacket.value.length is undefined then [swapPacket.value] else swapPacket.value
 
-    #for endpoint in register.endpoints
-    #    do (endpoint) ->
-    #        if swapPacket.value isnt undefined
-    #            temp = if swapPacket.value.length is undefined then [swapPacket.value] else swapPacket.value
-    #            endpoint.value = temp.slice(parseInt(endpoint.position), (parseInt(endpoint.position) + parseInt(endpoint.size)))
-    #            register.time = swapPacket.time
-    #            if endpoint.type is "number"
-    #                value = 0
-    #                value += v * Math.pow(256, endpoint.value.length - 1 - i) for v, i in endpoint.value
-    #                endpoint.value = value
-
 updateParamsValue = (register, swapPacket) ->
     register.time = swapPacket.time
     register.value = if swapPacket.value.length is undefined then [swapPacket.value] else swapPacket.value
-
-    #for param in register.params
-    #    do (param) ->
-    #        if swapPacket.value isnt undefined
-    #            temp = if swapPacket.value.length is undefined then [swapPacket.value] else swapPacket.value
-    #            param.value = temp.slice(parseInt(param.position), (parseInt(param.position) + parseInt(param.size)))
-    #            register.time = swapPacket.time
-    #            if param.type is "number"
-    #                value = 0
-    #                value += v * Math.pow(256, param.value.length - 1 - i) for v, i in param.value
-    #                param.value = value
 
 # Return TRUE if device must be saved in DB
 # Return FALSE in case no update is required or update is handled by STATUS packet
@@ -483,8 +498,8 @@ exports.actions = (req, res, ss) ->
     getSwapEvents: ->
         res swapEvents
 
-    getLightStatus: ->
-        res lastLightStatus
+    getLastLightStatus: ->
+        res lightStatus
     
     refreshDevices: ->
         initLevels()
@@ -546,10 +561,4 @@ exports.actions = (req, res, ss) ->
         ss.publish.all "swapPacket", swapPacket
         swapPackets.splice(0, 0, swapPacket)
         swapPackets.pop() if swapPackets.length > 40
-        
-    cleanCouchDB: ->
-        dbPanstamp.view "devices/clean", (err, res) ->
-            logger.error err if err?
-            res.forEach (key, row, id) ->
-                dbPanstamp.remove key, row if key.indexOf("2ec0b3141c") == 0
                 

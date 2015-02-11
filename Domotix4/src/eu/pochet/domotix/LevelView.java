@@ -4,8 +4,8 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.util.AttributeSet;
 import android.widget.ImageView;
-import eu.pochet.domotix.dao.Level;
 import eu.pochet.domotix.dao.DomotixDao;
+import eu.pochet.domotix.dao.Level;
 
 public abstract class LevelView extends ImageView {
 	
@@ -13,9 +13,9 @@ public abstract class LevelView extends ImageView {
 
 	protected Level level = null;
 
-	private float ratioX = 0F;
+	private float ratioX = 0f;
 
-	private float ratioY = 0F;
+	private float ratioY = 0f;
 
 	public LevelView(Context context, AttributeSet attributeset) {
 		super(context, attributeset);

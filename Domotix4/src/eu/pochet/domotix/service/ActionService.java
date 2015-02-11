@@ -3,7 +3,6 @@ package eu.pochet.domotix.service;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.Collections;
 import java.util.List;
 
 import android.app.IntentService;
@@ -45,9 +44,9 @@ public class ActionService extends IntentService {
 	@Override
 	protected void onHandleIntent(Intent intent) {
 		String action = intent.getAction();
-		if(ActionBuilder.TYPE_TO_SWAP.equals(action)){
+		if(ActionBuilder.INTENT_TO_SWAP.equals(action)){
 			handleOutputIntent(intent);
-		} else if (ActionBuilder.TYPE_FROM_SWAP.equals(action)) {
+		} else if (ActionBuilder.INTENT_FROM_SWAP.equals(action)) {
 			handleInputIntent(intent);
 		} else {
 			// TODO
@@ -74,7 +73,7 @@ public class ActionService extends IntentService {
 		Light light = null;
 		ActionBuilder action = new ActionBuilder(intent);
 		switch(action.getType()) {
-			case ActionBuilder.TYPE_LIGHT_SWITCH_OFF:
+			case TYPE_LIGHT_SWITCH_OFF:
 				light = DomotixDao.getLight(getApplicationContext(), action.getLightId());
 				
 				swapPacket.setDest(light.getSwapDeviceAddress());
@@ -87,7 +86,7 @@ public class ActionService extends IntentService {
 				});
 				
 				break;
-			case ActionBuilder.TYPE_LIGHT_SWITCH_ON:
+			case TYPE_LIGHT_SWITCH_ON:
 				light = DomotixDao.getLight(getApplicationContext(), action.getLightId());
 				
 				swapPacket.setDest(light.getSwapDeviceAddress());
@@ -100,7 +99,7 @@ public class ActionService extends IntentService {
 				});
 				
 				break;
-			case ActionBuilder.TYPE_LIGHT_SWITCH_TOGGLE:
+			case TYPE_LIGHT_SWITCH_TOGGLE:
 				light = DomotixDao.getLight(getApplicationContext(), action.getLightId());
 				
 				swapPacket.setDest(light.getSwapDeviceAddress());
@@ -113,19 +112,19 @@ public class ActionService extends IntentService {
 				});
 				
 				break;
-			case ActionBuilder.TYPE_LIGHT_STATUS:
+			case TYPE_LIGHT_STATUS:
 				
 				swapPacket.setDest(Constants.ADDR_BROADCAST);
 				swapPacket.setFunc(Constants.FCT_SWAP_QUERY);
 				swapPacket.setRegId(Constants.REG_LIGHT_OUTPUT);
 				
 				break;
-			case ActionBuilder.TYPE_LIGHT_SWITCH_OFF_ALL:
+			case TYPE_LIGHT_SWITCH_OFF_ALL:
 				{
 					List<Light> lights = DomotixDao.getLights(getApplicationContext());
 				}
 				break;
-			case ActionBuilder.TYPE_LIGHT_SWITCH_ON_ALL:
+			case TYPE_LIGHT_SWITCH_ON_ALL:
 				{
 					List<Light> lights = DomotixDao.getLights(getApplicationContext());
 				}
@@ -141,10 +140,16 @@ public class ActionService extends IntentService {
 	}
 
 	private void sendMessage(SwapPacket swapPacket) {
-		String message = Util.byteArrayToHexString(swapPacket.toByteArray());
+		StringBuilder message = new StringBuilder();
+		String data = Util.byteArrayToHexString(swapPacket.toByteArray());
 		try {
+			message.append(ActionBuilder.ActionType.TYPE_SWAP_PACKET.ordinal());
+			message.append('|');
+			message.append(Integer.toHexString(data.length()));
+			message.append('|');
+			message.append(data);
 			InetAddress serverAddr = InetAddress.getByName(this.domotixBusInputHost);
-			DatagramPacket packetMessage = new DatagramPacket(message.getBytes(), message.length(), serverAddr, this.domotixBusInputPort);
+			DatagramPacket packetMessage = new DatagramPacket(message.toString().getBytes(), message.length(), serverAddr, this.domotixBusInputPort);
 
 			DatagramSocket socket = new DatagramSocket();
 			socket.send(packetMessage);
@@ -161,12 +166,14 @@ public class ActionService extends IntentService {
 	 */
 	private void handleInputIntent(Intent intent) {
 		ActionBuilder action = new ActionBuilder(intent);
+		int regAddress = action.getSwapPacket().getRegAddress();
+		int regId = action.getSwapPacket().getRegId();
+		byte[] regValue = action.getSwapPacket().getRegValue();
+		SwapDevice swapDevice = null;
+		SwapRegister swapRegister = null;
 		switch(action.getType()) {
-			case ActionBuilder.TYPE_SWAP_PACKET:
-				int regAddress = action.getSwapPacket().getRegAddress();
-				int regId = action.getSwapPacket().getRegId();
-				byte[] regValue = action.getSwapPacket().getRegValue();
-				SwapDevice swapDevice = DomotixDao.getSwapDevice(getBaseContext(), regAddress);
+			case TYPE_LIGHT_STATUS:
+				swapDevice = DomotixDao.getSwapDevice(getBaseContext(), regAddress);
 				if(swapDevice.getProduct().startsWith(Constants.LIGHT_CONTROLLER_PRODUCT_CODE) && regId == Constants.REGISTER_LIGHT_OUTPUT) {
 					int i = 0;
 					List<Light> lights = DomotixDao.getLights(getApplicationContext());
@@ -178,29 +185,31 @@ public class ActionService extends IntentService {
 						light.setStatus(lightStatus);
 					}
 					sendBroadcast(new ActionBuilder()
-						.setAction(ActionBuilder.TYPE_FROM_SWAP)
-						.setType(ActionBuilder.TYPE_LIGHT_UPDATE)
+						.setAction(ActionBuilder.INTENT_FROM_SWAP)
+						.setType(ActionBuilder.ActionType.TYPE_LIGHT_UPDATE)
 						.toIntent());
-				} else {
-					SwapRegister swapRegister = swapDevice.getSwapRegisterById(action.getSwapPacket().getRegId());
-					if(swapRegister != null) {
-						swapRegister.setValue(action.getSwapPacket().getRegValue());
-						if(swapRegister.getName().contains(Constants.SWAP_REGISTER_TEMPERATURE)) {
-							for(SwapRegisterEndpoint swapRegisterEndpoint : swapRegister.getSwapRegisterEndpoints()) {
-								if(swapRegisterEndpoint.getName().equals(Constants.SWAP_REGISTER_TEMPERATURE)) {
-									float temperature = swapRegisterEndpoint.getValueAsInt() / 100f;
-									sendBroadcast(new ActionBuilder()
-										.setAction(ActionBuilder.TYPE_FROM_SWAP)
-										.setType(ActionBuilder.TYPE_TEMPERATURE)
-										.setTemperature(temperature)
-										.toIntent()
-									);
-								}
+				}
+				break;
+			case TYPE_TEMPERATURE:
+				swapDevice = DomotixDao.getSwapDevice(getBaseContext(), regAddress);
+				swapRegister = swapDevice.getSwapRegisterById(action.getSwapPacket().getRegId());
+				if(swapRegister != null) {
+					swapRegister.setValue(action.getSwapPacket().getRegValue());
+					if(swapRegister.getName().contains(Constants.SWAP_REGISTER_TEMPERATURE)) {
+						for(SwapRegisterEndpoint swapRegisterEndpoint : swapRegister.getSwapRegisterEndpoints()) {
+							if(swapRegisterEndpoint.getName().equals(Constants.SWAP_REGISTER_TEMPERATURE)) {
+								float temperature = swapRegisterEndpoint.getValueAsInt() / 100f;
+								sendBroadcast(new ActionBuilder()
+									.setAction(ActionBuilder.INTENT_FROM_SWAP)
+									.setType(ActionBuilder.ActionType.TYPE_TEMPERATURE)
+									.setTemperature(temperature)
+									.toIntent()
+								);
 							}
 						}
 					}
 				}
-			break;
+				break;
 		}
 	}
 

@@ -17,6 +17,10 @@ public class SwapDeviceLevelView extends LevelView {
 
 	private Bitmap mTempBitmap;
 
+	private int offsetX;
+
+	private int offsetY;
+
 	public SwapDeviceLevelView(Context context, AttributeSet attributeset) {
 		super(context, attributeset);
 	}
@@ -33,6 +37,9 @@ public class SwapDeviceLevelView extends LevelView {
 				R.drawable.swapdevice, options);
 		mTempBitmap = BitmapFactory.decodeResource(getResources(),
 				R.drawable.swapdevice_temp, options);
+		
+		offsetX = mSwapDeviceBitmap.getWidth() / -2;
+		offsetY = mSwapDeviceBitmap.getHeight() / -2;
 	}
 
 	protected void onDraw(Canvas canvas) {
@@ -43,8 +50,8 @@ public class SwapDeviceLevelView extends LevelView {
 				float swapDeviceY = swapDevice.getLocation().getAbsoluteY();
 				//if (swapDevice.getStatus() == 0) {
 					canvas.drawBitmap(mSwapDeviceBitmap, 
-							Constants.CARD_OFFSET_X + swapDeviceX * getRatioX(), 
-							Constants.CARD_OFFSET_Y + swapDeviceY * getRatioY(), 
+							offsetX + swapDeviceX * getRatioX(), 
+							offsetY + swapDeviceY * getRatioY(), 
 							null);
 				/*} else {
 					canvas.drawBitmap(mTempBitmap, 

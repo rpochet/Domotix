@@ -121,7 +121,7 @@ public class DomotixActivity extends Activity {
 		myBroadcastReceiver = new BroadcastReceiver() {
 			public void onReceive(Context context, Intent intent) {
 				ActionBuilder action = new ActionBuilder(intent);
-				if (ActionBuilder.TYPE_FROM_SWAP.equals(action.getAction()) && ActionBuilder.TYPE_TEMPERATURE == action.getType()) {
+				if (ActionBuilder.INTENT_FROM_SWAP.equals(action.getAction()) && ActionBuilder.ActionType.TYPE_TEMPERATURE == action.getType()) {
 					float temperature = new ActionBuilder(intent).getTemperature();
 					
 					PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, new Intent(context, DomotixActivity.class), Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -142,7 +142,7 @@ public class DomotixActivity extends Activity {
 			}
 		};
 		
-		registerReceiver(myBroadcastReceiver, new IntentFilter(ActionBuilder.TYPE_FROM_SWAP));
+		registerReceiver(myBroadcastReceiver, new IntentFilter(ActionBuilder.INTENT_FROM_SWAP));
 	}
 
 	/**

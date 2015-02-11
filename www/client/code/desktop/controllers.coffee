@@ -138,7 +138,7 @@ module.exports = (swapApp) ->
               pos = $scope.lightPosition room, light
               if (x - pos[0]) * (x - pos[0]) + (y - pos[1]) * (y - pos[1]) < 2500
                 # Click on light in room
-                ss.rpc 'swapserver.sendSwapPacket', swap.Light.Functions.Light, light.swapDeviceAddress, swap.Light.Registers.Outputs.id, [light.outputNb, swap.Light.Values.Toggle]
+                ss.rpc 'swapserver.sendSwapPacket', swap.LightController.Functions.Light, light.swapDeviceAddress, swap.LightController.Registers.Outputs.id, [light.outputNb, swap.LightController.Values.Toggle]
             
     $scope.lightPosition = (room, light) ->
       #dx and dy should be used for custom position in handeld device in order to avoid cross light tapping
@@ -168,10 +168,8 @@ module.exports = (swapApp) ->
             do (room) ->
               for light in room.lights
                 do (light) ->
-                  for lightnew in lightStatus.lights
-                    do (lightnew) ->
-                      if lightnew.swapDeviceAddress == light.swapDeviceAddress && lightnew.outputNb == light.outputNb 
-                        light.status = lightnew.status
+                  if lightStatus.regAdd == light.swapDeviceAddress
+                        light.status = lightStatus.value[light.outputNb]
     
     ss.server.on 'ready', () ->
       ss.rpc 'swapserver.getLevels', (levels) ->

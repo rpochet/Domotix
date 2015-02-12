@@ -14,6 +14,7 @@ logger = require("log4js").getLogger(__filename.split("/").pop(-1).split(".")[0]
 
 dbPanstamp = new(cradle.Connection)(Config.couchDB.host, Config.couchDB.port).database("panstamp")
 dbPanstampPackets = new(cradle.Connection)(Config.couchDB.host, Config.couchDB.port).database("panstamp_packets")
+dbPanstampEvents = new(cradle.Connection)(Config.couchDB.host, Config.couchDB.port).database("panstamp_events")
 
 developers = []
 devicesConfig = {}
@@ -25,6 +26,7 @@ newDevice =
         firmware: ""
 levels = {}
 lights = {}
+historicLength = 40
 swapPackets = []
 swapEvents = []
 publisher = undefined
@@ -98,7 +100,7 @@ initSwapPackets = () ->
     swapEvents = []
     options =
         include_docs: true
-        limit: 40
+        limit: historicLength
         descending: true
 
     dbPanstampPackets.all options, (err, res) ->
@@ -109,25 +111,32 @@ initSwapPackets = () ->
             delete row.doc._rev
             swapPackets.splice 0, 0, row.doc
         ss.api.publish.all "swapPacket"
+    
+    dbPanstampEvents.all options, (err, res) ->
+        logger.error err if err?
+        return if err?
+        for row in res.rows
+            delete row.doc._id
+            delete row.doc._rev
+            swapEvents.splice 0, 0, row.doc
+        ss.api.publish.all "swapEvent"
+        
 initSwapPackets()
 
 addSwapEvent = (swapEvent, swapDevice) ->
     swapEvent.time = moment.format
-    dbPanstampPackets.save swapEvent.time, swapEvent, (err, doc) ->
+    dbPanstampEvents.save swapEvent.time, swapEvent, (err, doc) ->
         logger.error err if err?
+    
     logger.warn "#{swapEvent.topic} - #{swapEvent.text}" if swapEvent.type is "warn"
     logger.info "#{swapEvent.topic} - #{swapEvent.text}" if swapEvent.type is "info"
     logger.error "#{swapEvent.topic} - #{swapEvent.text}" if swapEvent.type is "error"
-    ss.api.publish.all "swapEvent", swapEvent
-    swapEvents.splice 0, 0, swapEvent
-    swapEvents.pop() if swapEvents.length > 80
-
-addSwapPacket = (swapPacket, packetDevice) ->
-    dbPanstampPackets.save swapPacket.time.time, swapPacket, (err, doc) ->
-        logger.error err if err?
-    swapPackets.splice 0, 0, swapPacket
-    swapPackets.pop() if swapPackets.length > 80
     
+    swapEvents.splice 0, 0, swapEvent
+    swapEvents.pop() if swapEvents.length > historicLength
+    ss.api.publish.all "swapEvent", swapEvent
+    
+addSwapPacket = (swapPacket, packetDevice, foundRegister) ->
     send = false
     if packetDevice isnt undefined && swapPacket.func == swap.Functions.STATUS
         if packetDevice.product.indexOf swap.LightController.productCode == 0
@@ -149,14 +158,19 @@ addSwapPacket = (swapPacket, packetDevice) ->
                 ss.api.publish.all "lightStatusUpdated", lightStatus
                 send = true
             else if swapPacket.regId == swap.LightController.Registers.PressureTemperature.id
+                # issue-#
                 pressure = swapPacket
                 publisher.publish swap.MQ.Type.PRESSURE, 
                     swapPacket: swapPacket
+                
+                sleep.sleep 1
                 
                 temperature = swapPacket
                 publisher.publish swap.MQ.Type.TEMPERATURE, 
                     swapPacket: swapPacket
                 
+                ss.api.publish.all "pressureUpdated", pressure
+                ss.api.publish.all "temperatureUpdated", temperature
                 send = true
         else if packetDevice.product.indexOf swap.LightSwitch.productCode == 0
             if swapPacket.regId == swap.LightSwitch.Registers.Temperature.id
@@ -164,13 +178,19 @@ addSwapPacket = (swapPacket, packetDevice) ->
                 publisher.publish swap.MQ.Type.TEMPERATURE, 
                     swapPacket: swapPacket
                 
+                ss.api.publish.all "temperatureUpdated", temperature
                 send = true
                 
+        dbPanstampPackets.save swapPacket.time.time, swapPacket, (err, doc) ->
+        logger.error err if err?
+    
+        swapPackets.splice 0, 0, swapPacket
+        swapPackets.pop() if swapPackets.length > historicLength
+        ss.api.publish.all "swapPacket", swapPacket
+        
         if !send
             publisher.publish swap.MQ.Type.SWAP_PACKET, 
                 swapPacket: swapPacket
-        
-            ss.api.publish.all "swapPacket", swapPacket
     
 serial = new SerialModem Config.serial
 serial.on "started", () ->
@@ -414,7 +434,7 @@ swapPacketReceived = (swapPacket) ->
     else if swapPacket.func is swap.Functions.COMMAND
         logger.info "Command request received from #{swapPacketsource} for packetDevice #{swapPacket.dest} register #{swapPacket.regId} with value #{swapPacket.value}"
     
-    addSwapPacket swapPacket, packetDevice
+    addSwapPacket swapPacket, packetDevice, foundRegister
     
 updateEndpointsValue = (register, swapPacket) ->
     register.time = swapPacket.time

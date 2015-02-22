@@ -1,0 +1,219 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <style type="text/css">
+      body {
+      font: 10px sans-serif;
+    }
+
+    .axis path,
+    .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+
+    .area {
+      fill: steelblue;
+    }
+    </style>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="http://d3js.org/d3.v3.js"></script>
+    <link href="http://c3js.org/css/c3-f750e4d4.css" rel="stylesheet" type="text/css">
+    <script src="http://c3js.org/js/c3.min-05d32fdf.js"></script>
+    <script type="text/javascript">
+    $( document ).ready(function() {
+      
+      var formatDate = d3.time.format("%Y-%m-%d %H:%M:%S");
+      var formatUpdateDate = d3.time.format("%Y-%m-%d %H:%M:%S");
+      
+      var defaultMinTemperature = -20;
+      var defaultMaxTemperature = 40;
+      var zoomTemperature = false;
+      var minTemperature = defaultMinTemperature;
+      var maxTemperature = defaultMaxTemperature;
+      
+      var defaultMinPressure = 944;
+      var defaultMaxPressure = 1004;
+      var zoomPressure = false;
+      var minPressure = defaultMinPressure;
+      var maxPressure = defaultMaxPressure;
+      
+      var maxSource = 2;
+      
+      var options = {
+        bindto: '#chart',
+        size: {
+          height: 700
+        },
+        data: {          
+          type: 'spline'
+        },
+        grid: {
+          x: {
+            show: true
+          },
+          y: {
+            show: true
+          }
+        },
+        axis : {
+          x: {
+            type: 'timeseries',
+            tick: {
+              format: function(x) {
+                return d3.time.format('%m-%d %H:%M')(x);
+              }
+            }
+          },
+          y : {
+            show: true,
+            label: {
+              text: 'Température (°C)',
+              position: 'outer-middle'
+            },
+            min: defaultMinTemperature,
+            max: defaultMaxTemperature
+          },
+          y2: {
+            show: true,
+            label: {
+              text: 'Pressure (mBar)',
+              position: 'outer-middle'
+            },
+            min: defaultMinPressure,
+            max: defaultMaxPressure
+          }
+        },
+        tooltip: {
+          format: {
+            title: function (d) { 
+              return formatDate(d); 
+            },
+            value: d3.format(',') // apply this format to both y and y2
+          }
+        }
+      };
+      
+      options.data.xs = {};
+      options.data.columns = [];
+      options.data.axes = {};
+      for(var s = 2; s <= (maxSource + 1); s++) {
+        // data.xs
+        options.data.xs['T-' + s] = 'x-' + s;
+        options.data.xs['P-' + s] = 'x-' + s;
+        
+        //data.columns
+        options.data.columns[0 + 3 * (s - 2)] = ['x-' + s];
+        options.data.columns[1 + 3 * (s - 2)] = ['T-' + s];
+        options.data.columns[2 + 3 * (s - 2)] = ['P-' + s];
+        
+        // data.axes
+        options.data.axes['P-' + s] = 'y2';
+      }
+      
+      var columns = new Array();
+      for(var s = 2; s <= (maxSource + 1); s++) {
+        columns[0 + 3 * (s - 2)] = new Array();
+        columns[1 + 3 * (s - 2)] = new Array();
+        columns[2 + 3 * (s - 2)] = new Array();
+        columns[0 + 3 * (s - 2)].push('x-' + s);
+        columns[1 + 3 * (s - 2)].push('T-' + s);
+        columns[2 + 3 * (s - 2)].push('P-' + s);            
+      }
+      
+      var chart = c3.generate(options);
+      
+      function loadData() {
+        $.ajax({
+          dataType: "jsonp",
+          url: "http://192.168.1.4:5984/panstamp_packets/_design/domotix/_view/temperature",
+          data: {
+            limit: 100,
+            descending: true
+          },
+          success: function(data) {
+            data.rows.forEach(function(row, idx) {
+              var value = row.value;
+              var source = parseInt(value.source);
+              if(source > 1 && source != 255) { // do not handle modem packets and new device
+                var time = d3.time.format.iso.parse(value.time);
+                var temperature;
+                var pressure;
+                temperature = (value.value[0] * 256 + value.value[1]) / 100;
+                if(value.value.length = 6) {
+                  pressure = (value.value[2] * 256 * 256 + value.value[3] * 256 * 256 + value.value[4] * 256 + value.value[5]) / 100;
+                }
+                columns[0 + 3 * (source - 1 - 1)].push(time);
+                columns[1 + 3 * (source - 1 - 1)].push(temperature);
+                if(pressure) {
+                  columns[2 + 3 * (source - 1 - 1)].push(pressure);
+                }
+              }
+            });
+            
+            minTemperature = d3.min(columns[1], function(d, idx) { 
+              if(idx > 0) {            
+                return d;
+              } else {
+                return defaultMaxTemperature;
+              }
+            });
+            maxTemperature = d3.max(columns[1], function(d, idx) {
+              if(idx > 0) {            
+                return d;
+              } else {
+                return defaultMinTemperature;
+              }
+            });
+            
+            minPressure = d3.min(columns[2], function(d, idx) { 
+              if(idx > 0) {            
+                return d;
+              } else {
+                return defaultMaxPressure;
+              }
+            });
+            maxPressure = d3.max(columns[2], function(d, idx) {
+              if(idx > 0) {            
+                return d;
+              } else {
+                return defaultMinPressure;
+              }
+            });
+            
+            //$updateDate.children("text").text("Last updated: " + formatUpdateDate(new Date()));
+            
+            chart.load({
+              columns: columns
+            });
+          }
+        });
+      }
+      loadData();
+      //svg.on("click", loadData);
+          
+      d3.select("g.c3-axis-y").on("click", function() {
+        zoomTemperature = !zoomTemperature;
+        if(zoomTemperature) {
+          chart.axis.range({max: {y: maxTemperature}, min: {y: minTemperature}});
+        } else {
+          chart.axis.range({max: {y: defaultMaxTemperature}, min: {y: defaultMinTemperature}});
+        }
+      });
+      d3.select("g.c3-axis-y2").on("click", function() {
+        zoomPressure = !zoomPressure;
+        if(zoomPressure) {
+          chart.axis.range({max: {y2: maxPressure}, min: {y2: minPressure}});
+        } else {
+          chart.axis.range({max: {y2: defaultMaxPressure}, min: {y2: defaultMinPressure}});
+        }
+      });
+      setInterval(loadData, 60000);
+    });
+    </script>
+  </head>
+  <body>
+    <div id="chart"></div>
+  </body>
+</html>

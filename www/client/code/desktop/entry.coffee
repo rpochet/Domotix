@@ -8,7 +8,7 @@ require '/directives'
 require '/components'
 
 # angular application
-app = angular.module('swapApp', ['swap.filters', 'swap.services', 'swap.directives', 'ui.bootstrap', 'ngRoute', 'xeditable', 'components'], 
+app = angular.module('swapApp', ['swap.filters', 'swap.services', 'swap.directives', 'ui.bootstrap', 'ngRoute', 'xeditable', 'components', 'nvd3ChartDirectives'], 
     ($dialogProvider) ->
         $dialogProvider.options {
             backdrop: true

@@ -124,13 +124,14 @@ initSwapPackets = () ->
 initSwapPackets()
 
 addSwapEvent = (swapEvent, swapDevice) ->
-    swapEvent.time = moment.format
+    swapEvent.time = moment().format()
+    
     dbPanstampEvents.save swapEvent.time, swapEvent, (err, doc) ->
         logger.error err if err?
     
-    logger.warn "#{swapEvent.topic} - #{swapEvent.text}" if swapEvent.type is "warn"
-    logger.info "#{swapEvent.topic} - #{swapEvent.text}" if swapEvent.type is "info"
-    logger.error "#{swapEvent.topic} - #{swapEvent.text}" if swapEvent.type is "error"
+    logger.warn "#{swapEvent.topic} - #{swapEvent.text} @#{swapEvent.time}" if swapEvent.type is "warn"
+    logger.info "#{swapEvent.topic} - #{swapEvent.text} @#{swapEvent.time}" if swapEvent.type is "info"
+    logger.error "#{swapEvent.topic} - #{swapEvent.text} @#{swapEvent.time}" if swapEvent.type is "error"
     
     swapEvents.splice 0, 0, swapEvent
     swapEvents.pop() if swapEvents.length > historicLength
@@ -568,6 +569,7 @@ exports.actions = (req, res, ss) ->
     checkNewDevices: () ->
         sendSwapQuery address, swap.Registers.productCode.id
 
+    # Test serial reception
     onSerial: (str) ->
         data = "(0000)" + str
         swapPacket = new swap.CCPacket data
@@ -581,4 +583,16 @@ exports.actions = (req, res, ss) ->
         ss.publish.all "swapPacket", swapPacket
         swapPackets.splice(0, 0, swapPacket)
         swapPackets.pop() if swapPackets.length > 40
-                
+    
+    # Delete document returned by a view    
+    cleanByView: (view) ->
+        logger.debug "Cleaning view #{view}..."
+        dbPanstampPackets.view "domotix/" + view, { }, (err, res) ->
+            return logger.error err if err?
+            logger.debug "Removing document from view #{view}..."
+            res.forEach (key, swapEvent, id) ->
+                logger.debug "Removing document #{swapEvent._id} from view #{view}..."
+                dbPanstampPackets.remove swapEvent._id, swapEvent._rev, (err, res) ->
+                    return logger.error err if err?
+                    logger.info "#{swapEvent._id} deleted"
+

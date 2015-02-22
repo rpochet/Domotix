@@ -62,4 +62,11 @@ thingspeak:
             channelId: 14164
             fieldId: field1
             unit: 0
-
+plugins:
+    temperature:
+    pressure:
+        compensationAltitude: -36
+        standardPressure: 977 # 1013 + compensationAltitude
+        minPressure: 944 # 980 + compensationAltitude
+        maxPressure: 1004 # 1040 + compensationAltitude
+		

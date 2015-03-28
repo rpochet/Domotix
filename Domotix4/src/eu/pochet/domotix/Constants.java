@@ -16,9 +16,12 @@ public interface Constants {
 
 	String DOMOTIX_BUS_OUTPUT_PORT = "domotix.bus.output.port";
 	int DOMOTIX_BUS_OUTPUT_PORT_DEFAULT = 5556;
+
+    String DOMOTIX_MQ_URI = "domotix.mq.uri";
+    String DOMOTIX_MQ_URI_DEFAULT = "amqp://domotix:domotix@192.168.1.4:5672/domotix";
 	
 	String DOMOTIX_DATA_HOST = "domotix.data.host";
-	String DOMOTIX_DATA_HOST_DEFAULT = "http://" + DOMOTIX_BUS_OUTPUT_HOST_DEFAULT + ":5984/panstamp/_design/devices/_view/";
+	String DOMOTIX_DATA_HOST_DEFAULT = "http://" + DOMOTIX_BUS_OUTPUT_HOST_DEFAULT + ":5984/panstamp/_design/domotix/_view/";
 	
 	String LIGHT_CONTROLLER_PRODUCT_CODE = "0000006400000001";
 	

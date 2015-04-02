@@ -5,9 +5,14 @@ import android.content.Intent;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+
+import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 import eu.pochet.android.Util;
@@ -38,11 +43,40 @@ public class ActionService extends IntentService {
 
 	private int domotixBusInputPort = Constants.DOMOTIX_BUS_INPUT_PORT_DEFAULT;
 
+    private String domotixMqUri = Constants.DOMOTIX_MQ_URI_DEFAULT;
+
+    private ConnectionFactory connectionFactory = null;
+
 	public ActionService() {
-		super(TAG);
+        super(TAG);
 	}
 
-	@Override
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        this.domotixBusInputHost = PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
+                .getString(Constants.DOMOTIX_BUS_INPUT_HOST, Constants.DOMOTIX_BUS_INPUT_HOST_DEFAULT);
+		/*this.domotixBusInputPort = PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
+				.getInt(Constants.DOMOTIX_BUS_INPUT_PORT, Constants.DOMOTIX_BUS_INPUT_PORT_DEFAULT);*/
+        this.domotixBusInputPort = Integer.parseInt(PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
+                .getString(Constants.DOMOTIX_BUS_INPUT_PORT, Integer.toString(Constants.DOMOTIX_BUS_INPUT_PORT_DEFAULT)));
+
+        this.domotixMqUri = PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
+                .getString(Constants.DOMOTIX_MQ_URI, Constants.DOMOTIX_MQ_URI_DEFAULT);
+        try {
+            this.connectionFactory = new ConnectionFactory();
+            this.connectionFactory.setUri(this.domotixMqUri);
+        } catch (URISyntaxException e) {
+            Log.e(TAG, "Unable to create MQ connection factory", e);
+        } catch (NoSuchAlgorithmException e) {
+            Log.e(TAG, "Unable to create MQ connection factory", e);
+        } catch (KeyManagementException e) {
+            Log.e(TAG, "Unable to create MQ connection factory", e);
+        }
+    }
+
+    @Override
 	protected void onHandleIntent(Intent intent) {
 		String action = intent.getAction();
 		if(ActionBuilder.INTENT_TO_SWAP.equals(action)){
@@ -60,12 +94,6 @@ public class ActionService extends IntentService {
 	 * @param intent
 	 */
 	private void handleOutputIntent(Intent intent) {
-		this.domotixBusInputHost = PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
-				.getString(Constants.DOMOTIX_BUS_INPUT_HOST, Constants.DOMOTIX_BUS_INPUT_HOST_DEFAULT);
-		/*this.domotixBusInputPort = PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
-				.getInt(Constants.DOMOTIX_BUS_INPUT_PORT, Constants.DOMOTIX_BUS_INPUT_PORT_DEFAULT);*/
-		this.domotixBusInputPort = Integer.parseInt(PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
-				.getString(Constants.DOMOTIX_BUS_INPUT_PORT, Integer.toString(Constants.DOMOTIX_BUS_INPUT_PORT_DEFAULT)));
 		
 		SwapPacket swapPacket = new SwapPacket();
 		boolean toSend = true;
@@ -140,25 +168,19 @@ public class ActionService extends IntentService {
 		}
 	}
 
-	private void sendMessage(SwapPacket swapPacket) {
-		StringBuilder message = new StringBuilder();
-		String data = Util.byteArrayToHexString(swapPacket.toByteArray());
-		try {
-			message.append(ActionBuilder.ActionType.SWAP_PACKET.ordinal());
-			message.append('|');
-			message.append(Integer.toHexString(data.length()));
-			message.append('|');
-			message.append(data);
-			InetAddress serverAddr = InetAddress.getByName(this.domotixBusInputHost);
-			DatagramPacket packetMessage = new DatagramPacket(message.toString().getBytes(), message.length(), serverAddr, this.domotixBusInputPort);
-
-			DatagramSocket socket = new DatagramSocket();
-			socket.send(packetMessage);
-			Log.i(TAG, "Message " + swapPacket + "(" + message + ") sent to Domotix bus");
-		} catch (Exception e) {
-			Log.e(TAG, "Failed to send message to Domotix bus", e);
-		}
-	}
+    private void sendMessage(SwapPacket swapPacket) {
+        Connection connection = null;
+        Channel channel = null;
+        String data = Util.byteArrayToHexString(swapPacket.toByteArray());
+        try {
+            connection = connectionFactory.newConnection();
+            channel = connection.createChannel();
+            channel.basicPublish(ActionBuilder.ActionType.SWAP_PACKET.name(), ActionBuilder.ActionType.SWAP_PACKET.name(), new AMQP.BasicProperties(), swapPacket.toByteArray());
+            Log.i(TAG, "SwapPacket " + data + " sent to Domotix bus");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to send message to Domotix bus", e);
+        }
+    }
 	
 	/**
 	 * Handle message received from DOMOTIX PAN network
@@ -175,21 +197,26 @@ public class ActionService extends IntentService {
 		switch(action.getType()) {
 			case LIGHT_STATUS:
 				swapDevice = DomotixDao.getSwapDevice(getBaseContext(), regAddress);
-				if(swapDevice.getProduct().startsWith(Constants.LIGHT_CONTROLLER_PRODUCT_CODE) && regId == Constants.REGISTER_LIGHT_OUTPUT) {
-					int i = 0;
-					List<Light> lights = DomotixDao.getLights(getApplicationContext());
-					for (Light light : lights) {
-						int lightStatus = (byte) regValue[i++];
-						if(lightStatus < 0) {
-							lightStatus += 0xff;
-						}
-						light.setStatus(lightStatus);
-					}
-					sendBroadcast(new ActionBuilder()
-						.setAction(ActionBuilder.INTENT_FROM_SWAP)
-						.setType(ActionBuilder.ActionType.TYPE_LIGHT_UPDATE)
-						.toIntent());
-				}
+                if(swapDevice != null) {
+                    if (swapDevice.getProduct().startsWith(Constants.LIGHT_CONTROLLER_PRODUCT_CODE) && regId == Constants.REGISTER_LIGHT_OUTPUT) {
+                        int i = 0;
+                        List<Light> lights = DomotixDao.getLights(getApplicationContext());
+                        for (Light light : lights) {
+                            int lightStatus = (byte) regValue[i++];
+                            if (lightStatus < 0) {
+                                lightStatus += 0xff;
+                            }
+                            light.setStatus(lightStatus);
+                        }
+                        sendBroadcast(new ActionBuilder()
+                                .setAction(ActionBuilder.INTENT_FROM_SWAP)
+                                .setType(ActionBuilder.ActionType.TYPE_LIGHT_UPDATE)
+                                .toIntent());
+                    }
+                } else {
+                    // Should send MANAGEMENT message
+                    Log.w(TAG, "No swap device found for packet " + action.getSwapPacket().toString());
+                }
 				break;
 			case TEMPERATURE:
 				swapDevice = DomotixDao.getSwapDevice(getBaseContext(), regAddress);

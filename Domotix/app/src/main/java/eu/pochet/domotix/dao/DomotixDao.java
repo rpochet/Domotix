@@ -24,7 +24,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -251,9 +253,22 @@ public class DomotixDao {
 		}
 		return null;
 	}
-	
-	public static SwapPacket readSwapPacket(byte[] jsonData) throws IOException {
-		return readSwapPacket(jsonData, 0);
+
+    /**
+     * dest-source-HOP|NONCE-function-regAddress-regId-regValue
+     * @param rawData
+     * @return
+     * @throws IOException
+     */
+	public static SwapPacket readSwapPacket(byte[] rawData) throws IOException {
+        SwapPacket swapPacket = new SwapPacket();
+        swapPacket.setDest(rawData[0]);
+        swapPacket.setSource(rawData[1]);
+        swapPacket.setFunc(rawData[3]);
+        swapPacket.setRegAddress(rawData[4]);
+        swapPacket.setRegId(rawData[5]);
+        swapPacket.setRegValue(Arrays.copyOfRange(rawData, 6, rawData.length - 1));
+        return swapPacket;
 	}
 	
 	public static SwapPacket readSwapPacket(byte[] jsonData, int offset) throws IOException {
@@ -276,7 +291,44 @@ public class DomotixDao {
 	
 		return swapPacket;
 	}
-	
+
+    public static SwapPacket readSwapPacket(JsonReader reader) throws IOException {
+        SwapPacket swapPacket = new SwapPacket();
+        reader.beginObject();
+        String name = null;
+        while(reader.hasNext()) {
+            name = reader.nextName();
+            if (name.equals("dest")) {
+                swapPacket.setDest(reader.nextInt());
+            } else if (name.equals("source")) {
+                swapPacket.setSource(reader.nextInt());
+            } else if (name.equals("func")) {
+                swapPacket.setFunc(reader.nextInt());
+            } else if (name.equals("regId")) {
+                swapPacket.setRegId(reader.nextInt());
+            } else if (name.equals("regAddress")) {
+                swapPacket.setRegAddress(reader.nextInt());
+            } else if (name.equals("value")) {
+                reader.beginArray();
+                List<Byte> values = new ArrayList<Byte>();
+                while (reader.hasNext()) {
+                    values.add((byte) reader.nextInt());
+                }
+                byte[] tmp = new byte[values.size()];
+                int i = 0;
+                for (byte b : values) {
+                    tmp[i++] = b;
+                }
+                swapPacket.setRegValue(tmp);
+                reader.endArray();
+            } else {
+                reader.skipValue();
+            }
+        }
+        reader.endObject();
+        return swapPacket;
+    }
+
 	public static List<Integer> readOutputs(byte[] jsonData) throws IOException {
 		List<Integer> outputs = new ArrayList<Integer>();
 		JsonReader reader = new JsonReader(new BufferedReader(new InputStreamReader(new ByteArrayInputStream(jsonData))));
@@ -329,43 +381,6 @@ public class DomotixDao {
 		reader.endObject();
 	
 		return outputs;
-	}
-
-	public static SwapPacket readSwapPacket(JsonReader reader) throws IOException {
-		SwapPacket swapPacket = new SwapPacket();
-		reader.beginObject();
-		String name = null;
-		while(reader.hasNext()) {
-			name = reader.nextName();
-			if (name.equals("dest")) {
-				swapPacket.setDest(reader.nextInt());
-			} else if (name.equals("source")) {
-				swapPacket.setSource(reader.nextInt());
-			} else if (name.equals("func")) {
-				swapPacket.setFunc(reader.nextInt());
-			} else if (name.equals("regId")) {
-				swapPacket.setRegId(reader.nextInt());
-			} else if (name.equals("regAddress")) {
-				swapPacket.setRegAddress(reader.nextInt());
-			} else if (name.equals("value")) {
-				reader.beginArray();
-				List<Byte> values = new ArrayList<Byte>();
-				while (reader.hasNext()) {
-					values.add((byte) reader.nextInt());
-				}
-				byte[] tmp = new byte[values.size()];
-				int i = 0;
-				for (byte b : values) {
-					tmp[i++] = b;
-				}
-				swapPacket.setRegValue(tmp);
-				reader.endArray();
-			} else {
-				reader.skipValue();
-			}
-		}
-		reader.endObject();
-		return swapPacket;
 	}
 
 	/**
@@ -469,7 +484,6 @@ public class DomotixDao {
 	/**
 	 * 
 	 * @param ctx
-	 * @param level
 	 * @return
 	 * @throws IOException
 	 */
@@ -511,7 +525,6 @@ public class DomotixDao {
 	 * 
 	 * @param ctx
 	 * @param reader
-	 * @param level
 	 * @return
 	 * @throws IOException
 	 */

@@ -29,10 +29,11 @@ public class ActionBuilder {
 	private ActionType type;
 	
 	private static final String ACTION_TYPE = "type";
-	
-	public enum ActionType {
+
+    public enum ActionType {
         MANAGEMENT,
         SWAP_PACKET,
+        PAN_SWAP_PACKET,
         SWAP_DEVICE,
         LIGHT_STATUS,
         TEMPERATURE,
@@ -57,7 +58,7 @@ public class ActionBuilder {
 		TYPE_LIGHT_SWITCH_TOGGLE,
 		TYPE_LIGHT_SWITCH_ON_ALL,
 		TYPE_LIGHT_SWITCH_OFF_ALL,
-		TYPE_LIGHT_UPDATE			
+        TYPE_LIGHT_UPDATE
 	}
 	
 	/**
@@ -73,10 +74,13 @@ public class ActionBuilder {
 	private static final String ACTION_LIGHTS_STATUS = "lightsStatus";
 	private static final String ACTION_SWAP_PACKET = "swapPacket";
 	private static final String ACTION_TEMPERATURE = "temperature";
+    private static final String ACTION_MANAGEMENT = "management";
 	
 	
 	private SwapPacket swapPacket; 
-	
+
+    private byte[] managementData;
+
 	private int levelId;
 	
 	private int lightId;
@@ -105,6 +109,11 @@ public class ActionBuilder {
 		this.swapPacket = swapPacket;
 		return this;
 	}
+
+    public ActionBuilder setManagementData(byte[] managementData) {
+        this.managementData = managementData;
+        return this;
+    }
 	
 	public ActionBuilder setLevelId(int levelId) {
 		this.levelId = levelId;
@@ -155,6 +164,8 @@ public class ActionBuilder {
         intent.putExtra(ACTION_LIGHTS_STATUS, this.lightsStatus);
 
 		intent.putExtra(ACTION_TEMPERATURE, this.temperature);
+
+        intent.putExtra(ACTION_MANAGEMENT, this.managementData);
     }
     
     public ActionBuilder(Intent intent) {
@@ -168,6 +179,8 @@ public class ActionBuilder {
     	this.lightStatus = intent.getFloatExtra(ACTION_LIGHT_STATUS, -1);
 
     	this.temperature = intent.getFloatExtra(ACTION_TEMPERATURE, -1);
+
+        this.managementData = intent.getByteArrayExtra(ACTION_MANAGEMENT);
     }
     
     public String getAction() {
@@ -194,17 +207,14 @@ public class ActionBuilder {
 	}
 	
 	public SwapPacket getSwapPacket() {
-		/*SwapPacket res = new SwapPacket();
-		res.setDest(this.regAddress);
-		res.setRegAddress(this.regAddress);
-		res.setRegId(this.regId);
-		res.setRegValue(this.regValue);
-		return res;*/
 		return this.swapPacket;
 	}
 	
 	public float getTemperature() {
 		return temperature;
 	}
-	
+
+    public byte[] getManagementData() {
+        return managementData;
+    }
 }

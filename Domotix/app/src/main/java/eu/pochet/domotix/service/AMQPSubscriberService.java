@@ -61,7 +61,11 @@ public class AMQPSubscriberService extends Service {
         } catch (KeyManagementException e) {
             Log.e(ACTION, "Unable to create MQ connection factory", e);
         }
-        new SubscribeTask().execute("SWAP_PACKET", domotixMqClientId);
+
+        new SubscribeTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, ActionBuilder.ActionType.MANAGEMENT.name(), domotixMqClientId);
+        new SubscribeTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, ActionBuilder.ActionType.SWAP_PACKET.name(), domotixMqClientId);
+        new SubscribeTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, ActionBuilder.ActionType.LIGHT_STATUS.name(), domotixMqClientId);
+        new SubscribeTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, ActionBuilder.ActionType.TEMPERATURE.name(), domotixMqClientId);
 
         return START_REDELIVER_INTENT;
     }
@@ -72,11 +76,11 @@ public class AMQPSubscriberService extends Service {
             Connection connection = null;
             Channel channel = null;
             while(true) {
-                Log.i(ACTION,"Connecting to MQ...");
+                Log.i(ACTION,"Connecting to MQ " + params[0] + "...");
                 try {
                     connection = connectionFactory.newConnection();
                     channel = connection.createChannel();
-                    channel.queueDeclare(params[0] + "-" + params[1], true, true, false, null);
+                    channel.queueDeclare(params[0] + "-" + params[1], true, false, false, null);
                     channel.queueBind(params[0] + "-" + params[1], params[0], "");
                     QueueingConsumer consumer = new QueueingConsumer(channel);
                     channel.basicConsume(params[0] + "-" + params[1], true, consumer);
@@ -128,8 +132,12 @@ public class AMQPSubscriberService extends Service {
                     actionBuilder.setSwapPacket(swapPacket);
                 } catch (IOException e) {
                     Log.e(ACTION, "Unable to parse message", e);
+                } catch (IllegalStateException e) {
+                    Log.e(ACTION, "Unable to parse message", e);
                 }
                 break;
+            case MANAGEMENT:
+                actionBuilder.setManagementData(packet);
             default:
                 return;
         }

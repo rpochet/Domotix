@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="10.0dip"
+    android:orientation="vertical"
+    android:padding="10.0dip" >
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/border_view_rounded_single"
+        android:orientation="vertical" >
+
+        <Switch
+            android:id="@+id/state"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/state"
+            android:textOff="OFF"
+            android:textOn="ON" />
+    </LinearLayout>
+
+    <Space
+        android:layout_width="fill_parent"
+        android:layout_height="10.0dip"
+        android:layout_gravity="top|left|center" />
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/border_view_rounded_single"
+        android:orientation="vertical" >
+
+        <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/dimmer" />
+
+        <SeekBar
+            android:id="@+id/dimmer"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/dimmer"
+            android:secondaryProgress="0" />
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10.0dip"
+            android:orientation="horizontal"
+            android:visibility="visible"
+            android:weightSum="12.0" >
+
+            <TextView
+                android:layout_width="0.0dip"
+                android:layout_height="wrap_content"
+                android:layout_weight="2.0"
+                android:gravity="center_horizontal"
+                android:text="0"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="0.0dip"
+                android:layout_height="wrap_content"
+                android:layout_weight="2.0"
+                android:gravity="center_horizontal"
+                android:text="20"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="0.0dip"
+                android:layout_height="wrap_content"
+                android:layout_weight="2.0"
+                android:gravity="center_horizontal"
+                android:text="40"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="0.0dip"
+                android:layout_height="wrap_content"
+                android:layout_weight="2.0"
+                android:gravity="center_horizontal"
+                android:text="60"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="0.0dip"
+                android:layout_height="wrap_content"
+                android:layout_weight="2.0"
+                android:gravity="center_horizontal"
+                android:text="80"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="0.0dip"
+                android:layout_height="wrap_content"
+                android:layout_weight="2.0"
+                android:gravity="center_horizontal"
+                android:text="100"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <Space
+        android:layout_width="fill_parent"
+        android:layout_height="10.0dip"
+        android:layout_gravity="top|left|center" />
+
+    <LinearLayout
+        android:id="@+id/delaySection"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/border_view_rounded_single"
+        android:orientation="vertical" >
+
+        <TextView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/delayMinuts" />
+
+        <LinearLayout
+            android:id="@+id/delayItems"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:orientation="vertical" >
+
+            <Spinner
+                android:id="@+id/delayMinuts"
+                android:layout_width="fill_parent"
+                android:layout_height="40.0dip"
+                android:prompt="@string/delayMinuts" />
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

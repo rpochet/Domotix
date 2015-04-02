@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Domotix</string>
+    <string name="app_name_settings">Domotix préférences</string>
+    <string name="level0_name">Cave</string>
+    <string name="level1_name">Rez-de-chaussée</string>
+    <string name="level2_name">Etage</string>
+    <string name="level3_name">Grenier</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="title_section1">Lampes</string>
+    <string name="title_section2">Cartes</string>
+    <string name="title_section3">Network</string>
+    <string name="title_section4">Pression</string>
+    <string name="plugin_network_state_url">http://192.168.1.4:4000/network_status.html</string>
+    <string name="plugin_pressure_url">http://192.168.1.4:4000/pressure.html</string>
+    <string name="dialog_light_title">Light</string>
+    <string name="state">ON/OFF</string>
+    <string name="dimmer">Dimmer</string>
+    <string name="delay">Delai</string>
+    <string name="delayMinuts">Minutes</string>
+    <string name="delay_open">>></string>
+    <string name="delay_close">&lt;&lt;</string>
+    
+    <string name="domotix_bus_input_host">192.168.1.4</string>
+    <integer name="domotix_bus_input_port">5555</integer>
+    <string name="domotix_bus_output_host">192.168.1.4</string>
+    <integer name="domotix_bus_output_port">10000</integer>
+    
+</resources>

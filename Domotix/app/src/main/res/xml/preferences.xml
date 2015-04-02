@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <PreferenceCategory android:title="Domotix" >
+        <EditTextPreference
+            android:defaultValue="http://192.168.1.4:4000/data/"
+            android:key="domotix.data.host"
+            android:title="Domotix Data Url" />
+        <EditTextPreference
+            android:defaultValue="amqp://domotix:domotix@192.168.1.4:5672/domotix"
+            android:key="domotix.mq.uri"
+            android:title="Domotix MQ URI" />
+        <EditTextPreference
+            android:defaultValue="1"
+            android:key="domotix.mq.clientId"
+            android:title="Domotix MQ Client ID" />
+        <EditTextPreference
+            android:defaultValue="@string/domotix_bus_input_host"
+            android:key="domotix.bus.input.host"
+            android:title="Domotix Bus Input Host" />
+        <EditTextPreference
+            android:defaultValue="@integer/domotix_bus_input_port"
+            android:inputType="number"
+            android:numeric="integer"
+            android:key="domotix.bus.input.port"
+            android:title="Domotix Bus Input Port" />
+        <EditTextPreference
+            android:defaultValue="@string/domotix_bus_output_host"
+            android:key="domotix.bus.output.host"
+            android:title="Domotix Bus Output Host" />
+        <EditTextPreference
+            android:defaultValue="@integer/domotix_bus_output_port"
+            android:inputType="number"
+            android:numeric="integer"
+            android:key="domotix.bus.output.port"
+            android:title="Domotix Bus Output Port" />
+    </PreferenceCategory>
+    
+    <PreferenceCategory android:title="Notifications" >
+        <CheckBoxPreference
+            android:key="notification"
+            android:summary="notification"
+            android:title="Notification" />
+        <RingtonePreference
+            android:key="notification.sound"
+            android:summary="Choisissez la sonnerie pour les notifications"
+            android:title="Sonnerie de notification" >
+        </RingtonePreference>
+        <CheckBoxPreference
+            android:key="notification.vibrate"
+            android:summary="Vibre lors d&apos;une notification"
+            android:title="Vibreur" >
+        </CheckBoxPreference>
+    </PreferenceCategory>
+
+</PreferenceScreen>

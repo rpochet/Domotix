@@ -24,10 +24,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 
 import eu.pochet.domotix.Constants;
@@ -325,12 +328,28 @@ public class DomotixDao {
                 }
                 swapPacket.setRegValue(tmp);
                 reader.endArray();
+            } else if (name.equals("time")) {
+                swapPacket.setTime(readDate(reader.nextString()));
             } else {
                 reader.skipValue();
             }
         }
         reader.endObject();
         return swapPacket;
+    }
+
+    /**
+     *
+     * @param sDate
+     * @return
+     * @throws IOException
+     */
+    public static Date readDate(String sDate) throws IOException {
+        try {
+            return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.sss").parse(sDate);
+        } catch (ParseException e) {
+            throw new IOException("Unable to parse date", e);
+        }
     }
 
     /**

@@ -148,7 +148,7 @@ public class DomotixActivity extends Activity {
 					        .setGroup(Constants.NOTIFICATION_DOMOTIX_GROUP)
 					        .setOngoing(true)
 					        .setContentTitle("Temperature " + builder.getLocation().getRoom().getName())
-					        .setContentText(builder.getTemperature() + "°. Mise à jour: " + new SimpleDateFormat("HH:mm").format(new Date()))
+					        .setContentText(builder.getTemperature() + "°. Mise à jour: " + new SimpleDateFormat("HH:mm").format(builder.getSwapPacket().getTime()))
 					        .setContentIntent(pendingIntent);
 					
 					NotificationManager mNotificationManager =
@@ -193,7 +193,6 @@ public class DomotixActivity extends Activity {
 	protected void onStart() {
 		Log.d(TAG, "Activity onStart");
 		super.onStart();
-        DomotixDao.getLevels(getApplicationContext());
 	}
 
     @Override

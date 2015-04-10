@@ -1,6 +1,7 @@
 package eu.pochet.domotix.dao;
 
 import java.io.Serializable;
+import java.util.Date;
 
 
 public class SwapPacket implements Serializable {
@@ -16,6 +17,8 @@ public class SwapPacket implements Serializable {
 	private int regId;
 
 	private byte[] regValue;
+
+    private Date time;
 
 	public int getDest() {
 		return dest;
@@ -80,8 +83,16 @@ public class SwapPacket implements Serializable {
 		}
 		return res; 
 	}
-	
-	public byte[] toByteArray() {
+
+    public Date getTime() {
+        return time;
+    }
+
+    public void setTime(Date time) {
+        this.time = time;
+    }
+
+    public byte[] toByteArray() {
 		int offset = 0;
 		byte[] res = new byte[7 + (this.regValue == null ? 0 : this.regValue.length)];
 		res[offset++] = (byte) this.dest;

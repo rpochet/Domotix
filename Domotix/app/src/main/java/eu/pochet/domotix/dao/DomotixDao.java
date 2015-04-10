@@ -24,7 +24,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -122,6 +121,11 @@ public class DomotixDao {
         reset();
 	}
 
+    /**
+     *
+     * @param ctx
+     * @return List of Levels
+     */
 	public static List<Level> getLevels(Context ctx) {
 		if ((levels == null) || (levels.size() == 0)) {
 			levels = new ArrayList<Level>();
@@ -204,7 +208,7 @@ public class DomotixDao {
 	 * 
 	 * @param ctx
 	 * @param reader
-	 * @return
+	 * @return Level
 	 * @throws IOException
 	 */
 	private static Level readLevel(Context ctx, JsonReader reader) throws IOException {
@@ -243,7 +247,7 @@ public class DomotixDao {
 		levels = null;
 	}
 	
-	private static Room getRoomById(int roomId) {
+	/*private static Room getRoomById(int roomId) {
 		for (Level level : levels) {
 			for (Room room : level.getRooms()) {
 				if(room.getId() == roomId) {
@@ -252,7 +256,7 @@ public class DomotixDao {
 			}
 		}
 		return null;
-	}
+	}*/
 
     /**
      * dest-source-HOP|NONCE-function-regAddress-regId-regValue
@@ -329,6 +333,12 @@ public class DomotixDao {
         return swapPacket;
     }
 
+    /**
+     *
+     * @param jsonData
+     * @return
+     * @throws IOException
+     */
 	public static List<Integer> readOutputs(byte[] jsonData) throws IOException {
 		List<Integer> outputs = new ArrayList<Integer>();
 		JsonReader reader = new JsonReader(new BufferedReader(new InputStreamReader(new ByteArrayInputStream(jsonData))));
@@ -387,7 +397,7 @@ public class DomotixDao {
 	 * 
 	 * @param ctx
 	 * @param levelId
-	 * @return
+	 * @return Level
 	 */
 	public static Level getLevel(Context ctx, int levelId) {
 		for (Level level : getLevels(ctx)) {
@@ -402,7 +412,7 @@ public class DomotixDao {
 	 * 
 	 * @param ctx
 	 * @param lightId
-	 * @return
+	 * @return Light
 	 */
 	public static Light getLight(Context ctx, int lightId) {
 		for (Level level : getLevels(ctx)) {
@@ -421,9 +431,16 @@ public class DomotixDao {
 	 * 
 	 * @param ctx
 	 * @param address
-	 * @return
+	 * @return SwapDevice
 	 */
 	public static SwapDevice getSwapDevice(Context ctx, int address) {
+        if(swapDevices == null) {
+            try {
+                readSwapDevices(ctx);
+            } catch (IOException e) {
+                throw new IllegalStateException("Unable to read SWAP devices", e);
+            }
+        }
 		for (SwapDevice swapDevice : swapDevices) {
 			if (swapDevice.getAddress() == address) {
 				return swapDevice;
@@ -484,7 +501,6 @@ public class DomotixDao {
 	/**
 	 * 
 	 * @param ctx
-	 * @return
 	 * @throws IOException
 	 */
 	private static void readLights(Context ctx) throws IOException {

@@ -1,8 +1,15 @@
 package eu.pochet.domotix.dao;
 
+import java.io.Serializable;
+
 import eu.pochet.android.Util;
 
-public class SwapRegisterEndpoint {
+public class SwapRegisterEndpoint implements Serializable {
+
+    /**
+     *
+     */
+    private static final long serialVersionUID = 1L;
 	
 	private SwapRegister swapRegister = null;
 

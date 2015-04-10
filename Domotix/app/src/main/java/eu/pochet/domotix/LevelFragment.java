@@ -53,9 +53,9 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 	public LevelFragment() {
 		myBroadcastReceiver = new BroadcastReceiver() {
 			public void onReceive(Context context, Intent intent) {
-				if (onBroadcastReceive(context, intent)) {
-					//NotificationHelper.notify(context);
-				}
+            if (onBroadcastReceive(context, intent)) {
+                //NotificationHelper.notify(context);
+            }
 			}
 		};
 	}
@@ -68,10 +68,12 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 		return (LevelView) viewFlipper.getCurrentView();
 	}
 
-	public void onActivityCreated(Bundle bundle) {
-		super.onActivityCreated(bundle);
-		getActivity().registerReceiver(myBroadcastReceiver,
-				new IntentFilter(ActionBuilder.INTENT_FROM_SWAP));
+	public void onActivityCreated(Bundle savedInstanceState) {
+		super.onActivityCreated(savedInstanceState);
+        if(savedInstanceState != null) {
+            this.mCurrentLevelId = savedInstanceState.getInt("level");
+        }
+		getActivity().registerReceiver(myBroadcastReceiver, new IntentFilter(ActionBuilder.INTENT_FROM_SWAP));
 	}
 
 	protected abstract boolean onBroadcastReceive(Context context, Intent intent);
@@ -141,9 +143,9 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 		}
 	}
 
-	public void onSaveInstanceState(Bundle bundle) {
-		super.onSaveInstanceState(bundle);
-		bundle.putInt("level", mCurrentLevelId);
+	public void onSaveInstanceState(Bundle savedInstanceState) {
+		super.onSaveInstanceState(savedInstanceState);
+        savedInstanceState.putInt("level", mCurrentLevelId);
 	}
 
 	protected abstract void updateLevel();
@@ -194,6 +196,7 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 
 		protected void updateLevel() {
 		}
+
 	}
 
 	public static class LightLevelFragment extends LevelFragment {
@@ -315,8 +318,8 @@ public abstract class LevelFragment extends Fragment implements android.gesture.
 
 		@Override
 		protected void updateLevel() {
-			Intent intent = new Intent(getActivity(), LightStatusUpdateService.class);
-			getActivity().startService(intent);
+			//Intent intent = new Intent(getActivity(), LightStatusUpdateService.class);
+			//getActivity().startService(intent);
 		}
 
 	}

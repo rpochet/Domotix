@@ -231,6 +231,7 @@ public class ActionService extends IntentService {
 									.setAction(ActionBuilder.INTENT_FROM_SWAP)
 									.setType(ActionBuilder.ActionType.TEMPERATURE)
 									.setTemperature(temperature)
+                                    .setLocation(swapDevice.getLocation())
 									.toIntent()
 								);
 							}

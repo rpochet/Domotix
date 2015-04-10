@@ -1,9 +1,5 @@
 package eu.pochet.domotix;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.Fragment;
@@ -25,6 +21,7 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceGroup;
+import android.preference.PreferenceManager;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -33,6 +30,17 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
+
+import org.acra.ACRA;
+import org.acra.ReportField;
+import org.acra.ReportingInteractionMode;
+import org.acra.annotation.ReportsCrashes;
+import org.acra.sender.HttpSender;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+
 import eu.pochet.android.TabListener;
 import eu.pochet.android.Util;
 import eu.pochet.domotix.LevelFragment.CardLevelFragment;
@@ -56,8 +64,17 @@ public class DomotixActivity extends Activity {
 	private BroadcastReceiver myBroadcastReceiver = null;
 	
 	@Override
-	public void onCreate(Bundle bundle) {
-		super.onCreate(bundle);
+	public void onCreate(Bundle savedInstanceState) {
+        Log.d(TAG, "Activity onCreate");
+		super.onCreate(savedInstanceState);
+
+        if (PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(Constants.DOMOTIX_MQ_CIENT_ID, "0").equals("0")) {
+            Intent firstLaunchIntent = new Intent(this, SettingsActivity.class);
+            firstLaunchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(firstLaunchIntent);
+            // set the bool to false in next activity !
+            finish();
+        }
 
 		setContentView(R.layout.activity_main);
 
@@ -122,17 +139,16 @@ public class DomotixActivity extends Activity {
 			public void onReceive(Context context, Intent intent) {
 				ActionBuilder action = new ActionBuilder(intent);
 				if (ActionBuilder.INTENT_FROM_SWAP.equals(action.getAction()) && ActionBuilder.ActionType.TEMPERATURE == action.getType()) {
-					float temperature = new ActionBuilder(intent).getTemperature();
-					
-					PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, new Intent(context, DomotixActivity.class), Intent.FLAG_ACTIVITY_NEW_TASK);
-					
+                    ActionBuilder builder = new ActionBuilder(intent);
+
+                    PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, new Intent(context, DomotixActivity.class), Intent.FLAG_ACTIVITY_NEW_TASK);
 					NotificationCompat.Builder mBuilder =
 					        new NotificationCompat.Builder(context)
 					        .setSmallIcon(R.mipmap.ic_launcher)
 					        .setGroup(Constants.NOTIFICATION_DOMOTIX_GROUP)
 					        .setOngoing(true)
-					        .setContentTitle("Temperature")
-					        .setContentText(temperature + "°. Mise à jour: " + new SimpleDateFormat("HH:mm").format(new Date()))
+					        .setContentTitle("Temperature " + builder.getLocation().getRoom().getName())
+					        .setContentText(builder.getTemperature() + "°. Mise à jour: " + new SimpleDateFormat("HH:mm").format(new Date()))
 					        .setContentIntent(pendingIntent);
 					
 					NotificationManager mNotificationManager =
@@ -141,11 +157,52 @@ public class DomotixActivity extends Activity {
 				}
 			}
 		};
-		
-		registerReceiver(myBroadcastReceiver, new IntentFilter(ActionBuilder.INTENT_FROM_SWAP));
+
+        startServices();
 	}
 
-	/**
+    private void startServices() {
+        Log.d(TAG, "Activity startServices");
+
+        //startService(new Intent(this, LightStatusUpdateService.class));
+
+        //startService(new Intent(this, UDPListenerService.class));
+
+        startService(new Intent(this, AMQPSubscriberService.class));
+
+        //startService(new Intent(this, WebsocketClientUpdateService.class));
+
+        registerReceiver(myBroadcastReceiver, new IntentFilter(ActionBuilder.INTENT_FROM_SWAP));
+    }
+
+    private void stopServices() {
+        Log.d(TAG, "Activity stopServices");
+
+        //stopService(new Intent(this, LightStatusUpdateService.class));
+
+        //stopService(new Intent(this, UDPListenerService.class));
+
+        stopService(new Intent(this, AMQPSubscriberService.class));
+
+        //stopService(new Intent(this, WebsocketClientUpdateService.class));
+
+        unregisterReceiver(myBroadcastReceiver);
+    }
+
+    @Override
+	protected void onStart() {
+		Log.d(TAG, "Activity onStart");
+		super.onStart();
+        DomotixDao.getLevels(getApplicationContext());
+	}
+
+    @Override
+    protected void onRestart() {
+        Log.d(TAG, "Activity onRestart");
+        super.onRestart();
+    }
+
+    /**
 	 * Screen rotation
 	 * Back to app
 	 * 
@@ -154,21 +211,13 @@ public class DomotixActivity extends Activity {
 	protected void onResume() {
 		Log.d(TAG, "Activity onResume");
 		super.onResume();
-		
-		//startService(new Intent(this, LightStatusUpdateService.class));
-
-		//startService(new Intent(this, UDPListenerService.class));
-
-        startService(new Intent(this, AMQPSubscriberService.class));
-
-		//startService(new Intent(this, WebsocketClientUpdateService.class));
 	}
-	
-	@Override
-	protected void onStart() {
-		Log.d(TAG, "Activity onStart");
-		super.onStart();
-	}
+
+    @Override
+    protected void onPause() {
+        Log.d(TAG, "Activity onPause");
+        super.onPause();
+    }
 	
 	@Override
 	protected void onStop() {
@@ -181,15 +230,7 @@ public class DomotixActivity extends Activity {
 		Log.d(TAG, "Activity onDestroy");
 		super.onDestroy();
 
-		//stopService(new Intent(this, LightStatusUpdateService.class));
-
-        //stopService(new Intent(this, UDPListenerService.class));
-		
-		stopService(new Intent(this, AMQPSubscriberService.class));
-
-		//stopService(new Intent(this, WebsocketClientUpdateService.class));
-		
-		unregisterReceiver(myBroadcastReceiver);
+        stopServices();
 	}
 
 	@Override

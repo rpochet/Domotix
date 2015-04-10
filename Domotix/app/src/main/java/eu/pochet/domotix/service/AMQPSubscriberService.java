@@ -84,7 +84,7 @@ public class AMQPSubscriberService extends Service {
                     channel.queueBind(params[0] + "-" + params[1], params[0], "");
                     QueueingConsumer consumer = new QueueingConsumer(channel);
                     channel.basicConsume(params[0] + "-" + params[1], true, consumer);
-                    Log.i(ACTION,"Waiting for messages from MQ");
+                    Log.i(ACTION,"Waiting for messages from MQ " + params[0] + "...");
 
                     while (true) {
                         QueueingConsumer.Delivery delivery = consumer.nextDelivery();

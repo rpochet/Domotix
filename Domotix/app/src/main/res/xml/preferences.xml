@@ -11,7 +11,9 @@
             android:key="domotix.mq.uri"
             android:title="Domotix MQ URI" />
         <EditTextPreference
-            android:defaultValue="1"
+            android:defaultValue="0"
+            android:inputType="number"
+            android:numeric="integer"
             android:key="domotix.mq.clientId"
             android:title="Domotix MQ Client ID" />
         <EditTextPreference

@@ -5,6 +5,7 @@ import android.content.Intent;
 
 import java.util.ArrayList;
 
+import eu.pochet.domotix.dao.Location;
 import eu.pochet.domotix.dao.SwapPacket;
 
 /**
@@ -68,6 +69,7 @@ public class ActionBuilder {
 	public static final int LIGHT_STATUS_ON = 254;
 	public static final int LIGHT_STATUS_TOGGLE = -1;
 
+    private static final String ACTION_LOCATION = "location";
 	private static final String ACTION_LEVEL_ID = "levelId";
 	private static final String ACTION_LIGHT_ID = "lightId";
 	private static final String ACTION_LIGHT_STATUS = "lightStatus";
@@ -90,6 +92,8 @@ public class ActionBuilder {
 	private ArrayList<Integer> lightsStatus;
 	
 	private float temperature;
+
+    private Location location;
 
 	public ActionBuilder() {
     	
@@ -139,6 +143,11 @@ public class ActionBuilder {
 		this.temperature = temperature;
 		return this;
 	}
+
+    public ActionBuilder setLocation(Location location) {
+        this.location = location;
+        return this;
+    }
 	
 	public Intent toIntent() {
 		Intent intent = new Intent(this.intentAction);
@@ -157,8 +166,10 @@ public class ActionBuilder {
     	intent.putExtra(ACTION_TYPE, this.type.ordinal());
 
 		intent.putExtra(ACTION_SWAP_PACKET, this.swapPacket);
-		
+
+        intent.putExtra(ACTION_LOCATION, this.location);
     	intent.putExtra(ACTION_LEVEL_ID, this.levelId);
+
         intent.putExtra(ACTION_LIGHT_ID, this.lightId);
         intent.putExtra(ACTION_LIGHT_STATUS, this.lightStatus);
         intent.putExtra(ACTION_LIGHTS_STATUS, this.lightsStatus);
@@ -173,8 +184,10 @@ public class ActionBuilder {
     	this.type = ActionType.values()[intent.getIntExtra(ACTION_TYPE, -1)];
     	
     	this.swapPacket = (SwapPacket) intent.getSerializableExtra(ACTION_SWAP_PACKET);
-    	
+
+        this.location = (Location) intent.getSerializableExtra(ACTION_LOCATION);
     	this.levelId = intent.getIntExtra(ACTION_LEVEL_ID, -1);
+
     	this.lightId = intent.getIntExtra(ACTION_LIGHT_ID, -1);
     	this.lightStatus = intent.getFloatExtra(ACTION_LIGHT_STATUS, -1);
 
@@ -216,5 +229,9 @@ public class ActionBuilder {
 
     public byte[] getManagementData() {
         return managementData;
+    }
+
+    public Location getLocation() {
+        return location;
     }
 }

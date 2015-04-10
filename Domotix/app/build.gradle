@@ -2,6 +2,12 @@ apply plugin: 'com.android.application'
 
 android {
     signingConfigs {
+        config {
+            keyAlias 'android'
+            keyPassword '8Vyr7acpandroid'
+            storeFile file('/home/rpochet/.keystore')
+            storePassword '8Vyr7acpkeystore'
+        }
     }
     compileSdkVersion 22
     buildToolsVersion "21.1.2"
@@ -24,4 +30,5 @@ dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.android.support:appcompat-v7:22.0.0'
     compile 'junit:junit:4.12'
+    compile 'ch.acra:acra:4.6.1'
 }

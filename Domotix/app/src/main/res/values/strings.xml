@@ -12,8 +12,8 @@
     <string name="title_section2">Cartes</string>
     <string name="title_section3">Network</string>
     <string name="title_section4">Pression</string>
-    <string name="plugin_network_state_url">http://192.168.1.4:4000/network_status.html</string>
-    <string name="plugin_pressure_url">http://192.168.1.4:4000/pressure.html</string>
+    <string name="plugin_network_state_url">http://192.168.1.4/network_status.html</string>
+    <string name="plugin_pressure_url">http://192.168.1.4/pressure.html</string>
     <string name="dialog_light_title">Light</string>
     <string name="state">ON/OFF</string>
     <string name="dimmer">Dimmer</string>

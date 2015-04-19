@@ -12,6 +12,8 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.QueueingConsumer;
 
+import org.acra.ACRA;
+
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
@@ -75,66 +77,74 @@ public class AMQPSubscriberService extends Service {
         protected Void doInBackground(String... params) {
             Connection connection = null;
             Channel channel = null;
-            while(true) {
-                Log.i(ACTION,"Connecting to MQ " + params[0] + "...");
-                try {
-                    connection = connectionFactory.newConnection();
-                    channel = connection.createChannel();
-                    channel.queueDeclare(params[0] + "-" + params[1], true, false, false, null);
-                    channel.queueBind(params[0] + "-" + params[1], params[0], "");
-                    QueueingConsumer consumer = new QueueingConsumer(channel);
-                    channel.basicConsume(params[0] + "-" + params[1], true, consumer);
-                    Log.i(ACTION,"Waiting for messages from MQ " + params[0] + "...");
-
-                    while (true) {
-                        QueueingConsumer.Delivery delivery = consumer.nextDelivery();
-                        broadcastIntent(delivery.getEnvelope().getExchange(), delivery.getBody());
-                    }
-                } catch (InterruptedException e) {
-                    break;
-                } catch (Exception e) {
-                    Log.w(ACTION, "Connection broken: ", e);
+            try {
+                while (true) {
+                    Log.i(ACTION, "Connecting to MQ " + params[0] + "...");
                     try {
-                        Thread.sleep(5000); //sleep and then try again
-                    } catch (InterruptedException ee) {
-                        break;
-                    }
-                } finally {
-                    if(channel != null) {
-                        try {
-                            channel.close();
-                        } catch (IOException e) {
-                            Log.e(ACTION, "Connection broken: ", e);
+                        connection = connectionFactory.newConnection();
+                        channel = connection.createChannel();
+                        channel.queueDeclare(params[0] + "-" + params[1], true, false, false, null);
+                        channel.queueBind(params[0] + "-" + params[1], params[0], "");
+                        QueueingConsumer consumer = new QueueingConsumer(channel);
+                        channel.basicConsume(params[0] + "-" + params[1], false, consumer);
+                        Log.i(ACTION, "Waiting for messages from MQ " + params[0] + "...");
+
+                        while (true) {
+                            QueueingConsumer.Delivery delivery = consumer.nextDelivery();
+                            broadcastIntent(delivery.getEnvelope().getExchange(), delivery.getBody());
+                            channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
                         }
-                    }
-                    if(connection != null) {
+                    } catch (InterruptedException e) {
+                        break;
+                    } catch (IOException e) {
+                        ACRA.getErrorReporter().handleException(e);
+                        Log.w(ACTION, "Connection broken", e);
                         try {
-                            connection.close();
-                        } catch (IOException e) {
-                            Log.e(ACTION, "Connection broken: ", e);
+                            Thread.sleep(5000); //sleep and then try again
+                        } catch (InterruptedException ee) {
+                            break;
+                        }
+                    } finally {
+                        if (channel != null && channel.isOpen()) {
+                            try {
+                                channel.close();
+                            } catch (IOException e) {
+                                Log.e(ACTION, "Unable to close channel", e);
+                            }
+                        }
+                        if (connection != null && connection.isOpen()) {
+                            try {
+                                connection.close();
+                            } catch (IOException e) {
+                                Log.e(ACTION, "Unable to close connection", e);
+                            }
                         }
                     }
                 }
-            }
+            } catch (Throwable e) {
+                System.out.println(e);
+             }
             return null;
         }
     }
 
-    private void broadcastIntent(String topic, byte[] packet) {
+    private void broadcastIntent(String topic, byte[] packet) throws IOException {
         ActionBuilder.ActionType actionType = ActionBuilder.ActionType.valueOf(topic);
         ActionBuilder actionBuilder = new ActionBuilder().setAction(ActionBuilder.INTENT_FROM_SWAP).setType(actionType);
         switch(actionType) {
             case SWAP_PACKET:
             case LIGHT_STATUS:
             case TEMPERATURE:
+                SwapPacket swapPacket = null;
                 try {
-                    SwapPacket swapPacket = DomotixDao.readSwapPacket(packet, 0);
-                    actionBuilder.setSwapPacket(swapPacket);
-                } catch (IOException e) {
-                    Log.e(ACTION, "Unable to parse message", e);
+                    swapPacket = DomotixDao.readSwapPacket(packet, 0);
                 } catch (IllegalStateException e) {
-                    Log.e(ACTION, "Unable to parse message", e);
                 }
+                if(swapPacket == null) {
+                    ACRA.getErrorReporter().handleException(new IllegalArgumentException("Unable to get SWAP Packet from " + new String(packet)));
+                    return;
+                }
+                actionBuilder.setSwapPacket(swapPacket);
                 break;
             case MANAGEMENT:
                 actionBuilder.setManagementData(packet);

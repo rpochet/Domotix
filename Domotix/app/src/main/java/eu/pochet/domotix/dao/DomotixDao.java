@@ -243,6 +243,13 @@ public class DomotixDao {
 	}
 	
 	public static List<Light> getLights(Context ctx) {
+        if(lights == null) {
+            try {
+                readLights(ctx);
+            } catch (IOException e) {
+                throw new IllegalStateException("Unable to read SWAP devices", e);
+            }
+        }
 		return lights;
 	}
 	
@@ -346,7 +353,7 @@ public class DomotixDao {
      */
     public static Date readDate(String sDate) throws IOException {
         try {
-            return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.sss").parse(sDate);
+            return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.sssZ").parse(sDate.replaceAll("Z$", "+0000"));
         } catch (ParseException e) {
             throw new IOException("Unable to parse date", e);
         }

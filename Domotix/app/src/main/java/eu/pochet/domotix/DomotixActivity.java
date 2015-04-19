@@ -11,6 +11,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -31,14 +34,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
 
-import org.acra.ACRA;
-import org.acra.ReportField;
-import org.acra.ReportingInteractionMode;
-import org.acra.annotation.ReportsCrashes;
-import org.acra.sender.HttpSender;
-
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 
 import eu.pochet.android.TabListener;
@@ -61,9 +57,15 @@ public class DomotixActivity extends Activity {
 	
 	protected int temperatureNotificationId = 0;
 	
-	private BroadcastReceiver myBroadcastReceiver = null;
-	
-	@Override
+	private BroadcastReceiver domotixBroadcastReceiver = null;
+
+    private BroadcastReceiver wifiBroadcastReceiver = null;
+
+    private boolean wifiConnection = false;
+
+    private static final String SSID_DOMOTIX = "\"pochet";
+
+    @Override
 	public void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "Activity onCreate");
 		super.onCreate(savedInstanceState);
@@ -135,7 +137,7 @@ public class DomotixActivity extends Activity {
 			levels = DomotixDao.getLevels(getApplicationContext());
 		}
 
-		myBroadcastReceiver = new BroadcastReceiver() {
+        domotixBroadcastReceiver = new BroadcastReceiver() {
 			public void onReceive(Context context, Intent intent) {
 				ActionBuilder action = new ActionBuilder(intent);
 				if (ActionBuilder.INTENT_FROM_SWAP.equals(action.getAction()) && ActionBuilder.ActionType.TEMPERATURE == action.getType()) {
@@ -158,6 +160,27 @@ public class DomotixActivity extends Activity {
 			}
 		};
 
+        wifiBroadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                ConnectivityManager conMan = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                NetworkInfo netInfo = conMan.getActiveNetworkInfo();
+                if(netInfo != null && netInfo.getType() == ConnectivityManager.TYPE_WIFI && netInfo.getState() == NetworkInfo.State.CONNECTED) {
+                    WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
+                    WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+                    if(wifiInfo.getSSID().startsWith(SSID_DOMOTIX)) {
+                        if(!wifiConnection) {
+                            wifiConnection = true;
+                            startServices();
+                        }
+                        return;
+                    }
+                }
+                wifiConnection = false;
+                stopServices();
+            }
+        };
+
         startServices();
 	}
 
@@ -168,11 +191,15 @@ public class DomotixActivity extends Activity {
 
         //startService(new Intent(this, UDPListenerService.class));
 
-        startService(new Intent(this, AMQPSubscriberService.class));
+        if(wifiConnection) {
+            startService(new Intent(this, AMQPSubscriberService.class));
+        }
 
         //startService(new Intent(this, WebsocketClientUpdateService.class));
 
-        registerReceiver(myBroadcastReceiver, new IntentFilter(ActionBuilder.INTENT_FROM_SWAP));
+        registerReceiver(domotixBroadcastReceiver, new IntentFilter(ActionBuilder.INTENT_FROM_SWAP));
+
+        registerReceiver(wifiBroadcastReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
     }
 
     private void stopServices() {
@@ -186,7 +213,9 @@ public class DomotixActivity extends Activity {
 
         //stopService(new Intent(this, WebsocketClientUpdateService.class));
 
-        unregisterReceiver(myBroadcastReceiver);
+        unregisterReceiver(domotixBroadcastReceiver);
+
+        unregisterReceiver(wifiBroadcastReceiver);
     }
 
     @Override

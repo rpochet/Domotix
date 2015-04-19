@@ -211,6 +211,7 @@ public class ActionService extends IntentService {
                         sendBroadcast(new ActionBuilder()
                                 .setAction(ActionBuilder.INTENT_FROM_SWAP)
                                 .setType(ActionBuilder.ActionType.TYPE_LIGHT_UPDATE)
+                                .setSwapPacket(action.getSwapPacket())
                                 .toIntent());
                     }
                 } else {
@@ -232,6 +233,7 @@ public class ActionService extends IntentService {
 									.setType(ActionBuilder.ActionType.TEMPERATURE)
 									.setTemperature(temperature)
                                     .setLocation(swapDevice.getLocation())
+                                    .setSwapPacket(action.getSwapPacket())
 									.toIntent()
 								);
 							}

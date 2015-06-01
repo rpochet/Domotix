@@ -25,11 +25,16 @@ A UDP datagram listener is listening on incoming message.
 * message depends on the message type
 
 #####Configuration
-@config.udpBridge.host on port @config.udpBridge.port
+Incoming messsage: @config.broker.udp.host on port @config.broker.udp.inport
+Output message: broadcast address on port @config.broker.udp.outport 
 
 ####AMQP
 AMQP subscriber is listening on message published on a topic. The topic defines the message type. 
 
+#####Configuration
+RabbitMQ server: @config.broker.amqp.host on port @config.broker.amqp.inport with virtual host @config.broker.amqp.vhost
+Authentification: @config.broker.amqp.login with password @config.broker.amqp.password
+        
 ##DomotixLightController
 
 TODO

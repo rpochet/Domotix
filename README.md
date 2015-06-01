@@ -3,12 +3,12 @@
 ##Description
 
 ###Message Type
-MANAGEMENT: 
-SWAP_PACKET: 
-SWAP_DEVICE: 
-LIGHT_STATUS: 
-TEMPERATURE: 
-_ALL: 
+* MANAGEMENT: 
+* SWAP_PACKET: 
+* SWAP_DEVICE: 
+* LIGHT_STATUS: 
+* TEMPERATURE: 
+* _ALL: 
 
 ###PubSub
 

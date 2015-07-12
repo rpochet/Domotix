@@ -1,0 +1,123 @@
+div.admin(ng-controller="AdminCtrl")
+  tabs
+    pane(title="Swap")
+      
+      .panel.panel-default
+        .panel-heading Android Application
+        .panel-body
+          div
+            a(href="../Domotix.apk")
+              strong Domotix
+      
+      .panel.panel-default
+        .panel-heading Scan
+        .panel-body
+          div
+            a(ng-click="checkNewDevices()")
+              strong Check stamps
+            hr
+            a(ng-click="refreshDevices()")
+              strong Refresh devices
+            hr
+            a(ng-click="refreshSwapPacketsEvents()")
+              strong Refresh Swap packets
+            hr
+            a(ng-click="refreshState()")
+              strong Refresh state
+            
+      .panel.panel-default
+        .panel-heading Messages
+        .panel-body
+          .panel.panel-default
+            .panel-heading Send message
+            .panel-body
+              form(ng-submit="sendMessage()", role="form")
+                .form-group
+                  label Function codes
+                  select.form-control(ng-model="message.functionCode", ng-options="key for (key, value) in functions")
+                .form-group
+                  label Destination address
+                  input.form-control(type="number", ng-model="message.address")
+                .form-group
+                  label Register ID
+                  select.form-control(ng-model="message.register", ng-options="name for (name, reg) in registers")
+                  input.form-control(type="number", ng-model="message.register.id")
+                .form-group
+                  label Register Value (Command only - Length and value)
+                  input.form-control(type="number", ng-model="message.register.length", ng-disabled="message.functionCode < 2")
+                  input.form-control(type="number", ng-model="message.register.value", ng-disabled="message.functionCode < 2")
+                  input.form-control(ng-model="message.register.valueStr", ng-disabled="message.functionCode < 2")
+                br
+                input("class"="btn-primary", type="submit", value="Send")
+            
+          .panel.panel-default
+            .panel-heading Decode message
+            .panel-body
+              form(role="form")
+                .form-group
+                  .input-group
+                    .input-group-addon
+                      span(class="glyphicon glyphicon-refresh", ng-click="decodeMessage(rawMessage)")
+                    input(type="text", class="form-control", placeholder="SWAP Packet", size="40", ng-model="rawMessage", ng-change="decodeMessage(rawMessage)")
+                .form-group
+                  .col-md-1 RSSI {{ decodedMessage.rssi }}
+                  .col-md-1 LQI {{ decodedMessage.lqi }}
+                  .col-md-1 To {{ decodedMessage.dest }}
+                  .col-md-1 From {{ decodedMessage.source }}
+                  .col-md-1 Hop {{ decodedMessage.hop }}
+                  .col-md-1 Security {{ decodedMessage.security }}
+                  .col-md-1 Nonce {{ decodedMessage.nonce }}
+                  .col-md-1 Function {{ decodedMessage.func }}
+                  .col-md-1 Register {{ decodedMessage.regAddress }} / {{ decodedMessage.regId }}
+                  .col-md-1 Value {{ decodedMessage.value }}
+  
+    pane(title="CouchDB")
+      .panel.panel-default
+        .panel-heading Configuration
+        .panel-body
+          ul
+            li Script: /etc/init.d/couchdb
+            li Configuration: /etc/default/couchdb
+            li Log: /var/log/couchdb/
+            li Url: 
+              a(href="http://192.168.1.4:5984/_utils/index.html", target="_couchdb") Admin
+      
+      .panel.panel-default
+        .panel-heading Clean by view
+        .panel-body
+          form(ng-submit="cleanByView()", role="form")
+            .form-group
+              label View
+              input.form-control(type="text", ng-model="couchDbView")
+            br
+            input("class"="btn-primary", type="submit", value="Clean")
+  
+    pane(title="RabbitMQ")
+      .panel.panel-default
+        .panel-heading Configuration
+        .panel-body
+          ul
+            li Script: /etc/init.d/rabbitmq-server
+            li Configuration: /etc/rabbitmq/rabbitmq.config 
+            li Log: /var/log/rabbitmq/
+            li Url: 
+              a(href="http://domotix:domotix@192.168.1.4:55672/", target="_rabbitmq") Admin
+    
+    pane(title="Raspberry PI")
+      .panel.panel-default
+        .panel-heading Configuration
+        .panel-body
+          ul
+            li Address: 192.168.1.4
+            li Url: 
+              iframe(href="http://192.168.1.4:8111/")
+    
+    pane(title="ACRA")
+       .panel.panel-default
+        .panel-heading Configuration
+        .panel-body
+          ul
+            li Configuration: /etc/rabbitmq/rabbitmq.config
+            li Url: 
+              a(href="http://192.168.1.4:5984/acralyzer/_design/acralyzer/index.html", target="_acra") Acra
+

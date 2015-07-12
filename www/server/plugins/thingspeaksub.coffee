@@ -20,8 +20,8 @@ class ThingspeakSubscriber
         self = this
         
         @sub = zmq.socket "sub"
-        @sub.identity = "thingspeak"
-        @sub.subscribe "SWAP_PACKET"
+        @sub.subscribe ""
+		
         @sub.on "message", (data) ->
             logger.info "Received message" 
             data = JSON.parse(data)
@@ -30,7 +30,7 @@ class ThingspeakSubscriber
             
             res = ""
             if swapPacket.value isnt undefined
-                channel = packetDevice.product.productCode + "/" + packetDevice.address + "/" + swapPacket.regId
+                channel = packetDevice.productCode + "/" + packetDevice.address + "/" + swapPacket.regId
                 temp = if swapPacket.value.length is undefined then [swapPacket.value] else swapPacket.value
                 
                 foundRegisters = (register for register in packetDevice.configRegisters when register.id == swapPacket.regId)

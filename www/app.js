@@ -3,6 +3,7 @@
 var http = require('http'),
     c = require('coffee-script'),
     ss = require('socketstream'),
+    swap = require('./client/code/common/swap'),
     log4js = require('log4js'),
     moment = require('moment'),
     brokerConfig = require('config').broker,
@@ -24,9 +25,6 @@ var logger = log4js.getLogger(__filename.split('/').pop(-1).split('.')[0]);
 ss.client.formatters.add(require('ss-coffee'));
 ss.client.formatters.add(require('ss-jade'));
 ss.client.formatters.add(require('ss-stylus'));
-// user server-side compiled Hogan (Mustache) templates
-//ss.client.templateEngine.use(require('ss-hogan'));
-//ss.client.templateEngine.use('ember');
 ss.client.templateEngine.use('angular');
 
 // Define a single-page client called 'main'
@@ -65,11 +63,11 @@ logger.info('Server listening on port %d in %s mode', serverConfig.port, ss.env)
 ss.start(server);
 
 setTimeout(function () {
-    ss.api.publish.all("sendSwapEvent", "network", "SERVER_STARTED");
+    ss.api.publish.all(swap.MQ.Type.MANAGEMENT, "network", "SERVER_STARTED");
 }, 3000);
 
 process.on('SIGINT', function(){
-    ss.api.publish.all("sendSwapEvent", "network", "SERVER_STOPPED");
+    ss.api.publish.all(swap.MQ.Type.MANAGEMENT, "network", "SERVER_STOPPED");
     logger.info('Server is stopping...');
     logger.info(arguments);
     process.exit()

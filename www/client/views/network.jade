@@ -1,0 +1,26 @@
+.container(ng-controller="NetworkCtrl")
+  h1 Network
+  .row
+    h4 Swap Events
+    #events
+      div(ng-repeat="swapEvent in swapEvents", ng-class="{even: $even, odd: $odd}")
+        span("class"="text-{{swapEvent.topic}}") {{swapEvent.type | uppercase}}: {{swapEvent.text}}
+        span.pull-right.muted <small> {{swapEvent.time| date:"dd/MM/yyyy @ HH:mm:ss"}} </small>
+  .row
+    h4 Swap Packets
+    #packets
+      div(ng-repeat="swapPacket in swapPackets", ng-class="{even: $even, odd: $odd}")
+        span {{swapPacket}} 
+        span.pull-right.muted {{swapPacket.time | date:"dd/MM/yyyy @ HH:mm:ss"}}
+  .row
+    h4 Quality
+    #chart-quality(ng-click="refreshQuality()", style="height: 500px")
+    .pagination
+      button(ng-click="previousQuality()") Previous
+      button(ng-click="nextQuality()") Next
+  .row
+    h4 Nonce
+    #chart-nonce(ng_click="refreshNonce()", style="height: 500px")
+    .pagination
+      button(ng-click="previousNonce()") Previous
+      button(ng-click="nextNonce()") Next

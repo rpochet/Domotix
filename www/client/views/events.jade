@@ -1,0 +1,25 @@
+.container(ng-controller="EventsCtrl")
+  .row
+    .panel.panel-default
+      .panel-heading Create event
+      .panel-body
+        form(ng-submit="createEvent()", role="form")
+          .form-group
+            label Event type
+            select.form-control(ng-model="eventType", ng-options="eventType.label for eventType in eventTypes")
+          .form-group(ng_show="eventType.subTypes")
+            label Event subtype
+            select.form-control(ng-model="eventSubType", ng-options="eventSubType.label for eventSubType in eventType.subTypes")
+          .form-group
+            label Event value
+            input.form-control(type="text", ng-model="eventValue")
+          .form-group
+            label Event detail
+            textarea.form-control(type="text", ng-model="eventDetail")
+          br
+          input("class"="btn-primary", type="submit", value="Create")
+      .panel-footer
+        p 
+          span(ng-hide="eventSubType") {{eventType.description}} 
+          | {{eventSubType.description}}
+    

@@ -135,27 +135,13 @@ LightSwitch =
         
 MQ =
     Type:
-        SWAP_PACKET: 0
-        SWAP_DEVICE: 1
-        LIGHT_STATUS: 2
-        PRESSURE: 3
-        TEMPERATURE: 4
-        RFU_2: 5
-        RFU_3: 6
-        RFU_4: 7
-        RFU_5: 8
-        RFU_6: 9
-        RFU_7: 10
-        RFU_8: 11
-        RFU_9: 12
-        RFU_10: 13
-        RFU_11: 14
-        RFU_12: 15
-        RFU_13: 16
-        RFU_14: 17
-        RFU_15: 18
-        RFU_16: 19
-        RFU_17: 20
+        MANAGEMENT: "MANAGEMENT"
+        SWAP_PACKET: "SWAP_PACKET"
+        SWAP_DEVICE: "SWAP_DEVICE"
+        LIGHT_STATUS: "LIGHT_STATUS"
+        TEMPERATURE: "TEMPERATURE"
+        PRESSURE: "PRESSURE"
+        _ALL: "_ALL"
         
 module.exports =
     CCPacket: CCPacket

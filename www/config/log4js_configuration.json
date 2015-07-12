@@ -1,18 +1,13 @@
 {
   "appenders": [
     {
-      "type": "file",
-      "filename": "logs/domotix.log",
-      "maxLogSize": 20480,
-      "backups": 10
+      "type": "console"
     },
     {
-      "type": "file",
-      "filename": "logs/thingspeak.log",
-      "maxLogSize": 20480,
-      "backups": 10,
-      "category": "thingspeaksub"
+      "type": "dateFile",
+      "filename": "logs/domotix.log",
+      "pattern": "-yyyy-MM-dd",
+      "alwaysIncludePattern": true
     }
-  ],
-  "replaceConsole": true
+  ]
 }

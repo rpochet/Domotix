@@ -1,0 +1,22 @@
+.container(ng-controller="DomotixCtrl", data-spy="scroll", data-target=".domotix", style="position: relative;")
+  .domotix
+    tabs
+      pane(ng-repeat="level in levels", title="{{level.name}}")
+        svg(viewBox="0 0 1200 1200", version = "1.1", width="1200px", height="1200px", ng-click="handleSvgClick($event, level)")
+        
+          defs
+            circle(id="r1", cx="0", cy="0", r="50", stroke-width="0")
+            radialGradient(id="g1", cx="50%", cy="50%", r="50%")
+              stop(stop-color="grey", offset="0%")
+              stop(stop-color="white", offset="100%")
+            circle(id="r2", cx="0", cy="0", r="50", stroke-width="0")
+            radialGradient(id="g2", cx="50%", cy="50%", r="50%")
+              stop(stop-color="black", offset="0%")
+              stop(stop-color="teal", offset="50%")
+              stop(stop-color="white", offset="100%")
+          
+          path(id="level{{level.id}}", d="{{level.path}}", fill="white", stroke="#428bca", stroke-width="6")
+          g(ng-repeat="room in level.rooms")
+            path(id="room{{room.id}}", d="{{room.path}}", fill="white", stroke="#428bca", stroke-width="3")
+            use(ng-repeat="light in room.lights", id="light-{{light.swapDeviceAddress}}-{{light.outputNb}}", x="{{lightPosition(room, light)[0]}}", y="{{lightPosition(room, light)[1]}}", xlink:href="{{lightDef(room, light)}}", fill="{{lightFill(room, light)}}")
+      

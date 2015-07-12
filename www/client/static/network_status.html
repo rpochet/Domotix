@@ -3,19 +3,25 @@
     <meta charset="utf-8">
     <style type="text/css">
       body {
-      font: 10px sans-serif;
-    }
-
-    .axis path,
-    .axis line {
-      fill: none;
-      stroke: #000;
-      shape-rendering: crispEdges;
-    }
-
-    .area {
-      fill: steelblue;
-    }
+        font: 10px sans-serif;
+      }
+      
+      .axis path,
+      .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+      }
+      
+      .area {
+        fill: steelblue;
+      }
+      
+      .c3-target-NONCE-2
+      .c3-target-ID-2 {
+        opacity: 0 !important;
+      }
+      
     </style>
     <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
     <script src="http://d3js.org/d3.v3.js"></script>
@@ -29,6 +35,7 @@
       
       // Without 1 i.e. the modem application
       var maxSource = 3;
+      var nbGraph = 3;
       
       var defaultMinRSSI = -120;
       var defaultMaxRSSI = 120;
@@ -47,7 +54,7 @@
         size: {
           height: 700
         },
-        data: {          
+        data: {
           type: 'spline'
         },
         grid: {
@@ -91,14 +98,14 @@
             title: function (d) { 
               return formatDate(d); 
             },
-            /*value: function (value, ratio, id) {
-              var format = id === 'RSSI' ? d3.format(',') : d3.format('$');
-              return format(value);
-            }*/
-            value: d3.format(',') // apply this format to both y and y2
+            value: d3.format(',')
           }
         }
       };
+      
+      options.data.onclick = function(e) {
+        console.log(e);
+      }
       
       options.data.xs = {};
       options.data.columns = [];
@@ -109,9 +116,9 @@
         options.data.xs['LQI-' + s] = 'x-' + s;
         
         //data.columns
-        options.data.columns[0 + 3 * (s - 2)] = ['x-' + s];
-        options.data.columns[1 + 3 * (s - 2)] = ['RSSI-' + s];
-        options.data.columns[2 + 3 * (s - 2)] = ['LQI-' + s];
+        options.data.columns[0 + nbGraph * (s - 2)] = ['x-' + s];
+        options.data.columns[1 + nbGraph * (s - 2)] = ['RSSI-' + s];
+        options.data.columns[2 + nbGraph * (s - 2)] = ['LQI-' + s];
         
         // data.axes
         options.data.axes['LQI-' + s] = 'y2';
@@ -119,31 +126,15 @@
       
       var columns = new Array();
       for(var s = 2; s <= (maxSource + 1); s++) {
-        columns[0 + 3 * (s - 2)] = new Array();
-        columns[1 + 3 * (s - 2)] = new Array();
-        columns[2 + 3 * (s - 2)] = new Array();
-        columns[0 + 3 * (s - 2)].push('x-' + s);
-        columns[1 + 3 * (s - 2)].push('RSSI-' + s);
-        columns[2 + 3 * (s - 2)].push('LQI-' + s);            
+        columns[0 + nbGraph * (s - 2)] = new Array();
+        columns[0 + nbGraph * (s - 2)].push('x-' + s);
+        columns[1 + nbGraph * (s - 2)] = new Array();
+        columns[1 + nbGraph * (s - 2)].push('RSSI-' + s);
+        columns[2 + nbGraph * (s - 2)] = new Array();
+        columns[2 + nbGraph * (s - 2)].push('LQI-' + s);
       }
       
       var chart = c3.generate(options);
-      
-      /*var svg = $(chart.element).children('svg');
-      
-      var $updateDate = $("g").attr("transform", "translate(" + (svg.width() - 300) + ", 0)");
-      svg.append($updateDate);
-      $updateDate.append("text");
-
-      svg.append("g")
-          .attr("transform", "translate(100, 0)")
-        .append("text")
-          .text("Max. RSSI: " + maxRSSI);
-
-      svg.append("g")
-          .attr("transform", "translate(100, 20)")
-        .append("text")
-          .text("Min. RSSI: " + minRSSI);*/
       
       function loadData() {
         $.ajax({
@@ -162,28 +153,28 @@
               var source = parseInt(value.source);
               if(source > 1 && source != 255) { // do not handle modem packets and new device
                 var time = d3.time.format.iso.parse(value.time);
-                columns[0 + 3 * (source - 1 - 1)].push(time);
+                columns[0 + nbGraph * (source - 1 - 1)].push(time);
                 if(value.RSSI >= 128) // old packets 
                 {
-                  columns[1 + 3 * (source - 1 - 1)].push(value.RSSI >= 128 ? ((value.RSSI - 256) / 2 - 74) : (value.RSSI / 2 - 74));
+                  columns[1 + nbGraph * (source - 1 - 1)].push(value.RSSI >= 128 ? ((value.RSSI - 256) / 2 - 74) : (value.RSSI / 2 - 74));
                 } 
                 else 
                 {
-                  columns[1 + 3 * (source - 1 - 1)].push(value.RSSI);
+                  columns[1 + nbGraph * (source - 1 - 1)].push(value.RSSI);
                 }
-                columns[2 + 3 * (source - 1 - 1)].push(value.LQI);
+                columns[2 + nbGraph * (source - 1 - 1)].push(value.LQI);
               }
             });
             
             minRSSI = d3.min(columns[1], function(d, idx) { 
-              if(idx > 0) {            
+              if(idx > 0) {
                 return d;
               } else {
                 return defaultMaxRSSI;
               }
             });
             maxRSSI = d3.max(columns[1], function(d, idx) {
-              if(idx > 0) {            
+              if(idx > 0) {
                 return d;
               } else {
                 return defaultMinRSSI;
@@ -191,21 +182,19 @@
             });
             
             minLQI = d3.min(columns[2], function(d, idx) { 
-              if(idx > 0) {            
+              if(idx > 0) {
                 return d;
               } else {
                 return defaultMaxLQI;
               }
             });
             maxLQI = d3.max(columns[2], function(d, idx) {
-              if(idx > 0) {            
+              if(idx > 0) {
                 return d;
               } else {
                 return defaultMinLQI;
               }
             });
-            
-            //$updateDate.children("text").text("Last updated: " + formatUpdateDate(new Date()));
             
             chart.load({
               columns: columns
@@ -214,7 +203,6 @@
         });
       }
       loadData();
-      //svg.on("click", loadData);
           
       d3.select("g.c3-axis-y").on("click", function() {
         zoomRSSI = !zoomRSSI;
@@ -238,5 +226,6 @@
   </head>
   <body>
     <div id="chart"></div>
+    <div class="pagination"><a href="">Previous</a><a href="">Next</a></div>
   </body>
 </html>

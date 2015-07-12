@@ -1,24 +1,49 @@
-var amqp = require('amqp');
+var AMQP = require('amqp-coffee');
 
-console.log(' [*] Starting...');
+console.log('Starting...');
 
-//var connection = amqp.createConnection();
-//var connection = amqp.createConnection({host: '192.168.1.4', user: 'guest', password:'guest'});
-var connection = amqp.createConnection({url: 'amqp://admin:admin@192.168.1.4:5672'});
-connection.on('ready', function(){
-    console.log(' [*] Connection ready')
-    /*connection.exchange('', {type: 'fanout',
-                                 autoDelete: false}, function(exchange){
-        console.log(' [*] Exchange...')
-        connection.queue('tmp-' + Math.random(), {exclusive: true},
-                         function(queue){
-            queue.bind('logs', '');
-            console.log(' [*] Waiting for logs. To exit press CTRL+C')
-
-            queue.subscribe(function(msg){
-                console.log(" [x] %s", msg.data.toString('utf-8'));
+var QUEUE_NAME = 'SWAP_PACKET';
+var connection = new AMQP({
+    host: '192.168.1.4',
+    port: 5672,
+    login: 'domotix',
+    password: 'domotix',
+    vhost: '/domotix'
+}, function(error) {
+    if(error) {
+        console.log('Connection problem: ', error);
+        return;
+    }
+    console.log('Connection ready');
+    connection.queue({
+        queue: QUEUE_NAME + '-1',
+        autoDelete: false,
+        durable: true
+    }, function(err, queue) {
+        queue.declare(function(error, queueOptions) {
+            if(error) {
+                console.log('Declare problem: ', error);
+                return;
+            }
+            console.log('Declare OK');
+            queue.bind(QUEUE_NAME, queue.queueOptions.queue, function(err, TBD1) {
+                if(error) {
+                    console.log('Binding problem: ', error);
+                    return;
+                }
+                console.log(TBD1);
+                console.log('Binding OK');
+                connection.consume(queue.queueOptions.queue, {prefetchCount: 1}, function(message) {
+                    console.log("Message Data", message.data);
+                    message.ack();
+                }, function(error, consumer) {
+                    if(error) {
+                        console.log('Consumer problem: ', error);
+                        return;
+                    }
+                    console.log("Consumer OK", consumer);
+                });
             });
-        })
-    });*/
-    connection.publish('swapPacket', 'test');
+        });
+    });
 });

@@ -1,0 +1,74 @@
+.container(ng-controller="ConfigCtrl")
+  h1 Configuration
+  .tab-pane
+    ul.nav.nav-tabs
+      li.active
+        a(href="#serial", data-toggle='tab') Serial
+      li
+        a(href='#network', data-toggle='tab') Network
+      li
+        a(href='#broker', data-toggle='tab') Broker
+      li
+        a(href="#bridge", data-toggle='tab') UDP Bridge
+    form.form-horizontal(role="form")
+      .tab-content
+        #serial.tab-pane.active
+          .form-group
+            label.col-sm-2.control-label Port
+            .col-sm-10
+              input.form-control(type="text", placeholder="Port ...", ng-model="editedConfig.serial.port", required)
+          .form-group
+            label.col-sm-2.control-label Speed
+            .col-sm-10
+              input.form-control(type="number", placeholder="Baudrate...", ng-model="editedConfig.serial.baudrate", required)
+        #network.tab-pane
+          .form-group
+            label.col-sm-2.control-label Frequency Channel
+            .col-sm-10
+              input.form-control(type="number", placeholder="Frequency Channel...", ng-model="editedConfig.network.frequencyChannel", required)
+          .form-group
+            label.col-sm-2.control-label Network Id
+            .col-sm-10
+              input.form-control(type="number", placeholder="Network Id...", ng-model="editedConfig.network.networkId", required)
+          .form-group
+            label.col-sm-2.control-label Modem address
+            .col-sm-10
+              input.form-control(type="number", placeholder="Modem address...", ng-model="editedConfig.network.address", required)
+          .form-group
+            label.col-sm-2.control-label Security
+            .col-sm-10
+              input.form-control(type="number", placeholder="Security...", ng-model="editedConfig.network.security", required)
+        #broker.tab-pane
+          .form-group
+            label.col-sm-2.control-label Host
+            .col-sm-10
+              input.form-control(type="text", placeholder="Host...", ng-model="editedConfig.broker.amqp.host", required)
+          .form-group
+            label.col-sm-2.control-label Port
+            .col-sm-10
+              input.form-control(type="number", placeholder="Port...", ng-model="editedConfig.broker.amqp.port", required)
+          .form-group
+            label.col-sm-2.control-label Virtual host
+            .col-sm-10
+              input.form-control(type="text", placeholder="Virtual host...", ng-model="editedConfig.broker.amqp.vhost", required)
+          .form-group
+            label.col-sm-2.control-label Login
+            .col-sm-10
+              input.form-control(type="text", placeholder="Login...", ng-model="editedConfig.broker.amqp.login", required)
+          .form-group
+            label.col-sm-2.control-label Password
+            .col-sm-10
+              input.form-control(type="password", placeholder="Password...", ng-model="editedConfig.broker.amqp.password", required)
+        #bridge.tab-pane
+          .form-group
+            label.col-sm-2.control-label Host
+            .col-sm-10
+              input.form-control(type="text", placeholder="Host...", ng-model="editedConfig.udpBridge.host", required)
+          .form-group
+            label.col-sm-2.control-label Port
+            .col-sm-10
+              input.form-control(type="number", placeholder="Port...", ng-model="editedConfig.udpBridge.port", required)
+        .form-group
+          .col-sm-offset-2.col-sm-10
+            button.btn.btn-link(ng-click="reset()", ng-disabled="isUnchanged()") Cancel
+            button.btn.btn-primary(ng-click="update()", ng-disabled="form.$invalid || isUnchanged()") Save

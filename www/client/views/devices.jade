@@ -1,0 +1,102 @@
+.container(ng-controller="DevicesCtrl")
+  h1 Domotix Gateway
+  hr
+  .row
+    h3 Swap Devices
+    #devices
+      table.table.table-hover
+        thead
+          tr
+            th Location
+            th Address
+            th Last Status
+            th Product Code
+            th Frequency Channel
+            th Network Id
+            th Tx Interval
+            th System State
+            th Security Option
+            th Security Nonce
+            th Security Password
+        tbody
+          tr(ng-repeat="device in devices | objectToArray | orderBy: location", ng-click="selectDevice(device)", ng-class="{ 'warning' : device.address == 255, 'info' : noSee(device), 'danger' : device.networkId != config.network.networkId || device.frequencyChannel != config.network.frequencyChannel }")
+            td {{device.location.room.name}}
+            td {{device.address}}
+            td {{device.lastStatusTime | date:"dd/MM/yyyy @ HH:mm:ss"}}
+            td {{device.product}}
+            td {{device.frequencyChannel}}
+            td {{device.networkId}}
+            td {{device.txInterval}}
+            td {{device.systemState | systemState}}
+            td {{device.securityOption}}
+            td {{device.securityNonce}}
+            td {{device.securityPassword}}
+        
+      #selectedDevice(ng-if="selectedDevice")
+        form.form-horizontal(role="form")
+          fieldset
+             legend Standard registers
+            .form-group
+              label.col-sm-2.control-label Product Code
+              .col-sm-10
+                p.form-control-static {{editedDevice.product}}
+            .form-group
+              label.col-sm-2.control-label State
+              .col-sm-10
+                p.form-control-static {{editedDevice.systemState | systemState}}
+            .form-group
+              label.col-sm-2.control-label Last Status
+              .col-sm-10
+                p.form-control-static
+                  | {{editedDevice.lastStatusTime | date:"dd/MM/yyyy @ HH:mm:ss"}}
+                  span(ng-show="noSee(editedDevice)").label.bg-danger Last Seen 
+                  |  {{editedDevice.lastStatusTime | fromNow}} !
+          fieldset
+            .form-group
+              label.col-sm-2.control-label Location
+              .col-sm-10
+                input.form-control(type="text", placeholder="Room Id...", ng-model="editedDevice.location.room_id", required)
+            .form-group
+              label.col-sm-2.control-label Address
+              .col-sm-10
+                input.form-control(type="number", placeholder="Not 1 ...", ng-model="editedDevice.address", required, min="1", max="255", integer) 
+                span(ng-show="editedDevice.address == 255").label.bg-danger Address to be defined
+          fieldset(disabled)
+            .form-group
+              label.col-sm-2.control-label Frequency Channel
+              .col-sm-10
+                input.form-control(type="number", placeholder="Frequency Channel ...", ng-model="editedDevice.frequencyChannel", required, min="0", max="255", integer)
+            .form-group
+              label.col-sm-2.control-label Network Id
+              .col-sm-10
+                input.form-control(type="number", placeholder="Network Id ...", ng-model="editedDevice.networkId", required, min="0", max="65535", integer)
+          .form-group
+            label.col-sm-2.control-label Transmit Interval (s)
+            .col-sm-10
+              input.form-control(type="number", placeholder="In seconds ...", ng-model="editedDevice.txInterval", required, min="0", max="65535", integer)
+          .form-group
+            .col-sm-offset-2.col-sm-10
+              button.btn.btn-link(ng-click="reset()", ng-disabled="isUnchanged()") Cancel
+              button.btn.btn-danger(ng-click="delete()") Delete
+              button.btn.btn-primary(ng-click="update()", ng-disabled="form.$invalid || isUnchanged()") Save
+          
+          fieldset
+            legend Config registers
+            div(ng-repeat="register in editedDevice.configRegisters")
+              h4 {{register.name}} ({{register.id}}) / {{register.value}}
+              div(ng-repeat="param in register.params")
+                .form-group
+                  label.col-sm-2.control-label {{param.name}}
+                  .col-sm-10
+                    | {{registerPartValue(param, register.value)}}
+                    input.form-control(type="{{param.type}}", title="{{param.name}}", ng-disabled="param.dir == 'output'", ng-model="param.value", required, min="0", max="4294967295", integer)
+          fieldset
+            legend Regular registers
+            div(ng-repeat="register in editedDevice.regularRegisters")
+              h4 {{register.name}} ({{register.id}}) / {{register.value}}
+              div(ng-repeat="endpoint in register.endpoints")
+                .form-group
+                  label.col-sm-2.control-label {{endpoint.name}}
+                  .col-sm-10
+                    | {{registerPartValue(endpoint, register.value)}}
+                    input.form-control(type="{{endpoint.type}}", title="{{endpoint.name}}", ng-disabled="endpoint.dir == 'output'", ng-model="endpoint.value", required)

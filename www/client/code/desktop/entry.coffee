@@ -8,7 +8,7 @@ require '/directives'
 require '/components'
 
 # angular application
-app = angular.module('swapApp', ['swap.filters', 'swap.services', 'swap.directives', 'ui.bootstrap', 'ngRoute', 'xeditable', 'components', 'nvd3ChartDirectives'], 
+app = angular.module('swapApp', ['swap.filters', 'swap.services', 'swap.directives', 'ui.bootstrap', 'ngRoute', 'xeditable', 'components', 'ngToast', 'angular-loading-bar', 'nvd3ChartDirectives', 'gridshore.c3js.chart'], 
     ($dialogProvider) ->
         $dialogProvider.options {
             backdrop: true
@@ -20,6 +20,20 @@ app = angular.module('swapApp', ['swap.filters', 'swap.services', 'swap.directiv
 
 app.run (editableOptions) ->
     editableOptions.theme = 'bs2' # bootstrap3 theme. Can be also 'bs2', 'default'
+
+# Cors usage example. 
+# @author Georgi Naumov gonaumov@gmail.com for contacts and suggestions. 
+app.config ($httpProvider) ->
+    # Enable cross domain calls
+    $httpProvider.defaults.useXDomain = true
+    delete $httpProvider.defaults.headers.common['X-Requested-With']
+
+app.config (ngToastProvider) ->
+  ngToastProvider.configure
+    animation: 'slide'
+    horizontalPosition: 'right'
+    verticalPosition: 'top'
+    maxNumber: 0
 
 # configure angular routing
 require('/routers')(app)

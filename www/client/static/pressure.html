@@ -2,7 +2,7 @@
   <head>
     <meta charset="utf-8">
     <style type="text/css">
-      body {
+    body {
       font: 10px sans-serif;
     }
 
@@ -388,15 +388,22 @@
             descending: true
           },
           success: function(data) {
-            var regData = data.rows[0].value.value;
-            var currentPressure = getPressure(regData);
-            var currentDate = d3.time.format.iso.parse(data.rows[0].value.time);
+            var regData;
+            var currentPressure;
+            var currentDate;
+            var pressureVariation;
             data.rows.forEach(function(data, idx) {
-              var regDataTmp = data.value.value;
-              if(idx > 0) {
-                previousDate = d3.time.format.iso.parse(data.value.time);
-                if(currentDate.getTime() - previousDate.getTime() > 3600000) {
-                  pressureVariation =  (currentPressure - getPressure(regDataTmp)) / (currentDate.getTime() - previousDate.getTime()) * 3600000;
+              regData = data.value.value;
+              if(regData.length == 6){
+                if(currentPressure == undefined) {
+                  currentPressure = getPressure(regData);
+                  currentDate = d3.time.format.iso.parse(data.value.time);
+                } else {
+                  previousDate = d3.time.format.iso.parse(data.value.time);
+                  if(currentDate.getTime() - previousDate.getTime() > 3600000) {
+                    pressureVariation =  (currentPressure - getPressure(regData)) / (currentDate.getTime() - previousDate.getTime()) * 3600000;
+                    return false;
+                  }
                 }
               }
             });
@@ -405,7 +412,8 @@
         });
       }
       loadData();
-      setInterval(loadData, 10000);
+      setInterval(loadData, 100000);
+      $('#gauge').on('click', loadData);
     });
     </script>
   </head>

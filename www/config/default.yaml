@@ -1,5 +1,5 @@
 server:
-    port: 4000
+    port: 80
 serial:
     dummy: false
     port: /dev/ttyAMA0
@@ -9,14 +9,33 @@ network:
     networkId: 46406
     address: 1
     security: 0
+state:
+    clientCheck: false
+    clientCheckInterval: 30000
+    clientTimeOut: 60 # in s.
 broker:
-    type: udp  # local / zmq / faye / rabbitmq / udp
-    host: 192.168.1.255 # 192.168.1.4 / 192.168.1.4 / 192.168.1.4 / 192.168.1.4 / 192.168.1.255
-    port: 5556 # 4000 / 4000 / 5672 / 5556
-    path: domotix
+    impl: udp
+    amqp:
+        host: 192.168.1.4
+        port: 5672
+        login: domotix
+        password: domotix
+        vhost: /domotix
+    udp:
+        inhost: 192.168.1.4
+        inport: 5555
+        outhost: 192.168.1.255
+        outport: 5556
+    zmq:
+        host: 192.168.1.4
+        port: 4000
+    faye:
+        host: 192.168.1.4
+        port: 4000
+        path: domotix
 udpBridge:
     host: 192.168.1.4
-    inport: 5555
+    port: 5555
 couchDB:
     host: 192.168.1.4
     port: 5984

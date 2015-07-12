@@ -25,11 +25,7 @@ class SerialModem extends events.EventEmitter
             logger.info "Port " + @path + " opened"
             @on "data", (data) =>
                 logger.debug "Received: #{data}"
-                if data[0] is "("
-                    packet = new swap.CCPacket data[0 .. data.length-1]  # remove \r
-                    if packet.data
-                        packet = new swap.SwapPacket packet
-                        self.emit "swapPacket", packet
+                self.emit swap.MQ.Type.SWAP_PACKET, data
             self.emit "started"
         
         @serialPort.on "close", ->

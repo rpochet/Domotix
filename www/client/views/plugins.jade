@@ -1,0 +1,11 @@
+.plugins
+  tabs
+    pane(title="Barometre")
+      iframe(src="/pressure.html", width="100%", height="740", frameborder="0")
+    pane(title="Température")
+      include ./chart_temperature.jade
+    pane(title="Eau - electricite...")
+      include ./chart_consommation.jade
+    pane(title="Etat réseau")
+      include ./network_status.jade
+      #iframe(src="/network_status.html", width="100%", height="700", frameborder="0")

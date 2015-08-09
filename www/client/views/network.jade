@@ -14,13 +14,13 @@
         span.pull-right.muted {{swapPacket.time | date:"dd/MM/yyyy @ HH:mm:ss"}}
   .row
     h4 Quality
-    #chart-quality(ng-click="refreshQuality()", style="height: 500px")
+    #chart-quality(ng-click="refreshQuality()", style="height: 600px")
     .pagination
-      button(ng-click="previousQuality()") Previous
-      button(ng-click="nextQuality()") Next
+      button(ng-click="previousQuality()", class="btn btn-primary") Previous
+      button(ng-click="nextQuality()", class="btn btn-default", ng-class="{'btn-primary': quality.offsetData > 0}") Next
   .row
     h4 Nonce
     #chart-nonce(ng_click="refreshNonce()", style="height: 500px")
     .pagination
-      button(ng-click="previousNonce()") Previous
-      button(ng-click="nextNonce()") Next
+      button(ng-click="previousNonce()", class="btn btn-primary") Previous
+      button(ng-click="nextNonce()", class="btn btn-default", ng-class="{'btn-primary': nonce.offsetData > 0}") Next

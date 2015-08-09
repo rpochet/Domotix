@@ -381,8 +381,8 @@
       
       function loadData() {
         $.ajax({
-          dataType: "jsonp",
-          url: "http://192.168.1.4:5984/panstamp_packets/_design/domotix/_view/pressure",
+          dataType: "json",
+          url: "http://192.168.1.2:5984/panstamp_packets/_design/domotix/_view/pressure",
           data: {
             limit: 10,
             descending: true

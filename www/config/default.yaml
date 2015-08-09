@@ -37,7 +37,7 @@ udpBridge:
     host: 192.168.1.4
     port: 5555
 couchDB:
-    host: 192.168.1.4
+    host: 192.168.1.2
     port: 5984
 thingspeak:
     host: api.thingspeak.com

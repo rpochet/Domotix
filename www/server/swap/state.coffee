@@ -83,8 +83,6 @@ class State extends events.EventEmitter
         @state[name][key].nonce = @state[name][key].nonce++
         
         @saveState()
-        
-        @state[name][key].nonce
     
     getState: (name) ->
         return @state[name] if name

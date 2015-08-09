@@ -23,10 +23,10 @@ app.run (editableOptions) ->
 
 # Cors usage example. 
 # @author Georgi Naumov gonaumov@gmail.com for contacts and suggestions. 
-app.config ($httpProvider) ->
-    # Enable cross domain calls
-    $httpProvider.defaults.useXDomain = true
-    delete $httpProvider.defaults.headers.common['X-Requested-With']
+#app.config ($httpProvider) ->
+#    # Enable cross domain calls
+#    $httpProvider.defaults.useXDomain = true
+#    delete $httpProvider.defaults.headers.common['X-Requested-With']
 
 app.config (ngToastProvider) ->
   ngToastProvider.configure

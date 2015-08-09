@@ -8,7 +8,7 @@ var http = require('http'),
     moment = require('moment'),
     brokerConfig = require('config').broker,
     serverConfig = require('config').server;
-log4js.configure('config/log4js_configuration.json', {});
+log4js.configure('config/log4js_configuration.json', {reloadSecs: 60});
 var logger = log4js.getLogger(__filename.split('/').pop(-1).split('.')[0]);
 
 //process.env.DEBUG = "engine*"

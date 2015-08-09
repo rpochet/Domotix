@@ -61,6 +61,15 @@ getValue = (value, length) ->
     else
         (value >> 8 * i) & 255 for i in [length-1..0]
 
+getTemperature = (swapPacket) ->
+    regiser = swapPacket.value
+    return register.value.value[0] * 256 + register.value.value[1]
+
+getPressure = (swapPacket) ->
+    regiser = swapPacket.value
+    return "N.A" if register.value.value.length != 6
+    return register.value.value[2] * 256 * 256 * 256 + register.value.value[3] * 256 * 256 + register.value.value[4] * 256 + register.value.value[5]
+
 Address =
     BROADCAST: 255
 

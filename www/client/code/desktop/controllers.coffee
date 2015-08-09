@@ -161,27 +161,51 @@ module.exports = (swapApp) ->
     
     minSource = 2
     maxSource = 4
-    nbGraph = maxSource - minSource + 1
     
     formatDate = d3.time.format "%Y-%m-%d %H:%M:%S"
     formatUpdateDate = d3.time.format "%Y-%m-%d %H:%M:%S"
     
-    $scope.quality = 
-      defaultMinRSSI: -120
-      defaultMaxRSSI: 120
+    ######################################
+    # QUALITY RSSI/LQI
+    
+    defaultMinRSSI = -120
+    defaultMaxRSSI = 120
+    defaultMinLQI = 0
+    defaultMaxLQI = 120
+    
+    $scope.quality =
       zoomRSSI: false
-      defaultMinLQI: 0
-      defaultMaxLQI: 120
       zoomLQI: false
       offsetData: 0
       nbData: 100
       rowsHeader: []
+      nbGraph: maxSource - minSource + 1
       options:
         bindto: '#chart-quality'
         data:
           xs: {}
           columns: []
           axes: {}
+        axis:
+          x:
+            type: 'timeseries'
+            tick:
+              format: (x) ->
+                return d3.time.format('%m-%d %H:%M')(x)
+          y:
+            show: true
+            label:
+              text: 'RSSI'
+              position: 'outer-middle'
+            min: defaultMinRSSI
+            max: defaultMaxRSSI
+          y2:
+            show: true
+            label:
+              text: 'LQI'
+              position: 'outer-middle'
+            min: defaultMinLQI
+            max: defaultMaxLQI
         
     s = minSource
     while s <= maxSource
@@ -189,9 +213,9 @@ module.exports = (swapApp) ->
       $scope.quality.options.data.xs['LQI-' + s] = 'x-' + s
       
       # data.columns
-      $scope.quality.options.data.columns[0 + nbGraph * (s - 2)] = ['x-' + s]
-      $scope.quality.options.data.columns[1 + nbGraph * (s - 2)] = ['RSSI-' + s]
-      $scope.quality.options.data.columns[2 + nbGraph * (s - 2)] = ['LQI-' + s]
+      $scope.quality.options.data.columns[0 + $scope.quality.nbGraph * (s - minSource)] = ['x-' + s]
+      $scope.quality.options.data.columns[1 + $scope.quality.nbGraph * (s - minSource)] = ['RSSI-' + s]
+      $scope.quality.options.data.columns[2 + $scope.quality.nbGraph * (s - minSource)] = ['LQI-' + s]
       
       $scope.quality.options.data.axes['LQI-' + s] = 'y2'
       s++
@@ -200,47 +224,124 @@ module.exports = (swapApp) ->
       $scope.quality.chart = c3.generate $scope.quality.options
     
     loadQuality = () ->
-      $http.jsonp 'http://192.168.1.4:5984/panstamp_packets/_design/domotix/_view/network_status?callback=JSON_CALLBACK&descending=true&limit=' + $scope.quality.nbData,
-        limit: 100
-        descending: true
+      $http.get 'http://192.168.1.2:5984/panstamp_packets/_design/domotix/_view/network_status',
+        params:
+          skip: $scope.quality.offsetData
+          limit: $scope.quality.nbData
+          descending: true
       .success (data) ->
+        # Remove previous data but header
         angular.forEach $scope.quality.options.data.columns, (column) ->
           column.splice 1
+          
         angular.forEach data.rows, (row, idx) ->
           value = row.value
           source = parseInt value.source
           if(source > 1 && source != 255) # do not handle modem packets and new device
-            $scope.quality.options.data.columns[0 + nbGraph * (source - 1 - 1)].push d3.time.format.iso.parse value.time
-            $scope.quality.options.data.columns[1 + nbGraph * (source - 1 - 1)].push value.RSSI
-            $scope.quality.options.data.columns[2 + nbGraph * (source - 1 - 1)].push value.LQI
+            $scope.quality.options.data.columns[0 + $scope.quality.nbGraph * (source - minSource)].push d3.time.format.iso.parse value.time
+            $scope.quality.options.data.columns[1 + $scope.quality.nbGraph * (source - minSource)].push value.RSSI
+            $scope.quality.options.data.columns[2 + $scope.quality.nbGraph * (source - minSource)].push value.LQI
         
-        #minRSSI = d3.min rows[1], (d, idx) ->
+        #$scope.quality.minRSSI = d3.min $scope.quality.options.data.columns[1], (d, idx) ->
         #  if idx > 0 then d else $scope.quality.defaultMaxRSSI
-        #
-        #maxRSSI = d3.max rows[1], (d, idx) ->
+        # 
+        #$scope.quality.maxRSSI = d3.max $scope.quality.options.data.columns[1], (d, idx) ->
         #  if idx > 0 then d else $scope.quality.defaultMinRSSI
         #
-        #minLQI = d3.min rows[2], (d, idx) ->
+        #$scope.quality.minLQI = d3.min $scope.quality.options.data.columns[2], (d, idx) ->
         #  if idx > 0 then d else $scope.quality.defaultMaxLQI
         #
-        #maxLQI = d3.max rows[2], (d, idx) ->
+        #$scope.quality.maxLQI = d3.max $scope.quality.options.data.columns[2], (d, idx) ->
         #  if idx > 0 then d else $scope.quality.defaultMinLQI
         #
         $scope.quality.chart.load
           columns: $scope.quality.options.data.columns
-          
     
     $scope.refreshQuality = () ->
       loadQuality()
     
     $scope.previousQuality = () ->
-      $scope.quality.offest = $scope.quality.offest - $scope.quality.nbData
+      $scope.quality.offsetData = $scope.quality.offsetData + $scope.quality.nbData
       $scope.refreshQuality()
       
     $scope.nextQuality = () ->
-      $scope.quality.offest = $scope.quality.offest + $scope.quality.nbData
+      return if $scope.quality.offsetData <= 0
+      $scope.quality.offsetData = $scope.quality.offsetData - $scope.quality.nbData
       $scope.refreshQuality()
       
+    
+    ######################################
+    # QUALITY NONCE
+    
+    $scope.nonce =
+      offsetData: 0
+      nbData: 100
+      rowsHeader: []
+      nbGraph: 2
+      options:
+        bindto: '#chart-nonce'
+        data:
+          xs: {}
+          columns: []
+          axes: {}
+        axis:
+          x:
+            type: 'timeseries'
+            tick:
+              format: (x) ->
+                return d3.time.format('%m-%d %H:%M')(x)
+          y:
+            show: true
+            label:
+              text: 'Nonce'
+              position: 'outer-middle'
+        
+    s = minSource
+    while s <= maxSource
+      $scope.nonce.options.data.xs['N-' + s] = 'x-' + s
+      
+      # data.columns
+      $scope.nonce.options.data.columns[0 + $scope.nonce.nbGraph * (s - minSource)] = ['x-' + s]
+      $scope.nonce.options.data.columns[1 + $scope.nonce.nbGraph * (s - minSource)] = ['N-' + s]
+      
+      s++
+      
+    $scope.createNonceGraph = () ->
+      $scope.nonce.chart = c3.generate $scope.nonce.options
+      
+    loadNonce = (addr) ->
+      $http.get 'http://192.168.1.2:5984/panstamp_packets/_design/domotix/_view/nonce_' + addr,
+        params:
+          skip: $scope.nonce.offsetData
+          limit: $scope.nonce.nbData
+          descending: true
+      .success (data) ->
+        # Remove previous data but header
+        angular.forEach $scope.nonce.options.data.columns, (column) ->
+          column.splice 1
+          
+        angular.forEach data.rows, (row, idx) ->
+          console.log d3.time.format.iso.parse row.key
+          $scope.nonce.options.data.columns[0 + $scope.nonce.nbGraph * (addr - minSource)].push d3.time.format.iso.parse row.key
+          $scope.nonce.options.data.columns[1 + $scope.nonce.nbGraph * (addr - minSource)].push row.value
+        $scope.nonce.chart.load
+          columns: $scope.nonce.options.data.columns
+    
+    $scope.refreshNonce = () ->
+      loadNonce addr for addr in [minSource..maxSource]
+    
+    $scope.previousNonce = () ->
+      $scope.nonce.offsetData = $scope.nonce.offsetData + $scope.nonce.nbData
+      $scope.refreshNonce()
+      
+    $scope.nextNonce = () ->
+      return if $scope.nonce.offsetData <= 0
+      $scope.nonce.offsetData = $scope.nonce.offsetData - $scope.nonce.nbData
+      $scope.refreshNonce()
+    
+    
+    ######################################
+    # SWAP PACKETS/EVENTS
     
     $scope.swapPackets = []
     $scope.swapEvents = []
@@ -254,6 +355,8 @@ module.exports = (swapApp) ->
           $scope.swapEvents = swapEvents
       $scope.createQualityGraph()
       #$scope.refreshQuality()
+      $scope.createNonceGraph()
+      #$scope.refreshNonce()
     
     # When a serial packet is received
     ss.event.on 'swapPacket', (sp) ->
@@ -269,7 +372,7 @@ module.exports = (swapApp) ->
   ]
   
   swapApp.controller 'DomotixCtrl', ['$scope', 'rpc', ($scope, rpc) ->
-
+    
     $scope.levels = undefined
     
     $scope.handleSvgClick = ($event, level) ->
@@ -302,10 +405,15 @@ module.exports = (swapApp) ->
       else 
         return 'url(#g2)';
     
-    ss.event.on 'lightStatusUpdated2', (lightStatus) ->
-        ss.rpc 'swapserver.getLevels', (levels) ->
-          $scope.$apply () ->
-            $scope.levels = levels
+    ss.event.on 'temperatureUpdated', (temperature) ->
+      $scope.$apply () ->
+          $scope.temperature = swap.getTemperature(temperature)
+          $scope.pressure = swap.getTemperature(temperature)
+    
+    ss.event.on 'pressureUpdated', (pressure) ->
+      $scope.$apply () ->
+          $scope.temperature = swap.getTemperature(pressure)
+          $scope.pressure = swap.getTemperature(pressure)
     
     ss.event.on 'lightStatusUpdated', (lightStatus) ->
       $scope.$apply () ->
@@ -315,13 +423,21 @@ module.exports = (swapApp) ->
               do (room) ->
                 for light in room.lights
                   do (light) ->
-                    if lightStatus.regAdd == light.swapDeviceAddress
+                    if lightStatus.regAddress == light.swapDeviceAddress
                           light.status = lightStatus.value[light.outputNb]
     
     ss.server.on 'ready', () ->
       ss.rpc 'swapserver.getLevels', (levels) ->
         $scope.$apply () ->
           $scope.levels = levels
+      ss.rpc 'swapserver.getTemperature', (temperature) ->
+        $scope.$apply () ->
+          $scope.temperature = swap.getTemperature(temperature)
+          $scope.pressure = swap.getTemperature(temperature)
+      ss.rpc 'swapserver.getPressure', (pressure) ->
+        $scope.$apply () ->
+          $scope.temperature = swap.getTemperature(pressure)
+          $scope.pressure = swap.getTemperature(pressure)
   ]
   
   swapApp.controller 'ConfigCtrl', ['$scope', 'rpc', ($scope, rpc) ->
@@ -389,7 +505,7 @@ module.exports = (swapApp) ->
       $scope.loadNewData()
 
     $scope.loadNewData = () ->
-      $http.jsonp('http://192.168.1.4:5984/panstamp_packets/_design/domotix/_view/temperature?callback=JSON_CALLBACK&descending=true&limit=' + $scope.chartNbPoints).success (data, status, headers, config) ->
+      $http.get('http://192.168.1.2:5984/panstamp_packets/_design/domotix/_view/temperature?descending=true&limit=' + $scope.chartNbPoints).success (data, status, headers, config) ->
         newdata =
           keys: $scope.config.data.keys
           json: []
@@ -455,7 +571,7 @@ module.exports = (swapApp) ->
       $scope.loadNewData()
 
     $scope.loadNewData = () ->
-      $http.jsonp('http://192.168.1.4:5984/events/_design/domotix/_view/consommation?callback=JSON_CALLBACK&descending=true&limit=' + $scope.chartNbPoints).success (data, status, headers, config) ->
+      $http.get('http://192.168.1.2:5984/events/_design/domotix/_view/consommation?descending=true&limit=' + $scope.chartNbPoints).success (data, status, headers, config) ->
         newdata =
           keys: $scope.config.data.keys
           json: []

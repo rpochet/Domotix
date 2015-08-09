@@ -1,13 +1,18 @@
 {
   "appenders": [
     {
-      "type": "console"
-    },
-    {
-      "type": "dateFile",
-      "filename": "logs/domotix.log",
-      "pattern": "-yyyy-MM-dd",
-      "alwaysIncludePattern": true
+      "type": "logLevelFilter",
+      "level": "INFO",
+      "appender": 
+      {
+        "type": "dateFile",
+        "filename": "logs/domotix.log",
+        "pattern": "-yyyy-MM-dd",
+        "alwaysIncludePattern": true
+      }
     }
-  ]
+  ],
+  "levels": {
+    "[all]": "INFO"
+  }
 }

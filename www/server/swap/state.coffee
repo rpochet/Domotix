@@ -4,6 +4,7 @@ swap = require "../../client/code/common/swap"
 logger = require("log4js").getLogger(__filename.split("/").pop(-1).split(".")[0])
 moment = require "moment"
 Q = require "q"
+poolr  = require("poolr").createPool
 
 ###############################################################
 #
@@ -20,6 +21,7 @@ class State extends events.EventEmitter
         @state = {}
         
         @dbPanstamp = new(cradle.Connection)(@config.couchDB.host, @config.couchDB.port).database("panstamp")
+        @dbPanstampPool = poolr(1, @dbPanstamp)
         
         @init(@pubSub)
     
@@ -29,7 +31,7 @@ class State extends events.EventEmitter
             return logger.error "Get state failed: #{JSON.stringify(err)}" if err?
             @state = doc
             logger.info "State initialized"
-            logger.debug @state
+            logger.info @state
             
             if @config.state.clientCheck
                 @clientcheck = setInterval () =>
@@ -54,7 +56,7 @@ class State extends events.EventEmitter
     saveState: () ->
         logger.debug "Saving state: #{JSON.stringify(@state)}" 
         
-        @dbPanstamp.save "state", @state, (err, status) =>
+        @dbPanstampPool.addTask @dbPanstamp.save, "state", @state, (err, status) =>
             logger.debug err if err?
             return logger.error "Save state failed: #{JSON.stringify(err)}" if err?
             @state._rev = status.rev
@@ -85,7 +87,7 @@ class State extends events.EventEmitter
         @state[name][key].nonce
     
     getState: (name) ->
-        return @state.name if name
+        return @state[name] if name
         return @state if name?
     
     destroy: () ->

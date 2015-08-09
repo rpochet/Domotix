@@ -11,11 +11,17 @@ sleep = require "sleep"
 eventEmitter = require("events").EventEmitter
 moment = require "moment"
 logger = require("log4js").getLogger(__filename.split("/").pop(-1).split(".")[0])
+poolr  = require("poolr").createPool
 
 dbPanstamp = new(cradle.Connection)(Config.couchDB.host, Config.couchDB.port).database("panstamp")
 dbEvents = new(cradle.Connection)(Config.couchDB.host, Config.couchDB.port).database("events")
 dbPanstampPackets = new(cradle.Connection)(Config.couchDB.host, Config.couchDB.port).database("panstamp_packets")
 dbPanstampEvents = new(cradle.Connection)(Config.couchDB.host, Config.couchDB.port).database("panstamp_events")
+
+dbPanstampPool = poolr(1, dbPanstamp)
+dbEventsPool = poolr(1, dbEvents)
+dbPanstampPacketsPool = poolr(1, dbPanstampPackets)
+dbPanstampEventsPool = poolr(1, dbPanstampEvents)
 
 state = undefined
 pubSub = undefined
@@ -177,13 +183,13 @@ addSwapPacket = (swapPacket, packetDevice, foundRegister) ->
                         if light.swapDeviceAddress == packetDevice.address 
                             light.status = swapPacket.value[light.outputNb]
                 
-                ss.api.publish.all "lightStatusUpdated", state.lightStatus
+                ss.api.publish.all "lightStatusUpdated", state.getState swap.MQ.Type.LIGHT_STATUS
                 send = true
             else if swapPacket.regId == swap.LightController.Registers.PressureTemperature.id
                 
                 sendToClient [swap.MQ.Type.PRESSURE, swap.MQ.Type.TEMPERATURE], swapPacket, packetDevice, foundRegister
                 
-                ss.api.publish.all "temperatureUpdated", state.temperature
+                ss.api.publish.all "temperatureUpdated", state.getState swap.MQ.Type.TEMPERATURE
                 send = true
             
         else if (packetDevice.product.indexOf swap.LightSwitch.productCode) == 0
@@ -192,7 +198,7 @@ addSwapPacket = (swapPacket, packetDevice, foundRegister) ->
                 
                 sendToClient swap.MQ.Type.TEMPERATURE, swapPacket, packetDevice, foundRegister
                 
-                ss.api.publish.all "temperatureUpdated", state.temperature
+                ss.api.publish.all "temperatureUpdated", state.getState swap.MQ.Type.TEMPERATURE
                 send = true
             
         if !send
@@ -231,8 +237,8 @@ serial.on "started", () ->
             logger.warn "Unknown data received from Serial Bridge: #{rawSwapPacket} but must be like '(xxxx)yyyyyy'"
     
     pubSub.on swap.MQ.Type.MANAGEMENT, (message) ->
-        logger.info "Management message: #{JSON.stringify(message)}"
         [client, type, data] = message.split ":"
+        logger.debug "Management message: #{JSON.stringify(message)}"
         state.updateState "clients", client, type, data
     
     pubSub.on swap.MQ.Type.SWAP_PACKET, (rawSwapPacket) ->
@@ -586,13 +592,13 @@ exports.actions = (req, res, ss) ->
         res state.getState()
     
     getLightStatus: ->
-        res state.getState("lightStatus")
+        res state.getState swap.MQ.Type.LIGHT_STATUS
     
     getPressure: ->
-        res state.getState("pressure")
+        res swap.getPressure state.getState swap.MQ.Type.PRESSURE
     
     getTemperature: ->
-        res state.getState("temperature")
+        res swap.getTemperature state.getState swap.MQ.Type.TEMPERATURE
     
     refreshDevices: ->
         initLevels()

@@ -24,7 +24,8 @@
     "ss-engine.io": "*",
     "ss-jade": "*",
     "ss-stylus": "*",
-    "string": "*"
+    "string": "*",
+    "pollr": "*"
   },
   "scripts": {
     "start": "node app.js"

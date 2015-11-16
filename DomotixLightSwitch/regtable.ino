@@ -7,7 +7,7 @@
  * Author: Pochet Romuald
  * Creation date: 04 Nov 2013
  */
-#include "product.h"NVOL
+#include "product.h"
 #include "regtable.h"
 
 /**

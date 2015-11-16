@@ -9,15 +9,19 @@
  */
 
 #include "HardwareSerial.h"
-#include "EEPROM.h"
+#include "nvolat.h"
 #include "Wire.h"
 #include "MPR121.h"
 #include "regtable.h"
 #include "swap.h"
+#include "domotix.h"
 #include "Adafruit_MCP9808.h"
+
 
 #define DEBUG
 #define USE_INTERRUPT
+
+#define CC1101_DEFVAL_ADDR  1
 /**
  * Uncomment if you are reading Vcc from A0. All battery-boards do this
  */
@@ -44,6 +48,7 @@ Adafruit_MCP9808 tempsensor = Adafruit_MCP9808(); // Create the MCP9808 temperat
 /**
  * TOUCH BOARD
  */
+const int touchboardKeyNb = 12;
 const int touchboardAddress = 0x5A;
 int touchboardIRQPin = 3;                 // PD3, if change update pcEnableInterrupt, pcDisableInterrupt and PCINTMASK0
 int touchboardIRQNumber = 1;              // INT1
@@ -52,24 +57,20 @@ volatile boolean touchboardIRQ = false;    // Set when touch event is available
 #else
 volatile boolean touchboardIRQ = true;    // Set when touch event is available
 #endif
-const int touchboardKeyNb = 12;
+
 const mpr121_proxmode_t mpr121ProxMode = PROX0_11;
 MPR121_settings_t mpr121Settings;
 
-#define SWAPFUNCT_LIGHT     SWAPFUNCT_CMD1
-#define SWAPREG_OUTPUTS     14
-#define SWAPFUNCT_LED       SWAPFUNCT_CMD3
-#define SWAPREG_LEDS        0
-const byte lightOutputOff = 0;
-const byte lightOutputOn = 254;
-const byte lightOutputToggle = -1;
-
 /**
- * TOUCH: 0, addr, light
- * LED: 1, dim, init
+ * N.A.:  0,    0,     0,     0,     0
+ * TOUCH: 1, addr, light,     0,     0
+ * LED:   2,  pwm,  addr, light,     0
  */
-const int touchConfigLength = 3;
+const int touchConfigLength = 5;
 static byte dtTouchConfig[touchboardKeyNb * touchConfigLength];
+const int OUTPUT_NA = 0;
+const int OUTPUT_TOUCH = 1;
+const int OUTPUT_LED = 2;
 
 
 /**
@@ -87,26 +88,28 @@ static byte dtTouchConfig[touchboardKeyNb * touchConfigLength];
  *   swap->value.length: Length of data field
  *   swap->value.data: Array of data bytes
  */
-/*void swapReceived(SWPACKET *swap)
+void swapPacketReceived(SWPACKET *swap)
 {
-  short i;
+    short i;
   
-   if ((swap->function == SWAPFUNCT_STA) & (swap->regId == SWAPREG_OUTPUTS))
-   {
-       for(i = 0; i < touchboardKeyNb; i++) 
-       {
-           if(dtTouchConfig[i * touchConfigLength + 1] == swap->regAddr)
-           {
-               if(swap->value.data[dtTouchConfig[i * touchConfigLength + 2]] > 0)
-               {
-                   // Switch LED On
-               }
-           }
-       }
-   }
-   else if (swap->function == SWAPFUNCT_CMD3)
-     ;
-}*/
+    if (swap->regId == SWAPREG_OUTPUTS)
+    {
+        for(i = 0; i < touchboardKeyNb; i++) 
+        {
+            if((dtTouchConfig[i * touchConfigLength] == OUTPUT_LED) & (dtTouchConfig[i * touchConfigLength + 2] == swap->regAddr))
+            {
+                if(swap->value.data[dtTouchConfig[i * touchConfigLength + 3]] > 0)
+                {
+                    MPR121.analogWrite(i, dtTouchConfig[i * touchConfigLength + 1]);
+                }
+                else
+                {
+                    MPR121.analogWrite(i, 0);
+                }
+            }
+        }
+    }
+}
 
 /**
  * setup
@@ -140,7 +143,6 @@ void setup()
     
 #ifdef DEBUG
     Serial.println(sensorDelay);
-    Serial.println(freeRam());
 #endif
     
     // panstamp init only read register value from EEPROM, 
@@ -173,11 +175,10 @@ void setup()
     // TODO set to OFF as it is a sleeping device
     swap.enterSystemState(SYSTATE_RXON);
     
-    //swap.attachInterrupt(OTHER, swapReceived);
-    
-#ifdef DEBUG
-    Serial.println(freeRam());
-#endif
+    // Declare callback function for dispatching the incoming SWAP packets
+    //panstamp.setSwapPacketCallBack(swapPacketReceived);
+    swap.attachInterrupt(STATUS, swapPacketReceived);
+
 }
 
 /**
@@ -196,7 +197,7 @@ void eepromToDefaults()
     uint8_t sensorDelay[] = {0, 0};
     nvMem.write(sensorDelay, DEFAULT_NVOLAT_SECTION, NVOLAT_CONFIG_SENSOR_DELAY, sizeof(sensorDelay));
     
-    uint8_t touchConfig[] = {0, 2, 0};
+    uint8_t touchConfig[] = {OUTPUT_TOUCH, 2, 0, 0, 0};
     for(i = 0 ; i < touchboardKeyNb; i++)
     {
         touchConfig[2] = i;
@@ -207,24 +208,15 @@ void eepromToDefaults()
 /**
  *
  */
-int freeRam() 
-{
-    extern int __heap_start, *__brkval; 
-    int v; 
-    return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
-}
-
-/**
- *
- */
 void initRegister() 
 {
-    sensorDelay = word(dtSensorDelay[1], dtSensorDelay[0]);
-    if(sensorDelay == 0 || sensorDelay == 4294967295) 
+    //sensorDelay = word(dtSensorDelay[1], dtSensorDelay[0]);
+    sensorDelay = 256 * dtSensorDelay[1] + dtSensorDelay[0];
+    if(sensorDelay == 0 || sensorDelay == 0xffffffff) 
     {
-        sensorDelay = 3600; // 0x0E10
-        EEPROM.write(NVOLAT_CONFIG_SENSOR_DELAY + 1, 0x0E);
-        EEPROM.write(NVOLAT_CONFIG_SENSOR_DELAY, 0x10);
+        sensorDelay = 3600u; // 0x0E10
+        /*EEPROM.write(NVOLAT_CONFIG_SENSOR_DELAY + 1, 0x0E);
+        EEPROM.write(NVOLAT_CONFIG_SENSOR_DELAY, 0x10);*/
     }
   
 #ifdef DEBUG
@@ -260,38 +252,43 @@ void initSensor()
  */
 void initMpr121() 
 {
-    short electrode = 0;
-    short numDigPins = 0;
+    short numLeds = 0;
     
 #ifdef DEBUG
     Serial.println("Init MPR121... ");
 #endif
-    
+
+    // TOUCH: Default all pin is a touch electrode
+
+    // LED
     for (uint8_t i = 0; i < touchboardKeyNb; i++) 
     {
-        if(dtTouchConfig[i * touchConfigLength] == 0) 
-        {
-#ifdef DEBUG
-    Serial.print(i);
-    Serial.println(" is electrode");
-#endif
-            // Electrode
-            electrode++;
-        }
-        else
+        if(dtTouchConfig[i * touchConfigLength] == OUTPUT_LED) 
         {
 #ifdef DEBUG
     Serial.print(i);
     Serial.println(" is LED");
 #endif
             // LED
-            numDigPins++;
+            numLeds++;
             MPR121.pinMode(i, OUTPUT_HS);
         }
+#ifdef DEBUG
+        else if(dtTouchConfig[i * touchConfigLength] == OUTPUT_TOUCH) 
+        {
+            Serial.print(i);
+            Serial.println(" is LED");
+        }
+        else
+        {
+            Serial.print(i);
+            Serial.println(" is N.A.");
+        }
+#endif
     }
 
-    MPR121.setNumElectrodes(electrode);
-    //MPR121.setNumDigPins(numDigPins);
+    MPR121.setNumDigPins(numLeds);
+    
     MPR121.setProxMode(mpr121ProxMode);
     
     if (!MPR121.begin(touchboardAddress)) {
@@ -300,10 +297,6 @@ void initMpr121()
     }
     
 #ifdef DEBUG
-    Serial.print(electrode);
-    Serial.print(" ");
-    Serial.print(numDigPins);
-    Serial.print(" ");
     Serial.print(MPR121.getRegister(ECR), HEX);
 #endif
     

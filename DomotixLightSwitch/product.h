@@ -13,22 +13,22 @@
 /**
  * Hardware version
  */
-#define HARDWARE_VERSION        0x00000001
+#define HARDWARE_VERSION        0x00000001L
 
 /**
  * Firmware version
  */
-#define FIRMWARE_VERSION        0x00000001
+#define FIRMWARE_VERSION        0x00000001L
 
 /**
  * Manufacturer SWAP ID
  */
-#define SWAP_MANUFACT_ID        100
+#define SWAP_MANUFACT_ID        0x00000002L
 
 /**
  * Product SWAP ID
  */
-#define SWAP_PRODUCT_ID         2
+#define SWAP_PRODUCT_ID         0x00000002L
 
 #endif
 

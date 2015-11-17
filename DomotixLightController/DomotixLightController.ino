@@ -14,6 +14,7 @@
 #include "HardwareSerial.h"
 #include "regtable.h"
 #include "swap.h"
+#include "domotix.h"
 #include "Wire.h"
 #include "Adafruit_Sensor.h"
 #include "Adafruit_BMP085.h"
@@ -23,15 +24,6 @@
  * Uncomment if you are reading Vcc from A0. All battery-boards do this
  */
 #define VOLT_SUPPLY_A0   1
-
-/**
- *
- */
-#define SWAPFUNCT_LIGHT        SWAPFUNCT_CMD1
-#define SWAPFUNCT_LIGHT_RESET  SWAPFUNCT_CMD2
-const byte lightOutputOff = 0;
-const byte lightOutputOn = 254;
-const byte lightOutputToggle = -1;
 
 /**
  * LED pin
@@ -105,7 +97,7 @@ void setup()
     
     // Init panStamp
     //panstamp.init(CFREQ_868);  // Not necessary unless you want a different frequency
-    //panstamp.setHighTxPower();
+    panstamp.setHighTxPower();
 
     // Init swap
     swap.init();
